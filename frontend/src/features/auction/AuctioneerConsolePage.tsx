@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useAuctionSocket } from './useAuctionSocket';
+import { ConnectionIndicator } from './ConnectionIndicator';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { 
@@ -15,6 +18,7 @@ import {
   Sparkles, 
   Shield, 
   ChevronRight, 
+  Monitor,
   RefreshCw 
 } from 'lucide-react';
 import type { 
@@ -34,55 +38,50 @@ export function AuctioneerConsolePage() {
   const navigate = useNavigate();
 
   // State
-  const [state, setState] = useState<AuctionStateDto | null>(null);
   const [allSets, setAllSets] = useState<PlayerSetSummary[]>([]);
-  const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Bidding podium input state
-  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
-  const [currentBidPrice, setCurrentBidPrice] = useState<number>(0);
-  const [lastSoldEvent, setLastSoldEvent] = useState<{
-    lot: AuctionLotDto;
-    teamName: string;
-    finalPrice: number;
-  } | null>(null);
+  const [bidDraft, setBidDraft] = useState<{ signature: string; price: number; teamId: string } | null>(null);
 
   // Modals
   const [correctingLot, setCorrectingLot] = useState<AuctionLotDto | null>(null);
   const [showSetSummary, setShowSetSummary] = useState<SetSummaryDto | null>(null);
 
-  // Currency
-  const currencySymbol = '₹';
-
-  // Fetch auction state
-  const fetchState = useCallback(async () => {
-    if (!token || !tournamentId) return;
-    try {
+  const auctionQuery = useQuery({
+    queryKey: ['auction', tournamentId, token],
+    enabled: !!token && !!tournamentId,
+    queryFn: async () => {
       const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/auction`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (!res.ok) {
-        throw new Error('Failed to fetch auction state');
-      }
-      const data: AuctionStateDto = await res.json();
-      setState(data);
-
-      // Initialize bid price if active lot changes
-      if (data.currentLot) {
-        if (!selectedTeamId && data.teamStandings.length > 0) {
-          const eligibleTeam = data.teamStandings.find(t => t.canBid);
-          if (eligibleTeam) setSelectedTeamId(eligibleTeam.teamId);
-        }
-        setCurrentBidPrice(prev => (prev > 0 ? prev : data.currentLot!.basePrice));
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error fetching auction state');
-    } finally {
-      setLoading(false);
-    }
-  }, [token, tournamentId, selectedTeamId]);
+      if (!res.ok) throw new Error('Failed to fetch auction state');
+      return await res.json() as AuctionStateDto;
+    },
+  });
+  const state = auctionQuery.data ?? null;
+  // Draft inputs belong to one canonical bid. A remote bid or a new lot immediately replaces them.
+  const canonicalBid = state?.currentLot?.currentBid ?? state?.currentLot?.basePrice ?? 0;
+  const canonicalLeader = state?.currentLot?.leadingTeamId ?? '';
+  const bidSignature = `${state?.currentLot?.lotId ?? ''}:${canonicalBid}:${canonicalLeader}`;
+  const currentBidPrice = bidDraft?.signature === bidSignature ? bidDraft.price : canonicalBid;
+  const selectedTeamId = bidDraft?.signature === bidSignature ? bidDraft.teamId : canonicalLeader;
+  const setSelectedTeamId = (teamId: string) => setBidDraft({ signature: bidSignature, price: currentBidPrice, teamId });
+  const setCurrentBidPrice = (price: number | ((previous: number) => number)) => setBidDraft({
+    signature: bidSignature, price: typeof price === 'function' ? price(currentBidPrice) : price, teamId: selectedTeamId,
+  });
+  const lastSoldLot = !state?.currentLot && state?.lastResult?.status === 'SOLD' ? state.lastResult : null;
+  const lastSoldEvent = lastSoldLot ? { lot: lastSoldLot, teamName: lastSoldLot.winningTeamName ?? '', finalPrice: lastSoldLot.finalPrice ?? 0 } : null;
+  const loading = auctionQuery.isPending;
+  const error = auctionQuery.error?.message;
+  const { refetch } = auctionQuery;
+  const fetchState = useCallback(async () => {
+    await refetch({ throwOnError: true });
+  }, [refetch]);
+  const connectionStatus = useAuctionSocket(tournamentId, token, fetchState, (event, args) => {
+    if (event === 'SetCompleted') setShowSetSummary(args[0] as SetSummaryDto);
+    if (event === 'PlayerRevealed') setShowSetSummary(null);
+  });
+  const mutationBlocked = actionLoading || auctionQuery.isError || connectionStatus !== 'connected';
+  const currencySymbol = state?.currencySymbol ?? '₹';
 
   // Fetch all sets for the tournament
   const fetchSets = useCallback(async () => {
@@ -101,20 +100,12 @@ export function AuctioneerConsolePage() {
   }, [token, tournamentId]);
 
   useEffect(() => {
-    fetchState();
     fetchSets();
-  }, [fetchState, fetchSets]);
-
-  // Update bid price when lot changes
-  useEffect(() => {
-    if (state?.currentLot) {
-      setCurrentBidPrice(state.currentLot.basePrice);
-    }
-  }, [state?.currentLot?.lotId]);
+  }, [fetchSets]);
 
   // Actions
   const handleStartAuction = async () => {
-    if (!token || !tournamentId) return;
+    if (mutationBlocked || !token || !tournamentId) return;
     setActionLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/auction/start`, {
@@ -134,7 +125,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handlePauseResume = async () => {
-    if (!token || !tournamentId || !state) return;
+    if (mutationBlocked || !token || !tournamentId || !state) return;
     setActionLoading(true);
     const endpoint = state.sessionStatus === 'LIVE' ? 'pause' : 'resume';
     try {
@@ -155,7 +146,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handleStartSet = async (setId: string) => {
-    if (!token || !tournamentId) return;
+    if (mutationBlocked || !token || !tournamentId) return;
     setActionLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/auction/start-set`, {
@@ -180,9 +171,8 @@ export function AuctioneerConsolePage() {
   };
 
   const handleRevealNext = async () => {
-    if (!token || !tournamentId) return;
+    if (mutationBlocked || !token || !tournamentId) return;
     setActionLoading(true);
-    setLastSoldEvent(null);
     try {
       const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/auction/reveal-next`, {
         method: 'POST',
@@ -201,7 +191,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handleSellCurrent = async () => {
-    if (!token || !tournamentId || !state?.currentLot || !selectedTeamId) {
+    if (mutationBlocked || !token || !tournamentId || !state?.currentLot || !selectedTeamId) {
       alert('Please select a winning team before confirming sale.');
       return;
     }
@@ -229,12 +219,6 @@ export function AuctioneerConsolePage() {
         throw new Error(err.detail || 'Failed to sell player');
       }
 
-      setLastSoldEvent({
-        lot: state.currentLot,
-        teamName: team.teamName,
-        finalPrice: currentBidPrice
-      });
-
       await fetchState();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Action failed');
@@ -244,7 +228,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handleMarkUnsold = async () => {
-    if (!token || !tournamentId || !state?.currentLot) return;
+    if (mutationBlocked || !token || !tournamentId || !state?.currentLot) return;
     const confirmed = window.confirm(`Mark ${state.currentLot.playerName} as UNSOLD?`);
     if (!confirmed) return;
 
@@ -264,7 +248,6 @@ export function AuctioneerConsolePage() {
         throw new Error(err.detail || 'Failed to mark player unsold');
       }
 
-      setLastSoldEvent(null);
       await fetchState();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Action failed');
@@ -274,7 +257,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handleCompleteSet = async (setId: string) => {
-    if (!token || !tournamentId) return;
+    if (mutationBlocked || !token || !tournamentId) return;
     setActionLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/auction/sets/${setId}/complete`, {
@@ -296,7 +279,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handleStartUnsoldRound = async () => {
-    if (!token || !tournamentId) return;
+    if (mutationBlocked || !token || !tournamentId) return;
     const confirmed = window.confirm(
       'Start the mandatory Final Unsold Round?\n\nAll players who went unsold in round 1 will be re-auctioned once.'
     );
@@ -321,6 +304,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handleCommitCorrection = async (newTeamId: string, newPrice: number, reason: string) => {
+    if (mutationBlocked) throw new Error('Wait for the live connection to synchronize before correcting a result.');
     if (!token || !tournamentId || !correctingLot) return;
     const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/auction/correct-result`, {
       method: 'POST',
@@ -346,7 +330,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handleCompleteAuction = async () => {
-    if (!token || !tournamentId) return;
+    if (mutationBlocked || !token || !tournamentId) return;
     const confirmed = window.confirm('Are you sure you want to conclude and complete the entire tournament auction?');
     if (!confirmed) return;
 
@@ -393,9 +377,25 @@ export function AuctioneerConsolePage() {
     }
   };
 
+  const handleUpdateBid = async () => {
+    if (mutationBlocked || !token || !tournamentId || !state?.currentLot) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/auction/bid`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ lotId: state.currentLot.lotId, currentBid: currentBidPrice, leadingTeamId: selectedTeamId || null }),
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || 'Failed to update live bid');
+      await fetchState();
+    } catch (err) { alert(err instanceof Error ? err.message : 'Failed to update live bid'); }
+    finally { setActionLoading(false); }
+  };
+
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (mutationBlocked || correctingLot || showSetSummary || state?.sessionStatus !== 'LIVE') return;
       // Don't trigger if user is typing in an input
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) {
         return;
@@ -421,7 +421,7 @@ export function AuctioneerConsolePage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [state?.currentLot, state?.sessionStatus, selectedTeamId, currentBidPrice]);
+  }, [state?.currentLot, state?.sessionStatus, selectedTeamId, currentBidPrice, mutationBlocked, correctingLot, showSetSummary]);
 
   if (loading) {
     return (
@@ -432,7 +432,7 @@ export function AuctioneerConsolePage() {
     );
   }
 
-  if (error || !state) {
+  if (!state) {
     return (
       <div className="min-h-screen bg-[#070b14] flex flex-col items-center justify-center p-6 text-center space-y-4">
         <p className="text-rose-400 text-sm font-semibold">{error || 'Failed to load auction workspace'}</p>
@@ -502,6 +502,10 @@ export function AuctioneerConsolePage() {
           </div>
 
           {/* Center Status Pill */}
+          <div className="flex items-center gap-3">
+            <ConnectionIndicator status={connectionStatus} />
+            <Link to={`/tournaments/${tournamentId}/projector`} target="_blank" rel="noopener noreferrer" title="Open projector view" className="text-emerald-300 flex items-center gap-2 text-xs"><Monitor size={18} />Projector</Link>
+          </div>
           <div className="flex items-center space-x-2">
             <span className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
               isLive 
@@ -519,7 +523,7 @@ export function AuctioneerConsolePage() {
             {state.sessionStatus === 'READY' && (
               <button
                 onClick={handleStartAuction}
-                disabled={actionLoading}
+                disabled={mutationBlocked}
                 className="px-4 py-1.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/20 transition cursor-pointer"
               >
                 Launch Auction
@@ -529,7 +533,7 @@ export function AuctioneerConsolePage() {
             {(isLive || isPaused) && (
               <button
                 onClick={handlePauseResume}
-                disabled={actionLoading}
+                disabled={mutationBlocked}
                 className={`p-1.5 rounded-xl border text-xs font-semibold transition ${
                   isLive
                     ? 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
@@ -560,7 +564,10 @@ export function AuctioneerConsolePage() {
         </div>
       </header>
 
+      {error && <p role="alert" className="bg-amber-950/60 border-b border-amber-500/30 px-6 py-3 text-sm text-amber-200">Auction state could not be refreshed. Controls are paused while the connection recovers.</p>}
+
       {/* Main Container */}
+      <fieldset disabled={mutationBlocked || state.sessionStatus === 'PAUSED'} className="contents">
       <main className="flex-1 max-w-[1600px] w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
         {/* Left Stage: Podium & Bidding Console (8 Cols) */}
@@ -740,7 +747,7 @@ export function AuctioneerConsolePage() {
                       >
                         Reset (Base)
                       </button>
-                      {[100, 200, 500, 1000, 5000].map(inc => (
+                      {[1, 2, 5, 10, 50].map(multiplier => { const inc = multiplier * state.defaultBidIncrement; return (
                         <button
                           key={inc}
                           type="button"
@@ -749,7 +756,7 @@ export function AuctioneerConsolePage() {
                         >
                           +{currencySymbol}{inc}
                         </button>
-                      ))}
+                      ); })}
                     </div>
                   </div>
 
@@ -758,14 +765,18 @@ export function AuctioneerConsolePage() {
                       {currencySymbol}
                     </span>
                     <input
+                      aria-label="Winning bid price"
                       type="number"
-                      step={100}
+                      step={state.defaultBidIncrement}
                       min={currentLot.basePrice}
                       value={currentBidPrice}
                       onChange={(e) => setCurrentBidPrice(Number(e.target.value))}
                       className="w-full pl-9 pr-4 py-3 rounded-2xl bg-slate-900 border border-slate-700 text-white font-mono font-black text-2xl focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
                     />
                   </div>
+
+                  <button type="button" onClick={handleUpdateBid} disabled={mutationBlocked || !Number.isSafeInteger(currentBidPrice) || currentBidPrice < currentLot.basePrice} className="rounded-xl bg-sky-500/20 border border-sky-400/40 px-4 py-2 text-sm font-bold text-sky-200">Update Live Bid</button>
+                  <p className="text-xs text-slate-400">Record the current floor bid to show it on every live screen.</p>
 
                   {/* Affordability check alert */}
                   {selectedTeam && currentBidPrice > selectedTeam.maximumAllowedBid && (
@@ -783,7 +794,7 @@ export function AuctioneerConsolePage() {
                   <button
                     type="button"
                     onClick={handleSellCurrent}
-                    disabled={actionLoading || !selectedTeamId || (selectedTeam ? currentBidPrice > selectedTeam.maximumAllowedBid : false)}
+                    disabled={mutationBlocked || !selectedTeamId || (selectedTeam ? currentBidPrice > selectedTeam.maximumAllowedBid : false)}
                     className="py-4 px-6 rounded-2xl bg-emerald-400 hover:bg-emerald-300 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-black text-base shadow-xl shadow-emerald-500/25 flex items-center justify-center space-x-2 transition cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
                   >
                     <Gavel className="w-5 h-5 stroke-[2.5]" />
@@ -793,7 +804,7 @@ export function AuctioneerConsolePage() {
                   <button
                     type="button"
                     onClick={handleMarkUnsold}
-                    disabled={actionLoading}
+                    disabled={mutationBlocked}
                     className="py-4 px-6 rounded-2xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold text-sm flex items-center justify-center space-x-2 transition cursor-pointer"
                   >
                     <XCircle className="w-5 h-5" />
@@ -837,7 +848,7 @@ export function AuctioneerConsolePage() {
                 <div className="space-y-3 w-full max-w-sm">
                   <button
                     onClick={handleRevealNext}
-                    disabled={actionLoading}
+                    disabled={mutationBlocked}
                     className="w-full py-4 px-6 rounded-2xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-base shadow-xl shadow-emerald-500/25 flex items-center justify-center space-x-2 transition cursor-pointer transform hover:-translate-y-0.5"
                   >
                     <Sparkles className="w-5 h-5" />
@@ -847,7 +858,7 @@ export function AuctioneerConsolePage() {
                   {state.currentSetId && (
                     <button
                       onClick={() => handleCompleteSet(state.currentSetId!)}
-                      disabled={actionLoading}
+                      disabled={mutationBlocked}
                       className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 transition"
                     >
                       Complete Active Set Early
@@ -864,7 +875,7 @@ export function AuctioneerConsolePage() {
                         <button
                           key={s.id}
                           onClick={() => handleStartSet(s.id)}
-                          disabled={actionLoading}
+                          disabled={mutationBlocked}
                           className="p-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left flex items-center justify-between text-xs transition"
                         >
                           <div>
@@ -881,7 +892,7 @@ export function AuctioneerConsolePage() {
                   {state.totalUnsoldPlayersCount > 0 && !state.isUnsoldRound && (
                     <button
                       onClick={handleStartUnsoldRound}
-                      disabled={actionLoading}
+                      disabled={mutationBlocked}
                       className="w-full py-3 px-4 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition"
                     >
                       Launch Mandatory Final Unsold Round ({state.totalUnsoldPlayersCount} Players)
@@ -891,7 +902,7 @@ export function AuctioneerConsolePage() {
                   {/* Or Complete Auction */}
                   <button
                     onClick={handleCompleteAuction}
-                    disabled={actionLoading}
+                    disabled={mutationBlocked}
                     className="w-full py-3 px-4 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 text-xs font-bold transition"
                   >
                     Conclude & Complete Tournament Auction
@@ -998,6 +1009,7 @@ export function AuctioneerConsolePage() {
           </div>
         </aside>
       </main>
+      </fieldset>
 
       {/* Modals */}
       {correctingLot && (

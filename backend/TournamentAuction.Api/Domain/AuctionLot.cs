@@ -29,6 +29,10 @@ public class AuctionLot
 
     public long? FinalPrice { get; set; }
 
+    public long? CurrentBid { get; set; }
+    public Guid? LeadingTeamId { get; set; }
+    public Team? LeadingTeam { get; set; }
+
     public DateTime? RevealedAtUtc { get; set; }
 
     public DateTime? CompletedAtUtc { get; set; }

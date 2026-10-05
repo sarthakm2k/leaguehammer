@@ -164,6 +164,7 @@ public class TournamentAuctionDbContext : DbContext
         modelBuilder.Entity<AuctionSession>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.Version).IsConcurrencyToken();
             entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
             entity.HasIndex(e => new { e.TournamentId, e.Status });
 
@@ -187,6 +188,8 @@ public class TournamentAuctionDbContext : DbContext
         modelBuilder.Entity<AuctionLot>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.LeadingTeam).WithMany()
+                .HasForeignKey(e => e.LeadingTeamId).OnDelete(DeleteBehavior.SetNull);
             entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
 
             entity.HasIndex(e => new { e.AuctionSessionId, e.Status });

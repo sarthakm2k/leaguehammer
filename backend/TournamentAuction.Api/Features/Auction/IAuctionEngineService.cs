@@ -3,6 +3,8 @@ namespace TournamentAuction.Api.Features.Auction;
 public interface IAuctionEngineService
 {
     Task<AuctionStateDto> GetAuctionStateAsync(Guid tournamentId, Guid userId);
+    Task<PublicAuctionStateDto> GetPublicAuctionStateAsync(string tournamentKey);
+    Task<AuctionStateDto> UpdateBidAsync(Guid tournamentId, UpdateBidRequest request, Guid userId);
     Task<AuctionStateDto> StartAuctionAsync(Guid tournamentId, Guid userId);
     Task<AuctionStateDto> PauseAuctionAsync(Guid tournamentId, Guid userId);
     Task<AuctionStateDto> ResumeAuctionAsync(Guid tournamentId, Guid userId);

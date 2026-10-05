@@ -41,6 +41,8 @@ export interface AuctionLotDto {
   basePrice: number;
   revealedAtUtc?: string | null;
   completedAtUtc?: string | null;
+  currentBid?: number | null;
+  leadingTeamId?: string | null;
 }
 
 export interface SetSummaryDto {
@@ -57,6 +59,10 @@ export interface SetSummaryDto {
 }
 
 export interface AuctionStateDto {
+  currencyCode: string;
+  currencySymbol: string;
+  defaultBidIncrement: number;
+  lastResult?: AuctionLotDto | null;
   tournamentId: string;
   tournamentName: string;
   tournamentStatus: string;
@@ -80,6 +86,27 @@ export interface AuctionStateDto {
   startedAtUtc?: string | null;
   pausedAtUtc?: string | null;
   completedAtUtc?: string | null;
+}
+
+export type PublicAuctionLotDto = Omit<AuctionLotDto, 'drawPosition' | 'sessionId' | 'playerSetId' | 'previousTeam' | 'shortBio'>;
+export interface PublicAuctionStateDto {
+  tournamentId: string;
+  tournamentName: string;
+  slug: string;
+  currencyCode: string;
+  currencySymbol: string;
+  sessionStatus: AuctionStateDto['sessionStatus'];
+  version: number;
+  isUnsoldRound: boolean;
+  currentSetName?: string | null;
+  currentLot?: PublicAuctionLotDto | null;
+  lastResult?: PublicAuctionLotDto | null;
+  totalPlayersCount: number;
+  totalSoldPlayersCount: number;
+  totalUnsoldPlayersCount: number;
+  teamStandings: TeamAuctionStandingDto[];
+  soldPlayers: PublicAuctionLotDto[];
+  currentSetSummary?: SetSummaryDto | null;
 }
 
 export interface AuctionEventDto {

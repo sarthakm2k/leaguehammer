@@ -1,4 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using TournamentAuction.Api.Hubs;
 using TournamentAuction.Api.Data;
 using TournamentAuction.Api.Domain;
 using TournamentAuction.Api.Features.Auction;
@@ -18,7 +22,12 @@ public class AuctionEngineTests
             .UseInMemoryDatabase(databaseName: dbName)
             .Options;
         var db = new TournamentAuctionDbContext(options);
-        var auctionService = new AuctionEngineService(db);
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSignalR();
+        var provider = services.BuildServiceProvider();
+        var auctionService = new AuctionEngineService(db, provider.GetRequiredService<IHubContext<AuctionHub>>(),
+            NullLogger<AuctionEngineService>.Instance);
         var tournamentService = new TournamentService(db);
         var teamService = new TeamService(db);
         var setService = new PlayerSetService(db);

@@ -6,6 +6,7 @@ import { ProtectedRoute } from './features/auth/ProtectedRoute';
 import { TournamentDashboard } from './features/tournaments/TournamentDashboard';
 import { TournamentOverviewPage } from './features/tournaments/TournamentOverviewPage';
 import { AuctioneerConsolePage } from './features/auction/AuctioneerConsolePage';
+import { ProjectorPage } from './features/auction/ProjectorPage';
 
 function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -21,6 +22,9 @@ export function App() {
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/tournaments/:id/projector" element={<ProjectorPage />} />
+          <Route path="/tournaments/:id/stage" element={<ProjectorPage />} />
+          <Route path="/live/:slug" element={<ProjectorPage />} />
           <Route
             path="/dashboard"
             element={

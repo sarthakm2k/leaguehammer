@@ -104,7 +104,7 @@ builder.Services.AddAuthentication(options =>
         {
             var accessToken = context.Request.Query["access_token"];
             var path = context.HttpContext.Request.Path;
-            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/auction"))
             {
                 context.Token = accessToken;
             }
@@ -146,6 +146,16 @@ if (app.Environment.IsDevelopment())
 app.UseCors("CorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.Use(async (context, next) =>
+{
+    try { await next(); }
+    catch (DbUpdateConcurrencyException)
+    {
+        context.Response.StatusCode = StatusCodes.Status409Conflict;
+        await context.Response.WriteAsJsonAsync(new { detail = "The auction changed in another window. Refresh the state and try again." });
+    }
+});
 
 // Map Hubs
 app.MapHub<AuctionHub>("/hubs/auction");

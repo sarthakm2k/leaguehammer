@@ -44,7 +44,9 @@ public record AuctionLotDto(
     long? FinalPrice,
     long BasePrice,
     DateTime? RevealedAtUtc,
-    DateTime? CompletedAtUtc
+    DateTime? CompletedAtUtc,
+    long? CurrentBid = null,
+    Guid? LeadingTeamId = null
 );
 
 public record SetSummaryDto(
@@ -83,11 +85,21 @@ public record AuctionStateDto(
     SetSummaryDto? CurrentSetSummary,
     DateTime? StartedAtUtc,
     DateTime? PausedAtUtc,
-    DateTime? CompletedAtUtc
+    DateTime? CompletedAtUtc,
+    string CurrencyCode = "INR",
+    string CurrencySymbol = "₹",
+    long DefaultBidIncrement = 100,
+    AuctionLotDto? LastResult = null
 );
 
 public record StartSetRequest(
     [Required] Guid SetId
+);
+
+public record UpdateBidRequest(
+    [Required] Guid LotId,
+    [Range(1, 10000000000)] long CurrentBid,
+    Guid? LeadingTeamId
 );
 
 public record SellPlayerRequest(

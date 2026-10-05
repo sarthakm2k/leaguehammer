@@ -173,6 +173,15 @@ public class AuctionController : ControllerBase
         }
     }
 
+    [HttpPost("bid")]
+    public async Task<IActionResult> UpdateBid(Guid tournamentId, [FromBody] UpdateBidRequest request)
+    {
+        try { return Ok(await _auctionService.UpdateBidAsync(tournamentId, request, GetCurrentUserId())); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { detail = ex.Message }); }
+        catch (KeyNotFoundException ex) { return NotFound(new { detail = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { detail = ex.Message }); }
+    }
+
     [HttpPost("unsold")]
     public async Task<IActionResult> MarkUnsold(Guid tournamentId, [FromBody] MarkUnsoldRequest request)
     {

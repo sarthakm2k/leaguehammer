@@ -1,17 +1,23 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
+using TournamentAuction.Api.Hubs;
 using TournamentAuction.Api.Data;
 using TournamentAuction.Api.Domain;
 
 namespace TournamentAuction.Api.Features.Auction;
 
-public class AuctionEngineService : IAuctionEngineService
+public partial class AuctionEngineService : IAuctionEngineService
 {
     private readonly TournamentAuctionDbContext _db;
+    private readonly IHubContext<AuctionHub> _hub;
+    private readonly ILogger<AuctionEngineService> _logger;
 
-    public AuctionEngineService(TournamentAuctionDbContext db)
+    public AuctionEngineService(TournamentAuctionDbContext db, IHubContext<AuctionHub> hub, ILogger<AuctionEngineService> logger)
     {
         _db = db;
+        _hub = hub;
+        _logger = logger;
     }
 
     public async Task<AuctionStateDto> GetAuctionStateAsync(Guid tournamentId, Guid userId)
@@ -94,7 +100,7 @@ public class AuctionEngineService : IAuctionEngineService
 
         await _db.SaveChangesAsync();
 
-        return await BuildAuctionStateAsync(tournament, session);
+        return await PublishChangeAsync(tournament, session);
     }
 
     public async Task<AuctionStateDto> PauseAuctionAsync(Guid tournamentId, Guid userId)
@@ -121,7 +127,7 @@ public class AuctionEngineService : IAuctionEngineService
 
         await _db.SaveChangesAsync();
 
-        return await BuildAuctionStateAsync(tournament, session);
+        return await PublishChangeAsync(tournament, session);
     }
 
     public async Task<AuctionStateDto> ResumeAuctionAsync(Guid tournamentId, Guid userId)
@@ -148,7 +154,7 @@ public class AuctionEngineService : IAuctionEngineService
 
         await _db.SaveChangesAsync();
 
-        return await BuildAuctionStateAsync(tournament, session);
+        return await PublishChangeAsync(tournament, session);
     }
 
     public async Task<AuctionStateDto> StartSetAsync(Guid tournamentId, StartSetRequest request, Guid userId)
@@ -228,7 +234,7 @@ public class AuctionEngineService : IAuctionEngineService
 
         await _db.SaveChangesAsync();
 
-        return await BuildAuctionStateAsync(tournament, session);
+        return await PublishChangeAsync(tournament, session);
     }
 
     public async Task<AuctionStateDto> RevealNextPlayerAsync(Guid tournamentId, Guid userId)
@@ -304,7 +310,7 @@ public class AuctionEngineService : IAuctionEngineService
 
         await _db.SaveChangesAsync();
 
-        return await BuildAuctionStateAsync(tournament, session);
+        return await PublishChangeAsync(tournament, session, "PlayerRevealed", nextLot.Id);
     }
 
     public async Task<AuctionStateDto> SellCurrentPlayerAsync(Guid tournamentId, SellPlayerRequest request, Guid userId)
@@ -416,7 +422,7 @@ public class AuctionEngineService : IAuctionEngineService
 
         await _db.SaveChangesAsync();
 
-        return await BuildAuctionStateAsync(tournament, session);
+        return await PublishChangeAsync(tournament, session, "PlayerSold", lot.Id);
     }
 
     public async Task<AuctionStateDto> MarkCurrentPlayerUnsoldAsync(Guid tournamentId, MarkUnsoldRequest request, Guid userId)
@@ -470,7 +476,7 @@ public class AuctionEngineService : IAuctionEngineService
 
         await _db.SaveChangesAsync();
 
-        return await BuildAuctionStateAsync(tournament, session);
+        return await PublishChangeAsync(tournament, session, "PlayerUnsold", lot.Id);
     }
 
     public async Task<SetSummaryDto> CompleteSetAsync(Guid tournamentId, Guid setId, Guid userId)
@@ -513,6 +519,7 @@ public class AuctionEngineService : IAuctionEngineService
 
         await _db.SaveChangesAsync();
 
+        await PublishChangeAsync(tournament, session, "SetCompleted", summary: summary);
         return summary;
     }
 
@@ -592,7 +599,7 @@ public class AuctionEngineService : IAuctionEngineService
 
         await _db.SaveChangesAsync();
 
-        return await BuildAuctionStateAsync(tournament, session);
+        return await PublishChangeAsync(tournament, session);
     }
 
     public async Task<AuctionStateDto> CorrectAuctionResultAsync(Guid tournamentId, CorrectResultRequest request, Guid userId)
@@ -689,7 +696,7 @@ public class AuctionEngineService : IAuctionEngineService
 
         await _db.SaveChangesAsync();
 
-        return await BuildAuctionStateAsync(tournament, session);
+        return await PublishChangeAsync(tournament, session, "ResultCorrected", lot.Id, request.Reason);
     }
 
     public async Task<AuctionStateDto> CompleteAuctionAsync(Guid tournamentId, CompleteAuctionRequest? request, Guid userId)
@@ -767,7 +774,7 @@ public class AuctionEngineService : IAuctionEngineService
 
         await _db.SaveChangesAsync();
 
-        return await BuildAuctionStateAsync(tournament, session);
+        return await PublishChangeAsync(tournament, session);
     }
 
     public async Task<List<AuctionEventDto>> GetAuctionEventsAsync(Guid tournamentId, Guid userId, int take = 50)
@@ -930,7 +937,10 @@ public class AuctionEngineService : IAuctionEngineService
             null,
             null,
             null,
-            null
+            null,
+            tournament.Settings!.CurrencyCode,
+            tournament.Settings.CurrencySymbol,
+            tournament.Settings.DefaultBidIncrement
         );
     }
 
@@ -951,30 +961,7 @@ public class AuctionEngineService : IAuctionEngineService
 
             if (lot != null)
             {
-                currentLotDto = new AuctionLotDto(
-                    lot.Id,
-                    lot.AuctionSessionId,
-                    lot.PlayerId,
-                    lot.Player.Name,
-                    lot.Player.PhotoUrl,
-                    lot.Player.Position,
-                    lot.Player.Age,
-                    lot.Player.PreferredFoot,
-                    lot.Player.JerseyNumber,
-                    lot.Player.PreviousTeam,
-                    lot.Player.ShortBio,
-                    lot.PlayerSetId,
-                    lot.PlayerSet.Name,
-                    lot.AttemptNumber,
-                    lot.DrawPosition,
-                    lot.Status.ToString(),
-                    lot.WinningTeamId,
-                    lot.WinningTeam?.Name,
-                    lot.FinalPrice,
-                    lot.Player.BasePrice,
-                    lot.RevealedAtUtc,
-                    lot.CompletedAtUtc
-                );
+                currentLotDto = MapLot(lot);
             }
         }
 
@@ -1000,6 +987,12 @@ public class AuctionEngineService : IAuctionEngineService
 
         var totalSpent = standings.Sum(s => s.TotalSpent);
 
+        var lastLot = await _db.AuctionLots.Include(l => l.Player).Include(l => l.PlayerSet)
+            .Include(l => l.WinningTeam)
+            .Where(l => l.AuctionSessionId == session.Id && (l.Status == AuctionLotStatus.SOLD || l.Status == AuctionLotStatus.UNSOLD))
+            .OrderByDescending(l => l.CompletedAtUtc).ThenBy(l => l.Id).FirstOrDefaultAsync();
+        var lastResult = lastLot == null ? null : MapLot(lastLot);
+
         return new AuctionStateDto(
             tournament.Id,
             tournament.Name,
@@ -1023,7 +1016,11 @@ public class AuctionEngineService : IAuctionEngineService
             currentSetSummary,
             session.StartedAtUtc,
             session.PausedAtUtc,
-            session.CompletedAtUtc
+            session.CompletedAtUtc,
+            settings.CurrencyCode,
+            settings.CurrencySymbol,
+            settings.DefaultBidIncrement,
+            lastResult
         );
     }
 
