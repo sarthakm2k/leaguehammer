@@ -524,9 +524,6 @@ export function AuctioneerConsolePage() {
               <div>
                 <h1 className="font-extrabold text-sm sm:text-base text-white tracking-tight flex items-center gap-2">
                   <span>{state.tournamentName}</span>
-                  <span className="text-[10px] font-mono font-normal px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
-                    Console V1
-                  </span>
                 </h1>
                 <p className="text-[11px] text-slate-400 font-mono">
                   {state.currentSetName || 'Awaiting Set Activation'}
@@ -1045,7 +1042,7 @@ export function AuctioneerConsolePage() {
             <div className="pt-3 border-t border-slate-800 text-xs flex justify-between items-center text-slate-400">
               <span className="flex items-center space-x-1">
                 <Clock className="w-3.5 h-3.5 text-slate-500" />
-                <span>Audited Engine V1</span>
+                <span>Live team balances</span>
               </span>
 
               {lastSoldEvent && (

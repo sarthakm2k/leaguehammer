@@ -23,6 +23,7 @@ import { BasePriceTiersTab } from './tabs/BasePriceTiersTab';
 import { PlayerSetsTab } from './tabs/PlayerSetsTab';
 import { PlayersTab } from './tabs/PlayersTab';
 import { PreflightTab } from './tabs/PreflightTab';
+import { ShareAuctioneerLink } from '../auction/ShareAuctioneerLink';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -336,12 +337,12 @@ export function TournamentOverviewPage() {
             </div>
           </div>
 
-          {(statusStr === 'READY' || statusStr === 'LIVE') && (
+          {(statusStr === 'READY' || statusStr === 'LIVE' || statusStr === 'COMPLETED') && (
             <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center space-x-2 text-xs">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-emerald-400 font-semibold">
-                  {statusStr === 'READY' ? 'Preflight validation passed. Tournament is READY for auction!' : 'Tournament Auction is currently LIVE!'}
+                  {statusStr === 'READY' ? 'Preflight validation passed. Tournament is READY for auction!' : statusStr === 'LIVE' ? 'Tournament Auction is currently LIVE!' : 'Tournament auction is complete.'}
                 </span>
               </div>
               <Link
@@ -353,6 +354,7 @@ export function TournamentOverviewPage() {
               </Link>
             </div>
           )}
+          {activeTab === 'overview' && statusStr !== 'DRAFT' && <ShareAuctioneerLink tournamentId={tournament.id} />}
         </div>
 
         {/* Edit Form (if toggled) */}
@@ -478,8 +480,7 @@ export function TournamentOverviewPage() {
         {activeTab === 'overview' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-white">Tournament Auction Workflows</h3>
-              <span className="text-xs text-slate-400">Milestone-by-milestone implementation</span>
+              <h3 className="text-base font-bold text-white">Manage Tournament</h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -494,7 +495,6 @@ export function TournamentOverviewPage() {
                   </div>
                   <div>
                     <h4 className="text-sm font-semibold text-white group-hover:text-emerald-300">Rules & Starting Purse</h4>
-                    <p className="text-xs text-emerald-400 font-medium">Milestone 2 (Ready)</p>
                   </div>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
@@ -512,7 +512,6 @@ export function TournamentOverviewPage() {
                   </div>
                   <div>
                     <h4 className="text-sm font-semibold text-white group-hover:text-blue-300">Participating Teams</h4>
-                    <p className="text-xs text-blue-400 font-medium">Milestone 2 (Ready)</p>
                   </div>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
@@ -530,7 +529,6 @@ export function TournamentOverviewPage() {
                   </div>
                   <div>
                     <h4 className="text-sm font-semibold text-white group-hover:text-amber-300">Base Price Tiers</h4>
-                    <p className="text-xs text-amber-400 font-medium">Milestone 2 (Ready)</p>
                   </div>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
@@ -538,7 +536,7 @@ export function TournamentOverviewPage() {
                 </p>
               </div>
 
-              {/* Milestone 3: Sets & Players */}
+              {/* Player Management */}
               <div 
                 onClick={() => setActiveTab('players')}
                 className="cursor-pointer group rounded-xl border border-slate-800 bg-[#0e1424] p-5 space-y-3 hover:border-purple-500/40 transition-all"
@@ -549,7 +547,6 @@ export function TournamentOverviewPage() {
                   </div>
                   <div>
                     <h4 className="text-sm font-semibold text-white group-hover:text-purple-300">Sets & Players</h4>
-                    <p className="text-xs text-purple-400 font-medium">Milestone 3 (Ready)</p>
                   </div>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
@@ -567,7 +564,6 @@ export function TournamentOverviewPage() {
                   </div>
                   <div>
                     <h4 className="text-sm font-semibold text-white group-hover:text-teal-300">Preflight Validation</h4>
-                    <p className="text-xs text-teal-400 font-medium">Milestone 4 (Ready)</p>
                   </div>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
@@ -584,8 +580,7 @@ export function TournamentOverviewPage() {
                     <Play className="w-5 h-5 fill-current" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-white group-hover:text-emerald-300">Auction Engine & UI</h4>
-                    <p className="text-xs text-emerald-400 font-medium">Milestone 6 (Live Console Ready)</p>
+                    <h4 className="text-sm font-semibold text-white group-hover:text-emerald-300">Auctioneer Console</h4>
                   </div>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">

@@ -77,6 +77,8 @@ With **Sell all players** enabled, bids, sales, and corrections are rejected if 
 
 Each **Participating Teams** card includes its shareable franchise URL, copy button, and public view link. Public Live View controls guest access. When a set's final player is resolved, the auction console shows the sold/unsold totals and hides Reveal Next Player. **Go to Next Set** completes the current set and starts the next ordered set on request; **Complete Active Set** still opens the summary for review. The workflow browser test covers copying a team link, anonymous access, finished-set reloads, ordered advancement, and keyboard reveal in the next set.
 
+Once a tournament is READY, its Overview displays the **Auctioneer panel link**, **Copy Auctioneer Link**, and **Open Auctioneer Console**. The link stays available during live and completed auctions. Open it on another system and sign in with the existing configuring account; successful sign-in returns to the linked tournament console. The URL contains no credentials and preserves normal tournament permissions. Direct sign-in without a protected destination still opens the dashboard. Run `npm run test:access` to verify this flow. Development milestone labels and internal engine/console version badges are excluded from the application UI.
+
 ## Specification Reference & Milestones
 
 See `docs/ImplementationPLAN.txt` for the full master specification.

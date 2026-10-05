@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Trophy, LogIn, AlertCircle } from 'lucide-react';
 
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,7 +19,10 @@ export function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      navigate('/dashboard');
+      const requested = location.state?.from;
+      const destination = typeof requested === 'string' && requested.startsWith('/') && !requested.startsWith('//') && !requested.includes('\\')
+        ? requested : '/dashboard';
+      navigate(destination, { replace: true });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Invalid credentials');
     } finally {
