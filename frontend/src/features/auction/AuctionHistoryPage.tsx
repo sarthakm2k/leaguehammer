@@ -70,7 +70,6 @@ export function AuctionHistoryPage() {
       body: JSON.stringify({ lotId: correcting.lotId, newWinningTeamId, newFinalPrice, reason }),
     });
     if (!response.ok) throw new Error((await response.json()).detail || 'Correction failed');
-    setCorrecting(null);
     await synchronize();
   };
   return (

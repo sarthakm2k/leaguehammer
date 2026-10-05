@@ -2,7 +2,7 @@
 
 The deployment targets from the master plan are a **Render Static Site** for React, a **Render Web Service** for the .NET API, and **Supabase PostgreSQL** for the database. Supabase is used as managed PostgreSQL; the application keeps its existing authentication, EF Core models, and auction engine.
 
-This document records the intended production configuration. The application has been verified locally; production deployment and cross-device verification on Render are still pending.
+For the complete step-by-step deployment procedure, including the free backend, PostgreSQL credentials, private registration photos, approved player photos, Docker settings, migrations and verification, follow [DeploymentGuide.md](DeploymentGuide.md). The application has been verified locally; production deployment and cross-device verification on Render are still pending.
 
 ## Public links on another system
 
@@ -65,7 +65,7 @@ Host=<host-from-Connect>;Port=<port-from-Connect>;Database=postgres;Username=<us
 
 Use the exact project host, port, and username supplied by Supabase. SSL certificate verification can be configured with `SSL Mode=VerifyFull` and the supplied root certificate. See [Supabase PostgreSQL connections](https://supabase.com/docs/guides/database/connecting-to-postgres).
 
-Existing EF migrations must be applied to the production database. Currently the API applies migrations on startup; production packaging must establish a controlled migration step before deployment, as specified in the master plan. The Render Dockerfile/hosting configuration and production migration procedure will be finalized with deployment polish. No production database or Render service is provisioned by this milestone.
+Existing EF migrations must be applied to the production database. The supplied `backend/Dockerfile` publishes the API and starts it on Render's port. Startup migrations remain enabled by default; the complete guide explains the optional separate migration procedure and `Database__ApplyMigrations` setting. No production database or Render service has been provisioned.
 
 ## Production verification
 

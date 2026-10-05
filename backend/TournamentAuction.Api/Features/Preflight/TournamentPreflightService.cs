@@ -33,6 +33,16 @@ public class TournamentPreflightService : ITournamentPreflightService
         var blockingErrors = new List<string>();
         var warnings = new List<string>();
 
+        var registration = await _db.RegistrationForms.FindAsync(tournamentId);
+        var pendingRegistrations = await _db.PlayerRegistrations.CountAsync(r => r.TournamentId == tournamentId && r.Status == "PENDING");
+        if (registration is { Enabled: true } || pendingRegistrations > 0)
+        {
+            var finalized = registration?.FinalizedAtUtc != null && pendingRegistrations == 0;
+            var message = finalized ? "Player registrations have been reviewed and finalized." : $"Finalize player registration before the auction ({pendingRegistrations} pending submissions).";
+            checks.Add(new PreflightCheckItem("REGISTRATION_FINALIZED", "Players", "Player Registration Reviewed", finalized ? "PASS" : "FAIL", message, "Visit Player Registrations"));
+            if (!finalized) blockingErrors.Add(message);
+        }
+
         var settings = tournament.Settings;
         var teams = tournament.Teams.ToList();
         var sets = tournament.PlayerSets.OrderBy(s => s.SortOrder).ToList();
@@ -238,6 +248,9 @@ public class TournamentPreflightService : ITournamentPreflightService
 
     public async Task<PreflightReportDto> ApproveReadyForAuctionAsync(Guid tournamentId, Guid userId)
     {
+        await using var transaction = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+        if (transaction != null)
+            await _db.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM \"Tournaments\" WHERE \"Id\" = {tournamentId} FOR UPDATE");
         var tournament = await AssertCanManageTournamentAsync(tournamentId, userId);
         if (tournament.Status != TournamentStatus.DRAFT)
             throw new InvalidOperationException($"Tournament status is '{tournament.Status}', cannot transition to READY");
@@ -251,6 +264,8 @@ public class TournamentPreflightService : ITournamentPreflightService
         tournament.Status = TournamentStatus.READY;
         tournament.UpdatedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+
+        if (transaction != null) await transaction.CommitAsync();
 
         return report with { TournamentStatus = TournamentStatus.READY.ToString() };
     }

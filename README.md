@@ -1,5 +1,9 @@
 # Local Football Tournament Auction Platform
 
+Deployment instructions: [Free Render + Supabase PostgreSQL and photo storage](docs/DeploymentGuide.md).
+
+Tournament **Player Registrations** provides a shareable public form with deadlines, browser drafts, safe retries, private photos and organiser approval into the existing registry. Manual entry and CSV import remain available. See [registration workflow](docs/PlayerRegistration.md).
+
 A production-quality web application for conducting live, IPL-style local football player auctions.
 
 ## Architecture Overview

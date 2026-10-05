@@ -21,10 +21,37 @@ public class TournamentAuctionDbContext : DbContext
     public DbSet<AuctionSession> AuctionSessions => Set<AuctionSession>();
     public DbSet<AuctionLot> AuctionLots => Set<AuctionLot>();
     public DbSet<AuctionEvent> AuctionEvents => Set<AuctionEvent>();
+    public DbSet<RegistrationForm> RegistrationForms => Set<RegistrationForm>();
+    public DbSet<PlayerRegistration> PlayerRegistrations => Set<PlayerRegistration>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<RegistrationForm>(entity =>
+        {
+            entity.HasKey(e => e.TournamentId);
+            entity.Property(e => e.Instructions).HasMaxLength(2000);
+            entity.HasOne(e => e.Tournament).WithMany().HasForeignKey(e => e.TournamentId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<PlayerRegistration>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(150);
+            entity.Property(e => e.Phone).HasMaxLength(30);
+            entity.Property(e => e.Email).HasMaxLength(256);
+            entity.Property(e => e.Position).HasMaxLength(50);
+            entity.Property(e => e.PreferredFoot).HasMaxLength(20);
+            entity.Property(e => e.PreviousTeam).HasMaxLength(150);
+            entity.Property(e => e.ShortBio).HasMaxLength(1000);
+            entity.Property(e => e.PhotoPath).HasMaxLength(300);
+            entity.Property(e => e.Status).HasMaxLength(20);
+            entity.Property(e => e.ReviewReason).HasMaxLength(1000);
+            entity.HasIndex(e => new { e.TournamentId, e.Status });
+            entity.HasIndex(e => new { e.TournamentId, e.Phone });
+            entity.HasOne(e => e.Tournament).WithMany().HasForeignKey(e => e.TournamentId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<Player>().WithMany().HasForeignKey(e => e.PlayerId).OnDelete(DeleteBehavior.SetNull);
+        });
 
         // User
         modelBuilder.Entity<User>(entity =>

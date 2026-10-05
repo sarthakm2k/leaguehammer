@@ -23,6 +23,7 @@ import { BasePriceTiersTab } from './tabs/BasePriceTiersTab';
 import { PlayerSetsTab } from './tabs/PlayerSetsTab';
 import { PlayersTab } from './tabs/PlayersTab';
 import { PreflightTab } from './tabs/PreflightTab';
+import { RegistrationsTab } from '../registrations/RegistrationsTab';
 import { ShareAuctioneerLink } from '../auction/ShareAuctioneerLink';
 import { AuctionRecapLinks } from '../auction/AuctionRecapLinks';
 
@@ -53,7 +54,7 @@ export function TournamentOverviewPage() {
   const [tournament, setTournament] = useState<TournamentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'teams' | 'tiers' | 'sets' | 'players' | 'preflight'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'teams' | 'tiers' | 'sets' | 'players' | 'preflight' | 'registrations'>('overview');
 
   // Edit State
   const [editing, setEditing] = useState(false);
@@ -211,6 +212,7 @@ export function TournamentOverviewPage() {
 
         {/* Tab Navigation */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-1 border-t border-slate-800/60 overflow-x-auto">
+          {(isOwner || tournament.userRole === 'AUCTIONEER') && <button onClick={() => setActiveTab('registrations')} className={`inline-flex items-center space-x-2 py-3 px-3 border-b-2 text-xs font-semibold whitespace-nowrap ${activeTab === 'registrations' ? 'border-emerald-400 text-emerald-400' : 'border-transparent text-slate-400'}`}><Users className="w-3.5 h-3.5" /><span>Player Registrations</span></button>}
           <button
             onClick={() => setActiveTab('overview')}
             className={`inline-flex items-center space-x-2 py-3 px-3 border-b-2 text-xs font-semibold transition-all whitespace-nowrap ${
@@ -299,6 +301,7 @@ export function TournamentOverviewPage() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {activeTab === 'registrations' && <RegistrationsTab tournamentId={tournament.id} status={statusStr} />}
         
         {/* Banner */}
         <div className="rounded-2xl border border-slate-800 bg-gradient-to-b from-[#191d28] to-[#101219] p-6 shadow-xl space-y-4">

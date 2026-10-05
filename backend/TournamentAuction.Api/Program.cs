@@ -14,6 +14,9 @@ using TournamentAuction.Api.Features.Settings;
 using TournamentAuction.Api.Features.Teams;
 using TournamentAuction.Api.Features.Tournaments;
 using TournamentAuction.Api.Hubs;
+using TournamentAuction.Api.Features.Registrations;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +35,20 @@ builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IBasePriceTierService, BasePriceTierService>();
 builder.Services.AddScoped<IPlayerSetService, PlayerSetService>();
 builder.Services.AddScoped<IPlayerService, PlayerService>();
+builder.Services.AddScoped<RegistrationService>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddHttpClient<IRegistrationPhotoStorage, RegistrationPhotoStorage>(client => client.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    // A shared cap avoids trusting spoofable forwarded IP headers and limits public upload cost.
+    options.AddFixedWindowLimiter("registrations", limiter =>
+    {
+        limiter.PermitLimit = 120;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueLimit = 0;
+    });
+});
 builder.Services.AddScoped<ITournamentPreflightService, TournamentPreflightService>();
 builder.Services.AddScoped<IAuctionEngineService, AuctionEngineService>();
 
@@ -77,6 +94,8 @@ builder.Services.AddSwaggerGen(c =>
 
 // Authentication / JWT
 var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "SuperSecretDevelopmentKeyMustBeAtLeast32BytesLong!";
+if (!builder.Environment.IsDevelopment() && (jwtSecret.Length < 32 || jwtSecret == "SuperSecretDevelopmentKeyMustBeAtLeast32BytesLong!"))
+    throw new InvalidOperationException("Set Jwt__Secret to a strong unique secret of at least 32 characters before deploying.");
 var key = Encoding.UTF8.GetBytes(jwtSecret);
 
 builder.Services.AddAuthentication(options =>
@@ -146,6 +165,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors("CorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.Use(async (context, next) =>
 {
@@ -197,11 +217,11 @@ app.MapGet("/health", async (TournamentAuctionDbContext db) =>
 // Map Controllers
 app.MapControllers();
 
-// Automatically apply EF Core migrations in development
+// Apply additive migrations on startup; disable only when migrations are applied separately.
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<TournamentAuctionDbContext>();
-    await db.Database.MigrateAsync();
+    if (builder.Configuration.GetValue("Database:ApplyMigrations", true)) await db.Database.MigrateAsync();
 }
 
 app.Run();

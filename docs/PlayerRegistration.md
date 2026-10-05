@@ -1,0 +1,31 @@
+# Tournament player registration
+
+Open **Player Registrations** in a tournament workspace. Owners and auctioneers can configure and review forms; unrelated users and viewers cannot read the queue or contacts. Forms are disabled by default and existing tournaments retain their manual entry and CSV workflows.
+
+Configure opening/closing times, instructions and optional early closure, then share `/register/<slug>`. Date inputs use the organiser's device timezone; storage and server validation use UTC, and public deadlines display in the tournament timezone. Registration is independent of the public auction-view setting. Only draft tournaments accept new applications.
+
+Players submit name, contact number and position, with optional email, age, preferred foot, jersey, previous team, bio and photo. Consent is required. Base price and player set belong to the organiser's review. Phone/email are never copied into public player DTOs. Submitted text is retained as a local browser draft and can be cleared before submission.
+
+The public form reconnects automatically while the free backend starts. A failed/uncertain POST preserves its random submission ID and freezes details. Retrying checks the receipt first; refreshing a pending draft checks it too. Server-side PostgreSQL transactions lock the tournament during registration mutations, serialize simultaneous submissions/retries and coordinate with READY approval. A repeated ID returns its original receipt without creating another player, even after closing or finalization. Public receipts contain only ID, reference and submission time.
+
+Submission deadlines use the backend's clock at acceptance; no scheduler is required. A user who opens a form before the deadline but submits after it is rejected. The UI adjusts deadline display using the server clock, but the backend remains authoritative. Connection failures do not imply success. Photos may need reselection after refresh if the previous request did not save, and consent is reconfirmed before retrying a POST.
+
+The private queue supports search/status filters, profile editing during review, duplicate warnings for normalized phone or player name, and explicit duplicate confirmation before approval. Approval requires a valid tournament set and a base price meeting the existing floor and creates one normal AVAILABLE player. Rejection requires a reason and creates no player. Reviewed applications cannot be approved again. Close submissions independently from review, then finalize once every pending application has been resolved. Finalization locks further configuration/review; manual player management remains available in draft. Enabled forms or pending applications add a registration-finalization check to preflight.
+
+Photos use Supabase Storage via the backend. Supported uploads are JPEG/PNG/WebP up to 3 MB, validated by size, MIME and signature. Pending photos are private; the authorised photo endpoint signs only the application opened for review, keeping queue loading independent of the number of photos or storage availability. Review links last an hour and renew by reopening the application. Approval copies the image to a public player bucket. Without storage configuration, text-only registration is available and the photo input is disabled. No Supabase keys are sent to the browser. Storage/database failures can leave orphan objects; retention and cleanup remain organiser operations described in the deployment guide.
+
+Public POST/receipt requests share a service-wide 120/minute limiter, and each tournament is capped at 10,000 applications. Consent checks and a honeypot are included. SMS verification, CAPTCHA, arbitrary custom fields, submission editing by players and automatic photo deletion are not implemented.
+
+## Files and deployment
+
+- `Domain/PlayerRegistration.cs`: separate form configuration and private submissions.
+- `Features/Registrations`: public form/receipt/submission endpoints, protected settings/queue/review/finalization, and storage adapter.
+- Migration `AddPlayerRegistrations`: additive tables/indexes; existing players and auction state are untouched.
+- `frontend/src/features/registrations`: responsive public form, shared profile fields and organiser tab in both themes.
+- [Deployment guide](DeploymentGuide.md): free Render Docker/API + Static Site, Supabase session pooler, private/public buckets, credentials, migrations and hosted checks.
+
+## Verification
+
+Backend tests cover deadlines with a controlled clock, retry after closing, pending isolation, edited approval, rejection, duplicate confirmation, permission boundaries, existing base-price/set validation, finalization/preflight and photo format/storage operations. The browser workflow uses real local PostgreSQL and simulates a cold start and a response lost after commit, checks reload recovery and concurrent retries, closes registration, approves/rejects through the UI, finalizes, and verifies the registry. Mobile screenshots cover 320px in both themes. Cloud credentials are not present locally: actual Supabase upload/access and Render cold-start checks are required after deployment.
+
+Verified on 2026-10-05: all 107 backend tests pass, frontend production build and lint pass (existing warnings only), and the Docker image builds and starts in Production against local PostgreSQL with a healthy `/health` response. EF reports no pending model changes. The 10-scenario browser regression run passed 9 scenarios and found a history correction dialog race: its delayed close could dismiss a newly opened correction. Closing now happens once after synchronization. The affected workflow passes on an isolated rerun, and the final registration workflow passes against the updated photo endpoint, covering anonymous access rejection and receipt privacy. A rerun during Docker networking was interrupted by `ERR_NETWORK_CHANGED`; the isolated workflow completed successfully. Existing auction workflows remain available.
