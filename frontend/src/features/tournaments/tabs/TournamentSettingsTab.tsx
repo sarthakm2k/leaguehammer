@@ -16,6 +16,7 @@ export interface TournamentSettings {
   minimumAcquisitionPrice: number;
   defaultBidIncrement: number;
   publicLiveViewEnabled: boolean;
+  sellAllPlayers: boolean;
 }
 
 interface Props {
@@ -41,6 +42,7 @@ export function TournamentSettingsTab({ tournamentId, isOwner, status }: Props) 
   const [minimumAcquisitionPrice, setMinimumAcquisitionPrice] = useState<number>(500);
   const [defaultBidIncrement, setDefaultBidIncrement] = useState<number>(100);
   const [publicLiveViewEnabled, setPublicLiveViewEnabled] = useState(true);
+  const [sellAllPlayers, setSellAllPlayers] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     if (!token) return;
@@ -61,6 +63,7 @@ export function TournamentSettingsTab({ tournamentId, isOwner, status }: Props) 
       setMinimumAcquisitionPrice(data.minimumAcquisitionPrice);
       setDefaultBidIncrement(data.defaultBidIncrement);
       setPublicLiveViewEnabled(data.publicLiveViewEnabled);
+      setSellAllPlayers(data.sellAllPlayers);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error loading settings');
     } finally {
@@ -105,7 +108,8 @@ export function TournamentSettingsTab({ tournamentId, isOwner, status }: Props) 
           maximumSquadSize,
           minimumAcquisitionPrice,
           defaultBidIncrement,
-          publicLiveViewEnabled
+          publicLiveViewEnabled,
+          sellAllPlayers
         })
       });
 
@@ -338,6 +342,15 @@ export function TournamentSettingsTab({ tournamentId, isOwner, status }: Props) 
               • Maximum allowable spend on first player: <strong className="text-amber-400 font-mono">{formatCurrency(Math.max(0, defaultStartingPurse - ((minimumSquadSize - 1) * minimumAcquisitionPrice)), currencyCode)}</strong>
             </p>
           </div>
+        </div>
+
+        <div className="pt-4 border-t border-slate-800 space-y-2">
+          <label className="flex items-center gap-3 text-sm font-semibold text-slate-200">
+            <input type="checkbox" checked={sellAllPlayers} disabled={isLocked || !isOwner} onChange={event => setSellAllPlayers(event.target.checked)} />
+            Sell all players
+          </label>
+          <p className="text-xs text-slate-400">When enabled, unsold players move into another unsold round until every player is sold. Each attempt is retained. Purse and squad limits still apply.</p>
+          <p className="text-xs text-slate-500">When disabled, players receive one final unsold round and remain unsold after their second attempt.</p>
         </div>
 
         {/* Live View Toggle */}

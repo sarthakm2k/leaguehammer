@@ -14,7 +14,8 @@ public record TournamentSettingsDto(
     long DefaultBidIncrement,
     bool PublicLiveViewEnabled,
     DateTime CreatedAtUtc,
-    DateTime? UpdatedAtUtc
+    DateTime? UpdatedAtUtc,
+    bool SellAllPlayers = false
 );
 
 public record UpdateTournamentSettingsRequest(
@@ -25,5 +26,6 @@ public record UpdateTournamentSettingsRequest(
     [Range(1, 100)] int MaximumSquadSize,
     [Range(10, 100000000)] long MinimumAcquisitionPrice,
     [Range(10, 100000000)] long DefaultBidIncrement,
-    bool PublicLiveViewEnabled
+    bool PublicLiveViewEnabled,
+    bool SellAllPlayers = false
 );

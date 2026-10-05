@@ -13,4 +13,4 @@ public record PublicAuctionStateDto(
     PublicAuctionLotDto? CurrentLot, PublicAuctionLotDto? LastResult,
     int TotalPlayersCount, int TotalSoldPlayersCount, int TotalUnsoldPlayersCount,
     List<TeamAuctionStandingDto> TeamStandings, List<PublicAuctionLotDto> SoldPlayers,
-    SetSummaryDto? CurrentSetSummary);
+    SetSummaryDto? CurrentSetSummary, bool SellAllPlayers = false, int CurrentAttemptNumber = 1);

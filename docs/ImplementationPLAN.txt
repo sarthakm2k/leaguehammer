@@ -837,7 +837,13 @@ When the Final Unsold Round begins:
 3. Base price remains unchanged during the final unsold round.
 4. Randomize the unsold players server-side once and persist with DrawPosition (future order is never exposed publicly).
 5. Reveal players one by one using standard auction workflow.
-6. If a player is unsold in Attempt 2, their status becomes FINAL_UNSOLD. No third automatic attempt occurs in the MVP.
+6. With SellAllPlayers disabled (the default), a player unsold in Attempt 2 becomes FINAL_UNSOLD. No third attempt occurs in this mode.
+
+### Configurable Sell All Players Extension:
+The owner may enable SellAllPlayers in Auction Rules & Purse while the tournament is DRAFT. It defaults to false for existing and new tournaments. This does not make the initial unsold round optional.
+With this setting enabled, launch the initial unsold round after all normal sets finish. Whenever every lot in an unsold round is resolved, automatically queue a new round containing only players whose latest result remains UNSOLD. Continue with AttemptNumber 3, 4, and so on until every registered player is SOLD. Each round has a persisted randomized draw; the auctioneer still reveals and resolves each player explicitly.
+Keep the base price unchanged and retain every attempt and round-start audit record. Console, projector, public views, and history display the current round. Auction completion, including an owner override, is blocked until all players are SOLD.
+Existing bid, purse reserve, and maximum squad rules still apply. Preflight checks full-pool squad capacity and starting purse affordability when this setting is enabled. Organizers must configure adequate capacity and manage spending throughout the auction.
 
 Example history:
 Player A:
@@ -874,6 +880,7 @@ The tournament organizers may want a pause between sets.
 Before allowing normal completion:
 1. Verify that all normal sets are complete.
 2. If any unsold players exist, verify that the Final Unsold Round has been conducted and all eligible unsold players have received their second attempt. Auction completion is blocked if unresolved eligible unsold players remain.
+   When SellAllPlayers is enabled, every registered player must instead be SOLD; unresolved players continue into successive unsold rounds and no completion override bypasses this requirement.
 3. Validate squads against MinimumSquadSize.
 
 Example:

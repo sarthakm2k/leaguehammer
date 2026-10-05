@@ -92,7 +92,9 @@ public record AuctionStateDto(
     AuctionLotDto? LastResult = null,
     List<Guid>? CompletedSetIds = null,
     int UnsoldRoundRemainingCount = 0,
-    long MinimumAcquisitionPrice = 1
+    long MinimumAcquisitionPrice = 1,
+    bool SellAllPlayers = false,
+    int CurrentAttemptNumber = 1
 );
 
 public record StartSetRequest(

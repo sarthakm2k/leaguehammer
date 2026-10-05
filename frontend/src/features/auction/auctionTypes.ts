@@ -66,6 +66,8 @@ export interface AuctionStateDto {
   completedSetIds?: string[];
   unsoldRoundRemainingCount: number;
   minimumAcquisitionPrice: number;
+  sellAllPlayers: boolean;
+  currentAttemptNumber: number;
   tournamentId: string;
   tournamentName: string;
   tournamentStatus: string;
@@ -93,6 +95,8 @@ export interface AuctionStateDto {
 
 export type PublicAuctionLotDto = Omit<AuctionLotDto, 'drawPosition' | 'sessionId' | 'playerSetId' | 'previousTeam' | 'shortBio'>;
 export interface PublicAuctionStateDto {
+  sellAllPlayers: boolean;
+  currentAttemptNumber: number;
   tournamentId: string;
   tournamentName: string;
   slug: string;

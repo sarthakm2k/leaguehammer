@@ -87,7 +87,7 @@ export function ProjectorPage() {
     {(query.isError || screenError) && <p role="alert" className="stage-notice">{query.error?.message || screenError}</p>}
     <main className="stage-layout">
       <section className="stage-main" aria-label="Auction stage">
-        <div className="stage-setline"><span><span className="stage-dot" />{state.isUnsoldRound ? 'Final unsold round' : state.currentSetName || 'Auction stage'}</span><strong data-testid="stage-status">{state.sessionStatus === 'PAUSED' ? 'Auction paused' : state.sessionStatus === 'COMPLETED' ? 'Auction complete' : state.sessionStatus === 'READY' ? 'Starting soon' : 'Live from the floor'}</strong></div>
+        <div className="stage-setline"><span><span className="stage-dot" />{state.isUnsoldRound ? state.currentSetName || 'Unsold round' : state.currentSetName || 'Auction stage'}</span><strong data-testid="stage-status">{state.sessionStatus === 'PAUSED' ? 'Auction paused' : state.sessionStatus === 'COMPLETED' ? 'Auction complete' : state.sessionStatus === 'READY' ? 'Starting soon' : 'Live from the floor'}</strong></div>
 
         {lot ? <article className="stage-spotlight" key={lot.lotId}>
           <PlayerPortrait key={lot.playerId} lot={lot} />

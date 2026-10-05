@@ -21,7 +21,7 @@ function eventDetails(event: AuctionEventDto, names: Map<string, string>, symbol
   if (data.playerName) return `${data.playerName}${data.attemptNumber ? ` · Attempt ${data.attemptNumber}` : ''}${data.finalPrice ? ` · ${money(data.finalPrice)}` : ''}${data.teamName ? ` · ${data.teamName}` : ''}`;
   if (data.overrideReason) return `Owner override: ${data.overrideReason}. ${Array.isArray(data.deficientTeams) ? data.deficientTeams.join(', ') : ''}`;
   if (data.setName || data.SetName) return String(data.setName ?? data.SetName);
-  if (data.unsoldPlayersCount) return `${data.unsoldPlayersCount} players in final unsold round`;
+  if (data.unsoldPlayersCount) return `${data.unsoldPlayersCount} players in unsold round ${data.unsoldRoundNumber ?? 1}`;
   return '';
 }
 
@@ -59,7 +59,7 @@ export function AuctionHistoryPage() {
     (auction?.sessionStatus === 'LIVE' || auction?.sessionStatus === 'PAUSED');
   const teams = new Map(auction?.teamStandings.map(team => [team.teamId, team.teamName]));
   const attempts = (history.data?.attempts ?? []).filter(lot =>
-    (filter === 'ALL' || lot.status === filter || (filter === 'ROUND_2' && lot.attemptNumber === 2)) &&
+    (filter === 'ALL' || lot.status === filter || (filter === 'ROUND_2' && lot.attemptNumber >= 2)) &&
     `${lot.playerName} ${lot.playerSetName} ${lot.winningTeamName ?? ''}`.toLowerCase().includes(search.toLowerCase()));
   const error = state.error || history.error || events.error || membership.error;
   const confirmCorrection = async (newWinningTeamId: string, newFinalPrice: number, reason: string) => {
@@ -93,7 +93,7 @@ export function AuctionHistoryPage() {
           <div className="flex flex-wrap gap-3">
             <input aria-label="Search auction history" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search player, set or team" className="p-3 bg-slate-950 border border-slate-700 rounded-xl flex-1 min-w-0" />
             <select aria-label="Filter attempts" value={filter} onChange={event => setFilter(event.target.value)} className="p-3 bg-slate-950 border border-slate-700 rounded-xl">
-              <option value="ALL">All results</option><option value="SOLD">Sold</option><option value="UNSOLD">Unsold</option><option value="ROUND_2">Final unsold round</option>
+              <option value="ALL">All results</option><option value="SOLD">Sold</option><option value="UNSOLD">Unsold</option><option value="ROUND_2">{auction?.sellAllPlayers ? 'Unsold rounds' : 'Final unsold round'}</option>
             </select>
           </div>
           <p className="text-xs text-slate-400">Corrections are available for the latest completed result before its next attempt. Resolve the active player first.</p>
@@ -101,11 +101,11 @@ export function AuctionHistoryPage() {
             <thead className="text-slate-400"><tr>{['Player / Set', 'Attempt', 'Result', 'Team / Price', 'Recorded', ''].map((title, index) => <th key={index} className="p-3">{title}</th>)}</tr></thead>
             <tbody>{attempts.map(lot => <tr key={lot.lotId} data-testid={`attempt-${lot.lotId}`} className="border-t border-slate-800">
               <td className="p-3"><strong>{lot.playerName}</strong><p className="text-xs text-slate-400">{lot.playerSetName}</p></td>
-              <td className="p-3">Attempt {lot.attemptNumber}</td><td className={`p-3 font-bold ${lot.status === 'SOLD' ? 'text-emerald-300' : 'text-amber-300'}`}>{lot.status}{lot.status === 'UNSOLD' && lot.attemptNumber === 2 ? ' · Final' : ''}</td>
+              <td className="p-3">Attempt {lot.attemptNumber}</td><td className={`p-3 font-bold ${lot.status === 'SOLD' ? 'text-emerald-300' : 'text-amber-300'}`}>{lot.status}{lot.status === 'UNSOLD' && lot.attemptNumber === 2 && !auction?.sellAllPlayers ? ' · Final' : ''}</td>
               <td className="p-3">{lot.winningTeamName ?? '—'}<p>{lot.finalPrice == null ? '—' : `${symbol}${lot.finalPrice.toLocaleString()}`}</p></td>
               <td className="p-3 text-xs text-slate-400">{lot.completedAtUtc ? new Date(lot.completedAtUtc).toLocaleString() : '—'}</td>
               <td className="p-3">{canCorrect && auction?.lastResult?.lotId === lot.lotId &&
-                !(auction?.isUnsoldRound && lot.attemptNumber === 1 && lot.status === 'UNSOLD') &&
+                !(auction?.isUnsoldRound && lot.attemptNumber < auction.currentAttemptNumber && lot.status === 'UNSOLD') &&
                 !history.data?.attempts.some(attempt => attempt.playerId === lot.playerId && attempt.attemptNumber > lot.attemptNumber) &&
                 <button onClick={() => setCorrecting(lot)} className="text-amber-300 font-bold">Correct result</button>}</td>
             </tr>)}</tbody>

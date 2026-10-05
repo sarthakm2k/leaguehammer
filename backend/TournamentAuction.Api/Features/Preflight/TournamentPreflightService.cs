@@ -133,6 +133,17 @@ public class TournamentPreflightService : ITournamentPreflightService
                 "All player sets contain at least one registered player"));
         }
 
+        if (settings?.SellAllPlayers == true)
+        {
+            var affordableSlots = teams.Sum(t => Math.Min((long)settings.MaximumSquadSize, t.InitialPurse / Math.Max(1, settings.MinimumAcquisitionPrice)));
+            var baseCost = players.Sum(p => Math.Max(p.BasePrice, settings.MinimumAcquisitionPrice));
+            var feasible = players.Count <= affordableSlots && baseCost <= teams.Sum(t => t.InitialPurse);
+            var message = feasible ? "Team squad capacity and starting purses can accommodate the full player pool."
+                : "Sell all players requires enough squad capacity and starting purse to purchase the entire player pool. Increase maximum squad sizes/purses or disable Sell all players.";
+            checks.Add(new PreflightCheckItem("SELL_ALL_FEASIBILITY", "Settings", "Sell All Players Feasibility", feasible ? "PASS" : "FAIL", message));
+            if (!feasible) blockingErrors.Add(message);
+        }
+
         // 4. Player Registry & Mathematical Squad Feasibility
         int requiredMinPlayers = teams.Count * minSquad;
 

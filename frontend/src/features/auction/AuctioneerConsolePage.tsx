@@ -293,7 +293,9 @@ export function AuctioneerConsolePage() {
   const handleStartUnsoldRound = async () => {
     if (mutationBlocked || !token || !tournamentId) return;
     const confirmed = window.confirm(
-      'Start the mandatory Final Unsold Round?\n\nAll players who went unsold in round 1 will be re-auctioned once.'
+      state?.sellAllPlayers
+        ? 'Start unsold rounds? Remaining unsold players will continue into new rounds until everyone is sold.'
+        : 'Start the mandatory Final Unsold Round?\n\nAll players who went unsold in round 1 will be re-auctioned once.'
     );
     if (!confirmed) return;
 
@@ -510,7 +512,7 @@ export function AuctioneerConsolePage() {
                   </span>
                 </h1>
                 <p className="text-[11px] text-slate-400 font-mono">
-                  {state.isUnsoldRound ? 'FINAL UNSOLD ROUND' : state.currentSetName || 'Awaiting Set Activation'}
+                  {state.currentSetName || 'Awaiting Set Activation'}
                 </p>
               </div>
             </div>
@@ -916,7 +918,7 @@ export function AuctioneerConsolePage() {
                       disabled={mutationBlocked}
                       className="w-full py-3 px-4 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition"
                     >
-                      Launch Mandatory Final Unsold Round ({state.totalUnsoldPlayersCount} Players)
+                      {state.sellAllPlayers ? 'Launch Unsold Rounds' : 'Launch Mandatory Final Unsold Round'} ({state.totalUnsoldPlayersCount} Players)
                     </button>
                   )}
 

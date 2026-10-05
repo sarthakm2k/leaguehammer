@@ -93,6 +93,7 @@ public class TournamentSettingsService : ITournamentSettingsService
         settings.MinimumAcquisitionPrice = request.MinimumAcquisitionPrice;
         settings.DefaultBidIncrement = request.DefaultBidIncrement;
         settings.PublicLiveViewEnabled = request.PublicLiveViewEnabled;
+        settings.SellAllPlayers = request.SellAllPlayers;
         settings.UpdatedAtUtc = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
@@ -113,6 +114,7 @@ public class TournamentSettingsService : ITournamentSettingsService
             s.DefaultBidIncrement,
             s.PublicLiveViewEnabled,
             s.CreatedAtUtc,
-            s.UpdatedAtUtc
+            s.UpdatedAtUtc,
+            s.SellAllPlayers
         );
 }

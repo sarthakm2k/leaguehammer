@@ -71,6 +71,8 @@ The console's **Auction history** link opens `/tournaments/{id}/auction/history`
 
 Milestone 9 adds `/tournaments/{id}/results` for live statistics and the completed **Auction Wrapped** experience. `/live/{slug}` now provides the public Overview, Teams, Players, and Results views; fullscreen remains at `/tournaments/{id}/projector` or `/live/{slug}/projector`. **Copy Franchise Link** shares `/live/{slug}/teams/{teamId}` without login. See [Milestone 9 implementation and verification](docs/Milestone9.md); run `npm run test:results` or all browser suites with `npx playwright test`.
 
+**Sell all players** can be enabled under Auction Rules & Purse before a tournament is ready. It automatically continues unsold rounds until every player sells; leaving it off preserves the single final unsold round. See [continuous unsold rounds](docs/ContinuousUnsoldRounds.md); run `npm run test:continuous` for the browser workflow.
+
 ## Specification Reference & Milestones
 
 See `docs/ImplementationPLAN.txt` for the full master specification.

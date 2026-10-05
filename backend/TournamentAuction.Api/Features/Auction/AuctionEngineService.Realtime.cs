@@ -29,7 +29,8 @@ public partial class AuctionEngineService
         return new PublicAuctionStateDto(state.TournamentId, state.TournamentName, tournament.Slug,
             state.CurrencyCode, state.CurrencySymbol, state.SessionStatus, state.Version, state.IsUnsoldRound,
             state.CurrentSetName, ToPublic(state.CurrentLot), ToPublic(state.LastResult), state.TotalPlayersCount,
-            sold.Count, unsold, state.TeamStandings, sold.Select(l => ToPublic(MapLot(l))!).ToList(), state.CurrentSetSummary);
+            sold.Count, unsold, state.TeamStandings, sold.Select(l => ToPublic(MapLot(l))!).ToList(), state.CurrentSetSummary,
+            state.SellAllPlayers, state.CurrentAttemptNumber);
     }
 
     public async Task<AuctionStateDto> UpdateBidAsync(Guid tournamentId, UpdateBidRequest request, Guid userId)

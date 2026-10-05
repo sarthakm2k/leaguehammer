@@ -27,6 +27,7 @@ public class TournamentSettings
     public long DefaultBidIncrement { get; set; } = 100;
 
     public bool PublicLiveViewEnabled { get; set; } = true;
+    public bool SellAllPlayers { get; set; } = false;
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAtUtc { get; set; }

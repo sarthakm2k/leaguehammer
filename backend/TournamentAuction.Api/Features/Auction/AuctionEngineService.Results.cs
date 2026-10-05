@@ -81,7 +81,7 @@ public partial class AuctionEngineService
             state.CurrentSetName, ToPublic(state.CurrentLot), ToPublic(state.LastResult), results.Count,
             soldPlayers.Count, unsoldCount, state.TeamStandings,
             lots.Where(l => l.Status == AuctionLotStatus.SOLD).OrderByDescending(l => l.CompletedAtUtc).ThenBy(l => l.Id)
-                .Select(l => ToPublic(MapLot(l))!).ToList(), state.CurrentSetSummary);
+                .Select(l => ToPublic(MapLot(l))!).ToList(), state.CurrentSetSummary, state.SellAllPlayers, state.CurrentAttemptNumber);
         if (transaction != null) await transaction.CommitAsync();
         return new(publicState, tournament.LogoUrl, tournament.Settings?.PublicLiveViewEnabled == true, results, statistics);
     }
