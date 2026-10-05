@@ -46,8 +46,6 @@ button:disabled { cursor: not-allowed; }
 .auth-divider::before,.auth-divider::after { content: ''; height: 1px; flex: 1; background: #ffffff15; }
 .auth-account { text-align: center; margin: 18px 0; }
 .auth-account a { display: inline-flex; align-items: center; gap: 8px; color: var(--league-lime); font-weight: 650; font-size: 14px; }
-.auth-demo { display: block; margin: 0 auto; padding: 8px; background: transparent; border: 0; color: #959bac; font-size: 11px; }
-.auth-demo:hover { color: var(--league-paper); }
 .auth-security { display: flex; gap: 16px; align-items: flex-start; margin-top: 38px; padding-top: 26px; border-top: 1px solid #ffffff12; }
 .auth-security>svg { width: 42px; height: 42px; padding: 10px; box-sizing: content-box; border-radius: 50%; color: var(--league-lime); background: #c4f1430a; flex-shrink: 0; }
 .auth-security strong { font-size: 12px; font-weight: 650; }

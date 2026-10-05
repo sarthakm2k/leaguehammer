@@ -32,11 +32,6 @@ export function LoginPage() {
     }
   };
 
-  const handleQuickDemo = () => {
-    setEmail('admin@malabarfc.com');
-    setPassword('SecureAuction2026!');
-  };
-
   return <AuthLayout>
     <div className="auth-heading"><span className="league-kicker">WELCOME TO LEAGUEHAMMER</span><h2>Welcome back.</h2><p>Sign in to manage your tournament auction.</p></div>
     {error && <div className="auth-error" role="alert"><AlertCircle size={18} /><span>{error}</span></div>}
@@ -47,6 +42,5 @@ export function LoginPage() {
     </form>
     <div className="auth-divider"><span>New here?</span></div>
     <p className="auth-account"><Link to="/register">Create Account <ArrowRight size={16} /></Link></p>
-    <button type="button" className="auth-demo" onClick={handleQuickDemo}>Fill Demo Organizer Credentials</button>
   </AuthLayout>;
 }

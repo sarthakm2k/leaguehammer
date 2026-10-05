@@ -73,7 +73,7 @@
 :root[data-theme="light"] .auth-security,:root[data-theme="light"] .auth-divider::before,:root[data-theme="light"] .auth-divider::after { border-color: #dce1e8; }
 :root[data-theme="light"] .auth-divider::before,:root[data-theme="light"] .auth-divider::after { background: #dce1e8; }
 :root[data-theme="light"] .auth-security>svg { color: #426600; background: #eaf1df; }
-:root[data-theme="light"] .auth-security p,:root[data-theme="light"] .auth-demo,:root[data-theme="light"] .auth-divider,:root[data-theme="light"] .auth-footer { color: #657084; }
+:root[data-theme="light"] .auth-security p,:root[data-theme="light"] .auth-divider,:root[data-theme="light"] .auth-footer { color: #657084; }
 :root[data-theme="light"] .auth-error { color: #9d2443; background: #fff0f3; }
 :root[data-theme="light"] .auth-story { color: #f7f3eb; }
 
