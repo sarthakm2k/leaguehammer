@@ -18,6 +18,9 @@ public class TournamentAuctionDbContext : DbContext
     public DbSet<Team> Teams => Set<Team>();
     public DbSet<PlayerSet> PlayerSets => Set<PlayerSet>();
     public DbSet<Player> Players => Set<Player>();
+    public DbSet<AuctionSession> AuctionSessions => Set<AuctionSession>();
+    public DbSet<AuctionLot> AuctionLots => Set<AuctionLot>();
+    public DbSet<AuctionEvent> AuctionEvents => Set<AuctionEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -155,6 +158,96 @@ public class TournamentAuctionDbContext : DbContext
                 .WithMany(s => s.Players)
                 .HasForeignKey(e => e.PlayerSetId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // AuctionSession
+        modelBuilder.Entity<AuctionSession>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
+            entity.HasIndex(e => new { e.TournamentId, e.Status });
+
+            entity.HasOne(e => e.Tournament)
+                .WithMany(t => t.AuctionSessions)
+                .HasForeignKey(e => e.TournamentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.CurrentSet)
+                .WithMany()
+                .HasForeignKey(e => e.CurrentSetId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.CurrentLot)
+                .WithMany()
+                .HasForeignKey(e => e.CurrentLotId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // AuctionLot
+        modelBuilder.Entity<AuctionLot>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
+
+            entity.HasIndex(e => new { e.AuctionSessionId, e.Status });
+            entity.HasIndex(e => new { e.AuctionSessionId, e.PlayerSetId, e.DrawPosition });
+            entity.HasIndex(e => new { e.AuctionSessionId, e.PlayerId, e.AttemptNumber }).IsUnique();
+
+            entity.HasOne(e => e.AuctionSession)
+                .WithMany(s => s.Lots)
+                .HasForeignKey(e => e.AuctionSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Tournament)
+                .WithMany()
+                .HasForeignKey(e => e.TournamentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Player)
+                .WithMany()
+                .HasForeignKey(e => e.PlayerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.PlayerSet)
+                .WithMany()
+                .HasForeignKey(e => e.PlayerSetId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.WinningTeam)
+                .WithMany()
+                .HasForeignKey(e => e.WinningTeamId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // AuctionEvent
+        modelBuilder.Entity<AuctionEvent>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.EventType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.EventData).IsRequired().HasColumnType("jsonb");
+
+            entity.HasIndex(e => new { e.TournamentId, e.CreatedAtUtc });
+            entity.HasIndex(e => new { e.AuctionSessionId, e.CreatedAtUtc });
+
+            entity.HasOne(e => e.AuctionSession)
+                .WithMany(s => s.Events)
+                .HasForeignKey(e => e.AuctionSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Tournament)
+                .WithMany()
+                .HasForeignKey(e => e.TournamentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.AuctionLot)
+                .WithMany()
+                .HasForeignKey(e => e.AuctionLotId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

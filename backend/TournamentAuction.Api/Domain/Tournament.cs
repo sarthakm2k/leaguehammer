@@ -24,4 +24,5 @@ public class Tournament
     public ICollection<BasePriceTier> BasePriceTiers { get; set; } = new List<BasePriceTier>();
     public ICollection<PlayerSet> PlayerSets { get; set; } = new List<PlayerSet>();
     public ICollection<Player> Players { get; set; } = new List<Player>();
+    public ICollection<AuctionSession> AuctionSessions { get; set; } = new List<AuctionSession>();
 }

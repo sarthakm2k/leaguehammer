@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System.Text;
 using TournamentAuction.Api.Data;
+using TournamentAuction.Api.Features.Auction;
 using TournamentAuction.Api.Features.Auth;
 using TournamentAuction.Api.Features.BasePriceTiers;
 using TournamentAuction.Api.Features.PlayerSets;
@@ -32,6 +33,7 @@ builder.Services.AddScoped<IBasePriceTierService, BasePriceTierService>();
 builder.Services.AddScoped<IPlayerSetService, PlayerSetService>();
 builder.Services.AddScoped<IPlayerService, PlayerService>();
 builder.Services.AddScoped<ITournamentPreflightService, TournamentPreflightService>();
+builder.Services.AddScoped<IAuctionEngineService, AuctionEngineService>();
 
 // SignalR
 builder.Services.AddSignalR();
