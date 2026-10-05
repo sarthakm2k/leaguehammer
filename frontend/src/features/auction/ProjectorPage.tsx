@@ -82,7 +82,7 @@ export function ProjectorPage() {
   return <div className={`projector ${celebration ? 'stage-celebrating' : ''}`} style={{ '--team-color': leadingTeam?.primaryColor || '#b7f76b' } as CSSProperties}>
     <header className="stage-header">
       <div className="stage-brand"><LeagueHammerBrand compact /><div><p className="stage-eyebrow">LeagueHammer / Live broadcast</p><h1>{state.tournamentName}</h1></div></div>
-      <div className="stage-header-actions"><ConnectionIndicator status={connection} /><button aria-label={fullscreen ? 'Exit full screen' : 'Enter full screen'} onClick={() => { void toggleFullscreen(); }} title="Full screen · F11">{fullscreen ? <Minimize /> : <Maximize />}</button></div>
+      <div className="stage-header-actions"><span data-theme-slot /><ConnectionIndicator status={connection} /><button aria-label={fullscreen ? 'Exit full screen' : 'Enter full screen'} onClick={() => { void toggleFullscreen(); }} title="Full screen · F11">{fullscreen ? <Minimize /> : <Maximize />}</button></div>
     </header>
 
     {(query.isError || screenError) && <p role="alert" className="stage-notice">{query.error?.message || screenError}</p>}

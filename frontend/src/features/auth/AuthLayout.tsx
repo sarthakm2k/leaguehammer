@@ -10,6 +10,6 @@ export function AuthLayout({ children }: { children: ReactNode }) {
       <div className="auth-features"><span><Users />Manage<br />teams</span><span><Gavel />Run live<br />auctions</span><span><Wallet />Track players<br />& budgets</span></div>
       <span className="auth-image-credit">YOUR LEAGUE. YOUR MOMENT.</span>
     </section>
-    <section className="auth-panel"><div className="auth-mobile-brand"><LeagueHammerBrand /></div><div className="auth-form-shell">{children}<div className="auth-security"><ShieldCheck /><div><strong>Secure tournament access</strong><p>Sign in to your account to manage your tournaments and live auctions.</p></div></div></div><p className="auth-footer">LeagueHammer · Built for the beautiful game.</p></section>
+    <section className="auth-panel"><span className="auth-theme-slot" data-theme-slot /><div className="auth-mobile-brand"><LeagueHammerBrand /></div><div className="auth-form-shell">{children}<div className="auth-security"><ShieldCheck /><div><strong>Secure tournament access</strong><p>Sign in to your account to manage your tournaments and live auctions.</p></div></div></div><p className="auth-footer">LeagueHammer · Built for the beautiful game.</p></section>
   </main>;
 }

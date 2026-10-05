@@ -146,7 +146,7 @@ export function AuctionResultsPage({ publicView = false }: { publicView?: boolea
   const lot = state.currentLot || state.lastResult;
   const leader = state.teamStandings.find(standing => standing.teamId === (state.currentLot ? lot?.leadingTeamId : lot?.winningTeamId));
   return <main className="auction-results"><div className="result-shell result-stack">
-    <header className="result-header"><div className="result-brand"><LeagueHammerBrand compact /><div><p className="result-eyebrow">{publicView ? 'Public auction portal' : 'Tournament results'}</p><h1>{state.tournamentName}</h1></div></div><div className="result-header-actions"><ConnectionIndicator status={connection} /><span className="result-badge">{state.sessionStatus}</span>
+    <header className="result-header"><div className="result-brand"><LeagueHammerBrand compact /><div><p className="result-eyebrow">{publicView ? 'Public auction portal' : 'Tournament results'}</p><h1>{state.tournamentName}</h1></div></div><div className="result-header-actions"><span data-theme-slot /><ConnectionIndicator status={connection} /><span className="result-badge">{state.sessionStatus}</span>
       <Link to={`/tournaments/${state.tournamentId}/projector`} target="_blank" rel="noopener noreferrer">Projector <ArrowUpRight size={14} /></Link>
       {!publicView && <Link to={`/tournaments/${state.tournamentId}`}>Tournament workspace</Link>}</div></header>
     {query.isError && <p role="alert">{query.error?.message}</p>}

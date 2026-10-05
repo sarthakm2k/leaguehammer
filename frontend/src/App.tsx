@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
+import { ThemeToggle } from './components/ThemeToggle';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { LoginPage } from './features/auth/LoginPage';
 import { RegisterPage } from './features/auth/RegisterPage';
@@ -22,6 +23,7 @@ function RootRedirect() {
 export function App() {
   return (
     <BrowserRouter>
+      <ThemeToggle />
       <AuthProvider>
         <Suspense fallback={<div className="min-h-screen bg-[#070c15] text-slate-200 p-8">Loading auction views…</div>}>
         <Routes>

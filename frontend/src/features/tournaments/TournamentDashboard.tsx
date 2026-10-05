@@ -103,7 +103,7 @@ export function TournamentDashboard() {
             <LeagueHammerBrand /><span className="league-workspace-label">Tournament workspace</span>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4"><span data-theme-slot />
             <div className="hidden sm:flex items-center space-x-2 text-xs text-slate-400 bg-slate-900/60 px-3 py-1.5 rounded-lg border border-slate-800">
               <Shield className="w-3.5 h-3.5 text-emerald-400" />
               <span>{user?.fullName}</span>

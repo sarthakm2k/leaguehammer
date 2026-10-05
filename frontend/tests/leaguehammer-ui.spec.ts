@@ -1,11 +1,17 @@
 import { test, expect, type Page } from 'playwright/test';
 
 const API = process.env.AUCTION_API_URL || 'http://localhost:5050';
+const light = process.env.LEAGUEHAMMER_TEST_THEME === 'light';
 async function fits(page: Page) {
+  const overflowing = await page.evaluate(() => [...document.querySelectorAll('body *')].filter(element => {
+    const rect = element.getBoundingClientRect(); return rect.width > 0 && rect.right > innerWidth + 1;
+  }).slice(0, 8).map(element => ({ tag: element.tagName, classes: element.className, right: element.getBoundingClientRect().right })));
+  if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)) console.log('Overflow at', page.url(), overflowing);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
 }
 
 test('LeagueHammer sign-in stays accessible and fits phone, tablet and desktop', async ({ page }, info) => {
+  if (light) await page.addInitScript(() => localStorage.setItem('leaguehammer-theme', 'light'));
   await page.goto('/login');
   await expect(page).toHaveTitle(/LeagueHammer/);
   await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible();
@@ -26,6 +32,15 @@ test('LeagueHammer sign-in stays accessible and fits phone, tablet and desktop',
   await page.setViewportSize({ width: 320, height: 800 });
   await fits(page);
   await expect(page.getByRole('button', { name: 'Register', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: `Switch to ${light ? 'dark' : 'light'} mode` }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', light ? 'dark' : 'light');
+  // Remove the setup script by checking persistence in a fresh page from the same context.
+  const persisted = await page.context().newPage();
+  await persisted.goto('/login');
+  await expect(persisted.locator('html')).toHaveAttribute('data-theme', light ? 'dark' : 'light');
+  await persisted.getByRole('button', { name: `Switch to ${light ? 'light' : 'dark'} mode` }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', light ? 'light' : 'dark');
+  await persisted.close();
 });
 
 test('broadcast, console, results, franchise and history fit mobile with live data', async ({ browser, request }, info) => {
@@ -51,6 +66,7 @@ test('broadcast, console, results, franchise and history fit mobile with live da
   const owner = await browser.newContext();
   await owner.addInitScript(value => localStorage.setItem('auth_token', value), token);
   const guest = await browser.newContext();
+  if (light) for (const context of [owner, guest]) await context.addInitScript(() => localStorage.setItem('leaguehammer-theme', 'light'));
   const panel = await owner.newPage();
   const stage = await guest.newPage();
   const portal = await guest.newPage();
@@ -98,8 +114,24 @@ test('broadcast, console, results, franchise and history fit mobile with live da
     await panel.goto('/dashboard');
     await expect(panel.getByRole('heading', { name: 'Your Tournaments' })).toBeVisible(); await fits(panel);
     await panel.screenshot({ path: info.outputPath('dashboard-mobile.png'), fullPage: true });
+    for (const width of [320, 768, 1440]) { await panel.setViewportSize({ width, height: 900 }); await fits(panel); }
+    await panel.setViewportSize({ width: 390, height: 844 });
     await panel.goto(root);
     await expect(panel.getByRole('heading', { name: tournament.name, level: 1 })).toBeVisible(); await fits(panel);
+    if (light) {
+      await expect(panel.locator('html')).toHaveAttribute('data-theme', 'light');
+      for (const tab of ['Auction Rules & Purse', 'Participating Teams', 'Base Price Tiers', 'Player Sets', 'Player Registry', 'Preflight Checklist']) {
+        await panel.getByRole('button', { name: tab, exact: true }).click();
+        await fits(panel);
+        await panel.screenshot({ path: info.outputPath(`config-${tab.replaceAll(' ', '-')}.png`), fullPage: true });
+      }
+      await portal.goto(`/live/${tournament.slug}/recap`);
+      await expect(portal.getByTestId('recap-total-spent')).toHaveText('₹2,500');
+      for (const width of [320, 390, 1440]) {
+        await portal.setViewportSize({ width, height: 900 }); await fits(portal);
+        await portal.screenshot({ path: info.outputPath(`recap-light-${width}.png`), fullPage: true });
+      }
+    }
     expect(errors).toEqual([]);
   } finally { await Promise.all([owner.close(), guest.close()]); }
 });

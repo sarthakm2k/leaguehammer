@@ -534,7 +534,7 @@ export function AuctioneerConsolePage() {
 
           {/* Center Status Pill */}
           <div className="flex items-center gap-3">
-            <ConnectionIndicator status={connectionStatus} />
+            <span data-theme-slot /><ConnectionIndicator status={connectionStatus} />
             <Link to={`/tournaments/${tournamentId}/projector`} target="_blank" rel="noopener noreferrer" title="Open projector view" className="text-emerald-300 flex items-center gap-2 text-xs"><Monitor size={18} />Projector</Link>
             <ShareProjectorLink tournamentId={tournamentId!} />
           </div>

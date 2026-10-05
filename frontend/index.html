@@ -7,6 +7,14 @@
     <meta name="theme-color" content="#101219" />
     <meta name="description" content="LeagueHammer ? manage your football tournament, run live auctions, and follow every signing." />
     <title>LeagueHammer | Football Auctions</title>
+    <script>
+      (() => {
+        let theme = 'dark';
+        try { theme = localStorage.getItem('leaguehammer-theme') === 'light' ? 'light' : 'dark'; } catch {}
+        document.documentElement.dataset.theme = theme;
+        if (theme === 'light') document.querySelector('meta[name="theme-color"]').content = '#f5f6f8';
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

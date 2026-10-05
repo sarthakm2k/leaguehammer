@@ -181,7 +181,7 @@ export function TournamentOverviewPage() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3"><span data-theme-slot />
             <span className="hidden sm:inline-flex items-center space-x-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-300">
               <Shield className="w-3.5 h-3.5 text-emerald-400" />
               <span>{tournament.userRole}</span>

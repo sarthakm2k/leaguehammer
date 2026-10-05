@@ -79,7 +79,7 @@ export function AuctionHistoryPage() {
         <header className="flex flex-wrap justify-between gap-4 items-center">
           <div><LeagueHammerBrand compact /><br /><Link className="text-emerald-300 text-sm" to={`/tournaments/${id}/auction`}>← Auction console</Link>
             <h1 className="text-3xl font-bold mt-3">Auction history</h1><p className="text-slate-400 mt-1">{auction?.tournamentName} · Each attempt is retained. Corrections append an audit record.</p></div>
-          <ConnectionIndicator status={connection} />
+          <span data-theme-slot /><ConnectionIndicator status={connection} />
         </header>
         {error && <p role="alert" className="p-4 rounded-xl bg-rose-950 text-rose-200">{error.message}</p>}
         {(state.isPending || history.isPending) && <p>Loading auction history…</p>}
