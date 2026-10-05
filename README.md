@@ -73,6 +73,8 @@ Milestone 9 adds `/tournaments/{id}/results` for live statistics and the complet
 
 **Sell all players** can be enabled under Auction Rules & Purse before a tournament is ready. It automatically continues unsold rounds until every player sells; leaving it off preserves the single final unsold round. See [continuous unsold rounds](docs/ContinuousUnsoldRounds.md); run `npm run test:continuous` for the browser workflow.
 
+With **Sell all players** enabled, bids, sales, and corrections are rejected if they would prevent any complete purchase allocation of the remaining player pool at actual base prices within individual team purses and squad limits. Preflight checks the same allocation. Run `npm run test:purse` for the regression where an expensive final player needs the only team with an available squad slot.
+
 Each **Participating Teams** card includes its shareable franchise URL, copy button, and public view link. Public Live View controls guest access. When a set's final player is resolved, the auction console shows the sold/unsold totals and hides Reveal Next Player. **Go to Next Set** completes the current set and starts the next ordered set on request; **Complete Active Set** still opens the summary for review. The workflow browser test covers copying a team link, anonymous access, finished-set reloads, ordered advancement, and keyboard reveal in the next set.
 
 ## Specification Reference & Milestones

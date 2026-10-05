@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TournamentAuction.Api.Data;
 using TournamentAuction.Api.Domain;
+using TournamentAuction.Api.Features.Auction;
 
 namespace TournamentAuction.Api.Features.Preflight;
 
@@ -135,11 +136,12 @@ public class TournamentPreflightService : ITournamentPreflightService
 
         if (settings?.SellAllPlayers == true)
         {
-            var affordableSlots = teams.Sum(t => Math.Min((long)settings.MaximumSquadSize, t.InitialPurse / Math.Max(1, settings.MinimumAcquisitionPrice)));
-            var baseCost = players.Sum(p => Math.Max(p.BasePrice, settings.MinimumAcquisitionPrice));
-            var feasible = players.Count <= affordableSlots && baseCost <= teams.Sum(t => t.InitialPurse);
-            var message = feasible ? "Team squad capacity and starting purses can accommodate the full player pool."
-                : "Sell all players requires enough squad capacity and starting purse to purchase the entire player pool. Increase maximum squad sizes/purses or disable Sell all players.";
+            var allocation = RemainingPlayerFeasibility.Check(players.Select(p => Math.Max(p.BasePrice, settings.MinimumAcquisitionPrice)),
+                teams.Select(t => new PurchaseCapacity(t.InitialPurse, settings.MaximumSquadSize, settings.MinimumSquadSize)));
+            var feasible = allocation == PurchaseFeasibility.Feasible;
+            var message = feasible ? "Every player can be allocated at their base price within individual team purses and squad limits."
+                : allocation == PurchaseFeasibility.SearchLimit ? "A complete player allocation could not be verified within the validation limit. Adjust team purses/squad limits or disable Sell all players."
+                : "Sell all players requires a complete allocation at actual player base prices within individual team purses and squad limits. Increase maximum squad sizes/purses or disable Sell all players.";
             checks.Add(new PreflightCheckItem("SELL_ALL_FEASIBILITY", "Settings", "Sell All Players Feasibility", feasible ? "PASS" : "FAIL", message));
             if (!feasible) blockingErrors.Add(message);
         }

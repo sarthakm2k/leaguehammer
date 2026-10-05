@@ -11,6 +11,7 @@
     "test:workflow": "playwright test tests/auction-workflow.spec.ts",
     "test:results": "playwright test tests/auction-results.spec.ts",
     "test:continuous": "playwright test tests/auction-continuous-rounds.spec.ts",
+    "test:purse": "playwright test tests/auction-purse-protection.spec.ts",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -44,6 +44,8 @@ public partial class AuctionEngineService
             throw new InvalidOperationException("The bid must belong to the current active player.");
         if (request.CurrentBid < lot.Player.BasePrice || request.CurrentBid > 10000000000)
             throw new InvalidOperationException("The recorded bid must be at least the player's base price and within the price limit.");
+        if (tournament.Settings?.SellAllPlayers == true && request.LeadingTeamId == null)
+            throw new InvalidOperationException("Select a leading team so Sell all players can validate the remaining purses and squad spaces.");
         if (request.LeadingTeamId is Guid teamId)
         {
             var standings = await CalculateTeamStandingsAsync(tournamentId, tournament.Settings!);
@@ -52,6 +54,7 @@ public partial class AuctionEngineService
                 throw new InvalidOperationException("The leading team must belong to this tournament.");
             if (!team.CanBid || request.CurrentBid > team.MaximumAllowedBid)
                 throw new InvalidOperationException("This bid exceeds the team's purse or squad reserve limit.");
+            await ValidateRemainingPlayerPurchasesAsync(tournament, lot.PlayerId, teamId, request.CurrentBid, lot.Id);
         }
         lot.CurrentBid = request.CurrentBid;
         lot.LeadingTeamId = request.LeadingTeamId;

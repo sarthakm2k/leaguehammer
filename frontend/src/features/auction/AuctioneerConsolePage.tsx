@@ -716,11 +716,12 @@ export function AuctioneerConsolePage() {
                     </label>
                     {selectedTeam && (
                       <span className="text-[11px] text-slate-400">
-                        Max Allowed Bid: <strong className="text-emerald-400 font-mono">{currencySymbol}{selectedTeam.maximumAllowedBid.toLocaleString()}</strong>
+                        {state.sellAllPlayers ? 'Team purse limit' : 'Max Allowed Bid'}: <strong className="text-emerald-400 font-mono">{currencySymbol}{selectedTeam.maximumAllowedBid.toLocaleString()}</strong>
                       </span>
                     )}
                   </div>
 
+                  {state.sellAllPlayers && <p className="text-xs text-amber-300">Purchases must leave enough money and squad spaces for all remaining players at their base prices. The team purse limit alone does not guarantee a bid can be accepted.</p>}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     {teamStandings.map((t) => {
                       const isSelected = t.teamId === selectedTeamId;

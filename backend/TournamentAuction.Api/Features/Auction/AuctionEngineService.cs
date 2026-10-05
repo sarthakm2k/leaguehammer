@@ -398,6 +398,8 @@ public partial class AuctionEngineService : IAuctionEngineService
                 $"{settings.CurrencySymbol}{requiredReserve:N0} must remain reserved to acquire remaining players for the minimum squad requirement ({settings.MinimumSquadSize} players).");
         }
 
+        await ValidateRemainingPlayerPurchasesAsync(tournament, lot.PlayerId, team.Id, request.FinalPrice, lot.Id);
+
         // Execute sale commit
         lot.Status = AuctionLotStatus.SOLD;
         lot.WinningTeamId = team.Id;
@@ -659,6 +661,8 @@ public partial class AuctionEngineService : IAuctionEngineService
                 $"{newTeam.Name} cannot afford {settings.CurrencySymbol}{request.NewFinalPrice:N0}. " +
                 $"Maximum allowed purchase is {settings.CurrencySymbol}{maxAllowedBid:N0} to protect squad reserve.");
         }
+
+        await ValidateRemainingPlayerPurchasesAsync(tournament, lot.PlayerId, newTeam.Id, request.NewFinalPrice, lot.Id);
 
         var oldTeamId = lot.WinningTeamId;
         var oldPrice = lot.FinalPrice;

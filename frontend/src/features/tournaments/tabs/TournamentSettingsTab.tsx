@@ -350,6 +350,7 @@ export function TournamentSettingsTab({ tournamentId, isOwner, status }: Props) 
             Sell all players
           </label>
           <p className="text-xs text-slate-400">When enabled, unsold players move into another unsold round until every player is sold. Each attempt is retained. Purse and squad limits still apply.</p>
+          <p className="text-xs text-slate-400">Every bid, sale, and correction must leave enough purse and squad space to buy all remaining players at their base prices.</p>
           <p className="text-xs text-slate-500">When disabled, players receive one final unsold round and remain unsold after their second attempt.</p>
         </div>
 
