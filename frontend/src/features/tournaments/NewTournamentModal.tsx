@@ -61,7 +61,7 @@ export function NewTournamentModal({ isOpen, onClose, onCreated }: NewTournament
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-lg bg-[#0e1424] border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
+      <div className="w-full max-w-lg bg-[#191d28] border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div className="flex items-center space-x-3">
             <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">

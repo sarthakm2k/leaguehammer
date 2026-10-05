@@ -8,7 +8,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#090d16] flex items-center justify-center text-slate-400 text-xs font-mono">
+      <div className="min-h-screen bg-[#101219] flex items-center justify-center text-slate-400 text-xs font-mono">
         Checking authentication...
       </div>
     );

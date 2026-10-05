@@ -1,0 +1,162 @@
+:root { color-scheme: dark; --league-lime: #c4f143; --league-paper: #f7f3eb; --league-muted: #a5a8b6; }
+body { background: #101219; color: var(--league-paper); }
+* { box-sizing: border-box; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled), summary { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+:focus-visible { outline: 2px solid var(--league-lime); outline-offset: 4px; }
+::selection { background: #c4f143; color: #101219; }
+.league-brand { display: inline-block; position: relative; width: 228px; height: 52px; overflow: hidden; flex-shrink: 0; vertical-align: middle; }
+.league-brand img { position: absolute; width: 270px; max-width: none; height: 90px; top: 50%; left: 50%; transform: translate(-50%, -50%); object-fit: contain; }
+.league-brand-compact { width: 156px; height: 38px; }
+.league-brand-compact img { width: 188px; height: 63px; }
+.league-kicker { font-size: 11px; font-weight: 800; letter-spacing: .16em; color: var(--league-lime); }
+.league-auth { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(450px, .9fr); min-height: 100dvh; background: #11141b; }
+.auth-story { position: relative; isolation: isolate; display: flex; flex-direction: column; justify-content: space-between; padding: 46px clamp(32px, 4vw, 72px); min-height: 760px; background: #0b131b url('/brand/stadium.webp') center 62% / cover no-repeat; }
+.auth-story::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, #070e17b8, #070e1750), linear-gradient(0deg, #070e17dc, transparent 40%, #070e1750); }
+.auth-story-top { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; }
+.auth-control-label { display: flex; gap: 10px; align-items: center; font-size: 12px; color: #c4c9ce; padding-left: 22px; border-left: 1px solid #ffffff40; }
+.auth-control-label i { width: 8px; height: 8px; border-radius: 50%; background: var(--league-lime); box-shadow: 0 0 18px #c4f14355; }
+.auth-story-copy { margin: 100px 0 90px; max-width: 650px; }
+.auth-story-copy h1 { font-size: clamp(42px, 4.45vw, 76px); line-height: 1.04; letter-spacing: -.055em; font-weight: 900; margin: 22px 0; text-wrap: balance; }
+.auth-story-copy em { font-style: normal; color: var(--league-lime); }
+.auth-story-copy p { max-width: 440px; font-size: 18px; line-height: 1.6; color: #d1d5dc; }
+.auth-features { display: flex; gap: 28px; margin-bottom: 32px; }
+.auth-features>span { display: flex; align-items: center; gap: 12px; color: #edf0f3; font-size: 13px; line-height: 1.5; }
+.auth-features>span+span { border-left: 1px solid #ffffff35; padding-left: 28px; }
+.auth-features svg { color: var(--league-lime); width: 26px; height: 26px; flex-shrink: 0; }
+.auth-image-credit { font-size: 10px; color: #8997a1; letter-spacing: .2em; }
+.auth-panel { display: flex; flex-direction: column; justify-content: center; padding: 64px clamp(32px, 4.5vw, 84px) 24px; background: radial-gradient(ellipse at 100% 0, #c4f14307, transparent 60%), #13161f; border-left: 1px solid #ffffff0d; }
+.auth-form-shell { width: 100%; max-width: 460px; margin: auto; }
+.auth-heading { margin-bottom: 38px; }
+.auth-heading h2 { font-size: clamp(36px, 3.2vw, 54px); font-weight: 850; letter-spacing: -.045em; line-height: 1.06; margin: 14px 0; }
+.auth-heading p { color: var(--league-muted); font-size: 16px; line-height: 1.6; }
+.auth-form { display: grid; gap: 24px; }
+.auth-form label { display: block; font-size: 13px; font-weight: 650; margin-bottom: 10px; color: #daddE5; }
+.auth-input { display: flex; align-items: center; gap: 14px; border: 1px solid #ffffff20; border-radius: 12px; padding: 0 16px; min-height: 58px; background: #1b1f2a; color: #858b9e; transition: border-color .2s, box-shadow .2s; }
+.auth-input:focus-within { border-color: var(--league-lime); box-shadow: 0 0 0 3px #c4f1430d; }
+.auth-input>svg { flex-shrink: 0; }
+.auth-input input { width: 100%; min-width: 0; color: var(--league-paper); background: transparent; font-size: 16px; border: 0; padding: 17px 0; outline: 0; }
+.auth-input input::placeholder { color: #797e90; }
+.auth-input button { display: grid; place-items: center; color: #a3a7b6; background: transparent; border: 0; min-width: 36px; min-height: 44px; }
+.auth-submit { display: flex; justify-content: center; align-items: center; gap: 14px; width: 100%; padding: 18px; margin-top: 8px; background: var(--league-lime); border: 0; border-radius: 12px; font-size: 16px; font-weight: 800; color: #11170b; transition: background .2s, transform .2s; }
+.auth-submit:hover { background: #d4fa78; transform: translateY(-1px); }
+.auth-submit:disabled { opacity: .6; transform: none; }
+.auth-divider { display: flex; align-items: center; gap: 18px; font-size: 12px; color: #8f94a5; margin-top: 30px; }
+.auth-divider::before,.auth-divider::after { content: ''; height: 1px; flex: 1; background: #ffffff15; }
+.auth-account { text-align: center; margin: 18px 0; }
+.auth-account a { display: inline-flex; align-items: center; gap: 8px; color: var(--league-lime); font-weight: 650; font-size: 14px; }
+.auth-demo { display: block; margin: 0 auto; padding: 8px; background: transparent; border: 0; color: #959bac; font-size: 11px; }
+.auth-demo:hover { color: var(--league-paper); }
+.auth-security { display: flex; gap: 16px; align-items: flex-start; margin-top: 38px; padding-top: 26px; border-top: 1px solid #ffffff12; }
+.auth-security>svg { width: 42px; height: 42px; padding: 10px; box-sizing: content-box; border-radius: 50%; color: var(--league-lime); background: #c4f1430a; flex-shrink: 0; }
+.auth-security strong { font-size: 12px; font-weight: 650; }
+.auth-security p { color: #808698; font-size: 12px; line-height: 1.7; margin-top: 6px; }
+.auth-footer { color: #666d7e; font-size: 10px; text-align: center; margin-top: 36px; }
+.auth-mobile-brand { display: none; }
+.auth-error { display: flex; align-items: flex-start; gap: 10px; background: #f9737310; color: #ffafb6; border: 1px solid #f9737330; border-radius: 12px; padding: 14px; margin-bottom: 20px; font-size: 13px; }
+.auth-error svg { flex-shrink: 0; }
+.league-workspace,.league-console { background-image: radial-gradient(ellipse at 10% 0, #b194fc08, transparent 50%); }
+.league-workspace header,.league-console header { border-color: #ffffff10; }
+.league-workspace-label { color: #9399ab; font-size: 11px; padding-left: 16px; border-left: 1px solid #ffffff20; }
+.league-dashboard main { padding-top: 48px; }
+.league-dashboard h1 { font-size: clamp(30px, 3vw, 44px); letter-spacing: -.045em; }
+.league-dashboard main>div:first-child p { font-size: 14px; line-height: 1.6; max-width: 460px; margin-top: 10px; }
+.league-workspace main [class*="rounded-2xl"],.league-console main [class*="rounded-2xl"] { border-color: #ffffff12; box-shadow: 0 8px 32px #00000015; }
+.league-overview header>div:first-child { height: auto; min-height: 96px; padding-top: 18px; padding-bottom: 18px; gap: 16px; }
+.league-overview header>div:first-child>div { min-width: 0; }
+.league-overview h1 { font-size: 19px; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.league-overview header p { overflow-wrap: anywhere; }
+.league-console header>div { flex-wrap: wrap; }
+.league-console header>div>div:first-child { flex-wrap: wrap; min-width: 0; }
+.league-console header h1 { overflow-wrap: anywhere; }
+.league-console header>div>div:first-child>div { min-width: 0; }
+.league-console main>* { min-width: 0; }
+.league-console header .league-brand { display: none; }
+.league-console header>div>div:first-child>div::before { content: 'LEAGUEHAMMER / AUCTION CONTROL'; color: #c4f143; font-size: 9px; font-weight: 800; letter-spacing: .12em; }
+.league-console header>div>div:first-child>div { flex-direction: column; align-items: flex-start; gap: 4px; }
+.recap-topbar .recap-wordmark { gap: 8px; }
+.recap-topbar .recap-wordmark>span:last-child { font-size: 9px; letter-spacing: .08em; }
+@media (max-width: 1100px) {
+  .league-auth { grid-template-columns: minmax(0, 1fr) minmax(390px, 1fr); }
+  .auth-story { padding: 32px; }
+  .auth-control-label { display: none; }
+  .auth-features { gap: 14px; }
+  .auth-features>span { font-size: 11px; gap: 8px; }
+  .auth-features>span+span { padding-left: 14px; }
+  .league-overview header .league-brand { display: none; }
+}
+@media (max-width: 760px) {
+  .league-auth { display: block; }
+  .auth-story { display: none; }
+  .auth-panel { padding: 28px 24px 24px; min-height: 100dvh; border: 0; }
+  .auth-mobile-brand { display: block; margin-bottom: 36px; }
+  .auth-mobile-brand .league-brand { width: 200px; }
+  .auth-mobile-brand .league-brand img { width: 240px; height: 80px; }
+  .auth-form-shell { margin: auto; }
+  .auth-heading { margin-bottom: 28px; }
+  .auth-heading h2 { font-size: 40px; }
+  .auth-heading p { font-size: 14px; }
+  .auth-form { gap: 20px; }
+  .auth-security { margin-top: 26px; }
+  .auth-security>svg { width: 24px; height: 24px; }
+  .league-workspace-label { display: none; }
+  .league-workspace header .h-16 { min-height: 76px; height: auto; gap: 12px; }
+  .league-overview header>div:first-child { flex-wrap: wrap; }
+  .league-overview header>div:first-child>div:first-child { width: 100%; }
+  .league-overview header>div:first-child>div:first-child>div { min-width: 0; }
+  .league-console header { position: static; }
+  .league-console header>div { gap: 12px; }
+  .league-console header>div>div:first-child { width: 100%; gap: 12px; }
+  .league-console header>div>div:first-child>div { width: 100%; margin-left: 0; }
+  .league-console main { gap: 18px; }
+  .league-console main [class*="min-h-[500px]"] { min-height: 360px; }
+  .league-console main [class*="p-8"] { padding: 20px; }
+  .league-console main [class*="text-6xl"] { font-size: 42px; overflow-wrap: anywhere; }
+  .league-console main [class*="text-5xl"] { font-size: 36px; overflow-wrap: anywhere; }
+  .league-console main [class*="w-64"] { max-width: 100%; }
+  .recap-topbar .recap-wordmark { flex-direction: column; align-items: flex-start; gap: 0; }
+  .recap-topbar .recap-wordmark>span:last-child { margin-left: 12px; font-size: 8px; }
+}
+@media (max-width: 380px) {
+  .auth-panel { padding: 20px; }
+  .auth-mobile-brand { margin-bottom: 24px; }
+  .auth-heading h2 { font-size: 34px; }
+  .auth-form { gap: 16px; }
+  .league-dashboard .league-brand { width: 194px; }
+}
+@media (prefers-reduced-motion: reduce) { .auth-submit { transition: none; } .auth-submit:hover { transform: none; } }
+@media(max-width:639px) {
+  .console-lot-meta { flex-wrap: wrap; gap: 12px; }
+  .console-player-spotlight { grid-template-columns: 96px minmax(0,1fr); gap: 16px; align-items: start; }
+  .console-player-spotlight>div:first-child>div { width: 96px; height: 126px; padding: 4px; border-radius: 16px; }
+  .console-player-spotlight>div:first-child svg { width: 38px; height: 38px; }
+  .console-player-spotlight>div:first-child [class*="text-[11px]"] { font-size: 8px; text-align: center; }
+  .console-player-spotlight h2 { font-size: 26px; overflow-wrap: anywhere; }
+  .console-player-spotlight>div:last-child>div:last-child { flex-wrap: wrap; gap: 8px; padding: 12px; }
+  .league-console main label { min-width: 0; }
+  .league-console main input,.league-console main select,.league-workspace main input,.league-workspace main select { font-size: 16px; max-width: 100%; }
+  .league-console main [class*="justify-between"] { flex-wrap: wrap; gap: 8px; }
+  .league-console main h2 { overflow-wrap: anywhere; }
+  .league-console main [class*="grid-cols-2"]>button { min-width: 0; overflow-wrap: anywhere; }
+  .league-console main [class*="grid-cols-2"]>button [class*="text-right"] { max-width: 100%; }
+  .league-workspace .fixed.inset-0>div,.league-console .fixed.inset-0>div { max-height: calc(100dvh - 32px); overflow-y: auto; }
+}
+.league-history h1 { letter-spacing: -.04em; }
+.league-console main input[aria-label="Winning bid price"] { font-size: 28px; letter-spacing: -.035em; }
+.league-console main button { min-height: 40px; }
+.league-dashboard main h3 { font-size: 22px; letter-spacing: -.03em; }
+.league-dashboard main .group { padding: 24px; }
+.league-history section { border-color: #ffffff12; background: #191d28; }
+@media(max-width:600px) {
+  .league-history input,.league-history select { font-size: 16px; }
+  .league-history header p { font-size: 13px; line-height: 1.7; }
+  .league-history table { display: block; white-space: normal; }
+  .league-history thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .league-history tbody { display: grid; gap: 12px; }
+  .league-history tr { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); padding: 16px; border: 1px solid #ffffff12; background: #242835; border-radius: 14px; gap: 12px; }
+  .league-history td { min-width: 0; padding: 0; overflow-wrap: anywhere; }
+  .league-history td:first-child,.league-history td:last-child { grid-column: 1 / -1; }
+  .league-history td::before { content: attr(data-label); display: block; color: #9299ac; font-size: 9px; text-transform: uppercase; margin-bottom: 5px; }
+  .league-history td:first-child::before,.league-history td:last-child::before { display: none; }
+}

@@ -1,8 +1,8 @@
+import { LeagueHammerBrand } from '../../components/LeagueHammerBrand';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { 
-  Trophy, 
   ArrowLeft, 
   Shield, 
   MapPin, 
@@ -134,7 +134,7 @@ export function TournamentOverviewPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#090d16] flex items-center justify-center text-slate-400 text-xs">
+      <div className="min-h-screen bg-[#101219] flex items-center justify-center text-slate-400 text-xs">
         Loading tournament workspace...
       </div>
     );
@@ -142,7 +142,7 @@ export function TournamentOverviewPage() {
 
   if (error || !tournament) {
     return (
-      <div className="min-h-screen bg-[#090d16] flex flex-col items-center justify-center p-4 space-y-4 text-center">
+      <div className="min-h-screen bg-[#101219] flex flex-col items-center justify-center p-4 space-y-4 text-center">
         <p className="text-rose-400 text-sm">{error || 'Tournament not found.'}</p>
         <button
           onClick={() => navigate('/dashboard')}
@@ -158,9 +158,9 @@ export function TournamentOverviewPage() {
   const statusStr = getStatusString(tournament.status);
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans">
+    <div className="league-workspace league-overview min-h-screen bg-[#101219] text-slate-100 flex flex-col font-sans">
       {/* Header */}
-      <header className="border-b border-slate-800 bg-[#0d1321]/90 backdrop-blur sticky top-0 z-40">
+      <header className="border-b border-slate-800 bg-[#171a23]/90 backdrop-blur sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Link
@@ -172,9 +172,7 @@ export function TournamentOverviewPage() {
             </Link>
 
             <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                <Trophy className="w-5 h-5 text-slate-950 stroke-[2.5]" />
-              </div>
+              <LeagueHammerBrand compact />
               <div>
                 <h1 className="font-bold text-base text-white">{tournament.name}</h1>
                 <p className="text-[11px] font-mono text-slate-400">/live/{tournament.slug}</p>
@@ -303,7 +301,7 @@ export function TournamentOverviewPage() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         
         {/* Banner */}
-        <div className="rounded-2xl border border-slate-800 bg-gradient-to-b from-[#0e1424] to-[#090d16] p-6 shadow-xl space-y-4">
+        <div className="rounded-2xl border border-slate-800 bg-gradient-to-b from-[#191d28] to-[#101219] p-6 shadow-xl space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center space-x-3">
@@ -361,7 +359,7 @@ export function TournamentOverviewPage() {
 
         {/* Edit Form (if toggled) */}
         {editing && (
-          <div className="rounded-2xl border border-emerald-500/30 bg-[#0e1424] p-6 shadow-xl space-y-4">
+          <div className="rounded-2xl border border-emerald-500/30 bg-[#191d28] p-6 shadow-xl space-y-4">
             <h3 className="text-sm font-bold text-white">Edit Tournament Information</h3>
             <form onSubmit={handleUpdate} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -489,7 +487,7 @@ export function TournamentOverviewPage() {
               {/* Rules & Teams Quick Links */}
               <div 
                 onClick={() => setActiveTab('settings')}
-                className="cursor-pointer group rounded-xl border border-slate-800 bg-[#0e1424] p-5 space-y-3 hover:border-emerald-500/40 transition-all"
+                className="cursor-pointer group rounded-xl border border-slate-800 bg-[#191d28] p-5 space-y-3 hover:border-emerald-500/40 transition-all"
               >
                 <div className="flex items-center space-x-3">
                   <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -506,7 +504,7 @@ export function TournamentOverviewPage() {
 
               <div 
                 onClick={() => setActiveTab('teams')}
-                className="cursor-pointer group rounded-xl border border-slate-800 bg-[#0e1424] p-5 space-y-3 hover:border-emerald-500/40 transition-all"
+                className="cursor-pointer group rounded-xl border border-slate-800 bg-[#191d28] p-5 space-y-3 hover:border-emerald-500/40 transition-all"
               >
                 <div className="flex items-center space-x-3">
                   <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
@@ -523,7 +521,7 @@ export function TournamentOverviewPage() {
 
               <div 
                 onClick={() => setActiveTab('tiers')}
-                className="cursor-pointer group rounded-xl border border-slate-800 bg-[#0e1424] p-5 space-y-3 hover:border-emerald-500/40 transition-all"
+                className="cursor-pointer group rounded-xl border border-slate-800 bg-[#191d28] p-5 space-y-3 hover:border-emerald-500/40 transition-all"
               >
                 <div className="flex items-center space-x-3">
                   <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
@@ -541,7 +539,7 @@ export function TournamentOverviewPage() {
               {/* Player Management */}
               <div 
                 onClick={() => setActiveTab('players')}
-                className="cursor-pointer group rounded-xl border border-slate-800 bg-[#0e1424] p-5 space-y-3 hover:border-purple-500/40 transition-all"
+                className="cursor-pointer group rounded-xl border border-slate-800 bg-[#191d28] p-5 space-y-3 hover:border-purple-500/40 transition-all"
               >
                 <div className="flex items-center space-x-3">
                   <div className="p-2.5 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
@@ -558,7 +556,7 @@ export function TournamentOverviewPage() {
 
               <div 
                 onClick={() => setActiveTab('preflight')}
-                className="cursor-pointer group rounded-xl border border-slate-800 bg-[#0e1424] p-5 space-y-3 hover:border-emerald-500/40 transition-all"
+                className="cursor-pointer group rounded-xl border border-slate-800 bg-[#191d28] p-5 space-y-3 hover:border-emerald-500/40 transition-all"
               >
                 <div className="flex items-center space-x-3">
                   <div className="p-2.5 rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20">
@@ -575,7 +573,7 @@ export function TournamentOverviewPage() {
 
               <Link
                 to={`/tournaments/${tournament.id}/auction`}
-                className="group rounded-xl border border-emerald-500/30 bg-[#0e1424] p-5 space-y-3 hover:border-emerald-500/60 hover:shadow-lg hover:shadow-emerald-500/10 transition-all block"
+                className="group rounded-xl border border-emerald-500/30 bg-[#191d28] p-5 space-y-3 hover:border-emerald-500/60 hover:shadow-lg hover:shadow-emerald-500/10 transition-all block"
               >
                 <div className="flex items-center space-x-3">
                   <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 group-hover:scale-105 transition-transform">

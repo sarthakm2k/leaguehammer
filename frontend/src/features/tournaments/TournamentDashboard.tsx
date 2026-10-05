@@ -1,3 +1,4 @@
+import { LeagueHammerBrand } from '../../components/LeagueHammerBrand';
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
@@ -94,22 +95,12 @@ export function TournamentDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans">
+    <div className="league-workspace league-dashboard min-h-screen bg-[#101219] text-slate-100 flex flex-col font-sans">
       {/* Navigation Bar */}
-      <header className="border-b border-slate-800 bg-[#0d1321]/90 backdrop-blur sticky top-0 z-40">
+      <header className="border-b border-slate-800 bg-[#171a23]/90 backdrop-blur sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-              <Trophy className="w-6 h-6 text-slate-950 stroke-[2.5]" />
-            </div>
-            <div>
-              <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                Football Auction Central
-              </span>
-              <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-                Dashboard
-              </span>
-            </div>
+            <LeagueHammerBrand /><span className="league-workspace-label">Tournament workspace</span>
           </div>
 
           <div className="flex items-center space-x-4">
@@ -190,7 +181,7 @@ export function TournamentDashboard() {
             {tournaments.map((t) => (
               <div
                 key={t.id}
-                className="group relative rounded-2xl border border-slate-800 bg-[#0e1424] p-5 shadow-xl hover:border-slate-700 transition-all flex flex-col justify-between"
+                className="group relative rounded-2xl border border-slate-800 bg-[#191d28] p-5 shadow-xl hover:border-slate-700 transition-all flex flex-col justify-between"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">

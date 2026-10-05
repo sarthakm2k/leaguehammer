@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+@theme {
+  --color-emerald-300: #d4fa78;
+  --color-emerald-400: #c4f143;
+  --color-emerald-500: #a3ce2d;
+  --color-emerald-600: #7e9f24;
+}
+
+
+
 @layer base {
   :root {
     --background: 222.2 84% 4.9%;

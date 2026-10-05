@@ -221,10 +221,10 @@ export function PreflightTab({
       {/* Top Hero Banner */}
       <div className={`rounded-2xl border p-6 shadow-xl relative overflow-hidden transition-all ${
         isReady
-          ? 'bg-gradient-to-r from-emerald-950/60 via-[#0d1726] to-[#090d16] border-emerald-500/40'
+          ? 'bg-gradient-to-r from-emerald-950/60 via-[#0d1726] to-[#101219] border-emerald-500/40'
           : report.isReadyForAuction
-            ? 'bg-gradient-to-r from-teal-950/50 via-[#0d1726] to-[#090d16] border-teal-500/40'
-            : 'bg-gradient-to-r from-rose-950/50 via-[#0d1726] to-[#090d16] border-rose-500/40'
+            ? 'bg-gradient-to-r from-teal-950/50 via-[#0d1726] to-[#101219] border-teal-500/40'
+            : 'bg-gradient-to-r from-rose-950/50 via-[#0d1726] to-[#101219] border-rose-500/40'
       }`}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2">
@@ -340,7 +340,7 @@ export function PreflightTab({
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1: Teams & Squad Math */}
-        <div className="rounded-xl border border-slate-800 bg-[#0e1424] p-4 space-y-2">
+        <div className="rounded-xl border border-slate-800 bg-[#191d28] p-4 space-y-2">
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span className="font-medium">Teams & Squad Limit</span>
             <Users className="w-4 h-4 text-blue-400" />
@@ -367,7 +367,7 @@ export function PreflightTab({
         <div className={`rounded-xl border p-4 space-y-2 ${
           shortfall > 0 
             ? 'border-rose-500/40 bg-rose-950/20' 
-            : 'border-slate-800 bg-[#0e1424]'
+            : 'border-slate-800 bg-[#191d28]'
         }`}>
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span className="font-medium">Roster Feasibility</span>
@@ -398,7 +398,7 @@ export function PreflightTab({
         </div>
 
         {/* Metric 3: Financial Floor */}
-        <div className="rounded-xl border border-slate-800 bg-[#0e1424] p-4 space-y-2">
+        <div className="rounded-xl border border-slate-800 bg-[#191d28] p-4 space-y-2">
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span className="font-medium">Financial Reserve Floor</span>
             <DollarSign className="w-4 h-4 text-amber-400" />
@@ -422,7 +422,7 @@ export function PreflightTab({
         </div>
 
         {/* Metric 4: Sets & Photos */}
-        <div className="rounded-xl border border-slate-800 bg-[#0e1424] p-4 space-y-2">
+        <div className="rounded-xl border border-slate-800 bg-[#191d28] p-4 space-y-2">
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span className="font-medium">Sets & Media</span>
             <Layers className="w-4 h-4 text-purple-400" />
@@ -506,7 +506,7 @@ export function PreflightTab({
       {/* Checks List */}
       <div className="space-y-3">
         {filteredChecks.length === 0 ? (
-          <div className="p-8 text-center rounded-xl border border-slate-800 bg-[#0e1424] text-xs text-slate-400">
+          <div className="p-8 text-center rounded-xl border border-slate-800 bg-[#191d28] text-xs text-slate-400">
             No preflight checks match your current filter selection.
           </div>
         ) : (
@@ -523,7 +523,7 @@ export function PreflightTab({
                     ? 'border-rose-500/40 bg-[#160c12]'
                     : isWarning
                       ? 'border-amber-500/30 bg-[#17130b]'
-                      : 'border-slate-800/80 bg-[#0e1424] hover:border-slate-700'
+                      : 'border-slate-800/80 bg-[#191d28] hover:border-slate-700'
                 }`}
               >
                 <div className="flex items-start justify-between gap-4">

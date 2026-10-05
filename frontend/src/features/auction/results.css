@@ -1,6 +1,6 @@
 .auction-results{
   min-height:100vh;
-  background:#070c15;
+  background:#101219;
   color:#e7eef8;
   padding:28px;
   font-family:Inter,system-ui,sans-serif}
@@ -15,6 +15,7 @@
   min-width: 0;
   max-width: 100%;
 }
+
 .result-brand {
   min-width: 0;
   max-width: 100%;
@@ -33,7 +34,7 @@
 .result-brand>svg{
   width:42px;
   height:42px;
-  color:#b7f76b;
+  color:#c4f143;
   flex-shrink:0}
 .result-header h1{
   font-size:24px;
@@ -43,13 +44,13 @@
   font-size:11px;
   text-transform:uppercase;
   letter-spacing:.16em;
-  color:#b7f76b;
+  color:#c4f143;
   margin-bottom:7px}
 .result-header-actions{
   flex-wrap:wrap;
   font-size:12px}
 .auction-results a,.result-copy button{
-  color:#b7f76b}
+  color:#c4f143}
 .result-header-actions a{
   display:flex;
   gap:5px;
@@ -66,10 +67,10 @@
   color:#aabbce;
   font-weight:600}
 .result-nav a[aria-current=page]{
-  background:#b7f76b;
+  background:#c4f143;
   color:#07120b}
 .result-panel,.result-team-hero{
-  background:#0e1728;
+  background:#181c26;
   border:1px solid #263249;
   border-radius:20px;
   padding:24px;
@@ -88,7 +89,7 @@
   grid-template-columns:repeat(4,minmax(0,1fr));
   gap:14px}
 .result-metric{
-  background:#101b2e;
+  background:#1b1f2b;
   border:1px solid #28374c;
   border-radius:15px;
   padding:20px;
@@ -129,7 +130,7 @@
 .result-live-price strong{
   font-size:42px;
   font-weight:850;
-  color:#b7f76b}
+  color:#c4f143}
 .result-portrait{
   width:40px;
   height:44px;
@@ -173,7 +174,7 @@
   display:flex;
   flex-direction:column;
   gap:12px;
-  background:#121f32;
+  background:#191d28;
   border:1px solid #30435a;
   border-radius:15px;
   padding:22px}
@@ -182,7 +183,7 @@
   font-weight:750}
 .result-team-card>span{
   font-size:22px;
-  color:#b7f76b;
+  color:#c4f143;
   font-weight:750}
 .result-team-card small{
   color:#a2b4c9;
@@ -190,12 +191,12 @@
 .result-team-card progress{
   width:100%;
   height:8px;
-  accent-color:#b7f76b}
+  accent-color:#c4f143}
 .result-team-title svg,.result-team-title img{
   width:48px;
   height:48px;
   object-fit:contain;
-  color:#b7f76b}
+  color:#c4f143}
 .result-team-hero>.result-metrics{
   margin:24px 0}
 .result-team-hero h2{
@@ -257,7 +258,7 @@
   align-items:center;
   gap:12px}
 .result-price{
-  color:#b7f76b;
+  color:#c4f143;
   font-weight:750}
 .result-badge{
   display:inline-flex;
@@ -270,7 +271,7 @@
   border-radius:8px}
 .result-badge.sold{
   background:#19382c;
-  color:#b7f76b}
+  color:#c4f143}
 .result-filters{
   display:flex;
   flex-wrap:wrap;
@@ -295,7 +296,7 @@
   border-bottom:1px solid #28374c;
   font-size:14px}
 .result-recent span{
-  color:#b7f76b}
+  color:#c4f143}
 .result-wrapped-hero{
   border:1px solid #655533;
   background:radial-gradient(ellipse at top left,#39301b,#111b27 65%);
@@ -358,7 +359,7 @@
   display:flex;
   flex-direction:column;
   gap:9px;
-  background:#142238;
+  background:#202331;
   padding:18px;
   border-radius:14px}
 .result-rankings small{
@@ -368,7 +369,7 @@
   font-size:17px}
 .result-rankings span{
   font-size:12px;
-  color:#b7f76b}
+  color:#c4f143}
 .result-loading{
   display:flex;
   align-items:center;
@@ -382,7 +383,7 @@
   border:1px solid #627f4a;
   border-radius:10px}
 .auction-results button:focus-visible,.auction-results a:focus-visible,.auction-results input:focus-visible,.auction-results select:focus-visible{
-  outline:2px solid #b7f76b;
+  outline:2px solid #c4f143;
   outline-offset:4px}
 
 @media(max-width:900px){
@@ -436,3 +437,53 @@
 .result-chart{
   height:300px}
 }
+/* LeagueHammer presentation; the data views and chart controls remain intact. */
+.auction-results { background: radial-gradient(ellipse at 10% 0, #b194fc0b, transparent 45%), #101219; color: #f7f3eb; }
+.result-header { padding: 8px 0 24px; border-bottom: 1px solid #ffffff12; }
+.result-header h1 { letter-spacing: -.035em; }
+.result-nav { border-bottom: 0; background: #191d28; border: 1px solid #ffffff12; border-radius: 16px; padding: 6px; width: fit-content; max-width: 100%; }
+.result-nav a { font-size: 13px; }
+.result-panel,.result-team-hero,.result-team-card,.result-metric { border-color: #ffffff14; box-shadow: 0 12px 40px #00000012; }
+.result-panel h2 { letter-spacing: -.025em; }
+.result-metric strong { font-size: clamp(23px, 2.1vw, 34px); font-weight: 850; letter-spacing: -.04em; }
+.result-metric p { text-transform: uppercase; font-size: 10px; letter-spacing: .1em; }
+.result-live-hero { background: radial-gradient(ellipse at 100% 0, #c4f14316, transparent 65%), #191d28; border-color: #c4f14330; }
+.result-live-hero h2 { font-size: clamp(32px, 3.5vw, 54px); letter-spacing: -.05em; overflow-wrap: anywhere; }
+.result-live-price strong { overflow-wrap: anywhere; }
+.result-team-card { transition: border-color .2s, transform .2s; }
+.result-team-card:hover { border-color: #c4f14350; transform: translateY(-2px); }
+.result-team-card h3,.result-team-title h2 { overflow-wrap: anywhere; letter-spacing: -.025em; }
+.result-chart { width: 100%; min-width: 0; }
+/* Narrow screens show complete table rows as labelled cards, with no sideways reading. */
+@media(max-width:600px) {
+  .result-header { gap: 18px; padding-top: 0; }
+  .result-brand { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .result-brand .league-brand { margin-left: -8px; }
+  .result-header h1 { font-size: 25px; }
+  .result-eyebrow { font-size: 9px; }
+  .result-header-actions { gap: 14px; width: 100%; }
+  .result-nav { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); width: 100%; gap: 3px; }
+  .result-nav a { text-align: center; padding: 12px 4px; font-size: 11px; }
+  .result-metrics { gap: 10px; }
+  .result-metric { padding: 16px 12px; }
+  .result-live-hero { position: relative; }
+  .result-spotlight-photo { width: 94px; height: 108px; border-radius: 16px; }
+  .result-spotlight-photo span { font-size: 28px; }
+  .result-spotlight-photo svg { width: 60px; height: 60px; }
+  .result-filters input,.result-filters select { min-height: 48px; font-size: 16px; }
+  .result-table-wrap { overflow: visible; }
+  .auction-results table { display: block; white-space: normal; }
+  .auction-results thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .auction-results tbody { display: grid; gap: 14px; }
+  .auction-results tr { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px 12px; padding: 18px; background: #202431; border: 1px solid #ffffff12; border-radius: 16px; }
+  .auction-results td { min-width: 0; display: block; padding: 0; border: 0; overflow-wrap: anywhere; font-size: 13px; }
+  .auction-results td:first-child { grid-column: 1 / -1; font-weight: 750; font-size: 16px; padding-bottom: 12px; border-bottom: 1px solid #ffffff12; }
+  .auction-results td::before { content: attr(data-label); display: block; text-transform: uppercase; color: #9ba1b3; letter-spacing: .05em; font-size: 9px; font-weight: 600; margin-bottom: 6px; }
+  .auction-results td:first-child::before { display: none; }
+  .result-player-cell { align-items: flex-start; }
+  .result-player-cell>div:last-child { min-width: 0; }
+  .result-price { font-size: 18px !important; }
+  .result-chart { height: 270px; }
+  .result-wrapped-hero h2 { overflow-wrap: anywhere; }
+}
+@media(prefers-reduced-motion:reduce) { .result-team-card { transition: none; } .result-team-card:hover { transform: none; } }

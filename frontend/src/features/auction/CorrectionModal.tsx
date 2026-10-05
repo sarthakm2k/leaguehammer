@@ -61,7 +61,7 @@ export function CorrectionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div role="dialog" aria-modal="true" aria-label="Correct Auction Result" className="w-full max-w-lg rounded-2xl border border-amber-500/40 bg-[#0e1424] p-6 shadow-2xl space-y-5 text-slate-100">
+      <div role="dialog" aria-modal="true" aria-label="Correct Auction Result" className="w-full max-w-lg rounded-2xl border border-amber-500/40 bg-[#191d28] p-6 shadow-2xl space-y-5 text-slate-100">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center space-x-2.5">
             <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400">

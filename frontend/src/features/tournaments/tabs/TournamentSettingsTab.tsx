@@ -159,7 +159,7 @@ export function TournamentSettingsTab({ tournamentId, isOwner, status }: Props) 
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6 bg-[#0e1424] border border-slate-800 rounded-2xl p-6 shadow-xl">
+      <form onSubmit={handleSubmit} className="space-y-6 bg-[#191d28] border border-slate-800 rounded-2xl p-6 shadow-xl">
         <div className="border-b border-slate-800 pb-4 flex items-center justify-between">
           <div>
             <h3 className="text-base font-bold text-white">Auction Rules & Financial Constraints</h3>

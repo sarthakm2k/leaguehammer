@@ -242,7 +242,7 @@ export function TeamsTab({ tournamentId, tournamentSlug, isOwner, status, defaul
           {teams.map((t) => (
             <div
               key={t.id}
-              className="rounded-2xl border border-slate-800 bg-[#0e1424] p-5 shadow-xl hover:border-slate-700 transition-all flex flex-col justify-between space-y-4"
+              className="rounded-2xl border border-slate-800 bg-[#191d28] p-5 shadow-xl hover:border-slate-700 transition-all flex flex-col justify-between space-y-4"
             >
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
@@ -319,7 +319,7 @@ export function TeamsTab({ tournamentId, tournamentSlug, isOwner, status, defaul
       {/* Add / Edit Team Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-[#0e1424] border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-md bg-[#191d28] border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2.5">
                 <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">

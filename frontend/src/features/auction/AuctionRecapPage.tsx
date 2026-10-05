@@ -1,3 +1,4 @@
+import { LeagueHammerBrand } from '../../components/LeagueHammerBrand';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
@@ -66,7 +67,7 @@ export function AuctionRecapPage({ publicView = false }: { publicView?: boolean 
     catch (error) { if (!(error instanceof Error && error.name === 'AbortError')) await copy(); }
   };
   return <main className="auction-recap" id="recap-top">
-    <div className="recap-topbar"><a href="#recap-top" className="recap-wordmark"><Trophy size={19} />AUCTION / RECAP</a>
+    <div className="recap-topbar"><a href="#recap-top" className="recap-wordmark"><LeagueHammerBrand compact /><span>AUCTION / RECAP</span></a>
       {data.publicLiveViewEnabled && <button aria-label="Share Recap" onClick={share}><Share2 size={17} /><span>Share</span></button>}</div>
     <div className="recap-shell">
       <header className="recap-hero">

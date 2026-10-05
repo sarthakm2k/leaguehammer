@@ -1,3 +1,4 @@
+import { LeagueHammerBrand } from '../../components/LeagueHammerBrand';
 import { useCallback, useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useParams } from 'react-router-dom';
@@ -80,7 +81,7 @@ export function ProjectorPage() {
 
   return <div className={`projector ${celebration ? 'stage-celebrating' : ''}`} style={{ '--team-color': leadingTeam?.primaryColor || '#b7f76b' } as CSSProperties}>
     <header className="stage-header">
-      <div className="stage-brand"><span className="stage-mark"><Trophy /></span><div><p className="stage-eyebrow">Football auction / Live broadcast</p><h1>{state.tournamentName}</h1></div></div>
+      <div className="stage-brand"><LeagueHammerBrand compact /><div><p className="stage-eyebrow">LeagueHammer / Live broadcast</p><h1>{state.tournamentName}</h1></div></div>
       <div className="stage-header-actions"><ConnectionIndicator status={connection} /><button aria-label={fullscreen ? 'Exit full screen' : 'Enter full screen'} onClick={() => { void toggleFullscreen(); }} title="Full screen · F11">{fullscreen ? <Minimize /> : <Maximize />}</button></div>
     </header>
 

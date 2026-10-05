@@ -114,7 +114,7 @@ export function BasePriceTiersTab({ tournamentId, isOwner, status }: Props) {
         </div>
       )}
 
-      <div className="bg-[#0e1424] border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+      <div className="bg-[#191d28] border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
         <div className="border-b border-slate-800 pb-4">
           <h3 className="text-base font-bold text-white">Player Base Price Tiers</h3>
           <p className="text-xs text-slate-400 mt-0.5">

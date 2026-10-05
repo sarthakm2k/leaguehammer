@@ -1,3 +1,4 @@
+import { LeagueHammerBrand } from '../../components/LeagueHammerBrand';
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuctionSocket } from './useAuctionSocket';
@@ -458,7 +459,7 @@ export function AuctioneerConsolePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#070b14] flex flex-col items-center justify-center space-y-3 text-slate-400">
+      <div className="min-h-screen bg-[#101219] flex flex-col items-center justify-center space-y-3 text-slate-400">
         <RefreshCw className="w-8 h-8 animate-spin text-emerald-400" />
         <p className="text-xs font-mono">Initializing live auction console...</p>
       </div>
@@ -467,7 +468,7 @@ export function AuctioneerConsolePage() {
 
   if (!state) {
     return (
-      <div className="min-h-screen bg-[#070b14] flex flex-col items-center justify-center p-6 text-center space-y-4">
+      <div className="min-h-screen bg-[#101219] flex flex-col items-center justify-center p-6 text-center space-y-4">
         <p className="text-rose-400 text-sm font-semibold">{error || 'Failed to load auction workspace'}</p>
         <button
           onClick={() => navigate(`/tournaments/${tournamentId}`)}
@@ -502,10 +503,10 @@ export function AuctioneerConsolePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans select-none">
+    <div className="league-console min-h-screen bg-[#101219] text-slate-100 flex flex-col font-sans select-none">
       
       {/* Top Bar Header */}
-      <header className="border-b border-slate-800/80 bg-[#0d1321]/90 backdrop-blur sticky top-0 z-40 px-4 sm:px-6 py-3">
+      <header className="border-b border-slate-800/80 bg-[#171a23]/90 backdrop-blur sticky top-0 z-40 px-4 sm:px-6 py-3">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center space-x-3 sm:space-x-4">
             <Link
@@ -519,9 +520,7 @@ export function AuctioneerConsolePage() {
             <Link to={`/tournaments/${tournamentId}/results`} className="text-xs text-emerald-300 hover:text-white">Results & statistics</Link>
 
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                <Gavel className="w-4 h-4 text-slate-950 stroke-[2.5]" />
-              </div>
+              <LeagueHammerBrand compact />
               <div>
                 <h1 className="font-extrabold text-sm sm:text-base text-white tracking-tight flex items-center gap-2">
                   <span>{state.tournamentName}</span>
@@ -608,10 +607,10 @@ export function AuctioneerConsolePage() {
 
           {/* Stage 1: Active Player on Podium */}
           {currentLot ? (
-            <div className="rounded-3xl border border-slate-800 bg-[#0d1321] p-6 sm:p-8 shadow-2xl relative overflow-hidden flex flex-col justify-between flex-1">
+            <div className="rounded-3xl border border-slate-800 bg-[#171a23] p-6 sm:p-8 shadow-2xl relative overflow-hidden flex flex-col justify-between flex-1">
               
               {/* Top Meta */}
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+              <div className="console-lot-meta flex items-center justify-between border-b border-slate-800/80 pb-4">
                 <div className="flex items-center space-x-3">
                   <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-300">
                     Lot #{currentLot.drawPosition}
@@ -628,7 +627,7 @@ export function AuctioneerConsolePage() {
               </div>
 
               {/* Main Player Display */}
-              <div className="py-6 grid grid-cols-1 sm:grid-cols-12 gap-6 items-center">
+              <div className="console-player-spotlight py-6 grid grid-cols-1 sm:grid-cols-12 gap-6 items-center">
                 {/* Photo / Avatar */}
                 <div className="sm:col-span-5 flex flex-col items-center">
                   <div className="w-48 h-56 sm:w-52 sm:h-64 rounded-3xl bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-slate-700/80 p-2 shadow-2xl flex flex-col items-center justify-center relative overflow-hidden group">
@@ -849,7 +848,7 @@ export function AuctioneerConsolePage() {
             </div>
           ) : (
             /* Stage 2: Empty Podium / Set Selection / Reveal Next */
-            <div className="rounded-3xl border border-slate-800 bg-[#0d1321] p-8 sm:p-12 shadow-2xl flex flex-col items-center justify-center text-center space-y-6 flex-1 min-h-[500px]">
+            <div className="rounded-3xl border border-slate-800 bg-[#171a23] p-8 sm:p-12 shadow-2xl flex flex-col items-center justify-center text-center space-y-6 flex-1 min-h-[500px]">
               
               {/* If a player was just sold, show confirmation banner */}
               {lastSoldEvent && (
@@ -965,7 +964,7 @@ export function AuctioneerConsolePage() {
 
         {/* Right Stage: Team Standings & Financial Purse Tracker (4 Cols) */}
         <aside className="lg:col-span-4 flex flex-col space-y-6">
-          <div className="rounded-3xl border border-slate-800 bg-[#0d1321] p-5 shadow-2xl space-y-4 flex flex-col flex-1">
+          <div className="rounded-3xl border border-slate-800 bg-[#171a23] p-5 shadow-2xl space-y-4 flex flex-col flex-1">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2">
                 <Users className="w-4 h-4 text-blue-400" />
