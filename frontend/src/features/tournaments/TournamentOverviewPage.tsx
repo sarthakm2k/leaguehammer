@@ -22,6 +22,7 @@ import { TeamsTab } from './tabs/TeamsTab';
 import { BasePriceTiersTab } from './tabs/BasePriceTiersTab';
 import { PlayerSetsTab } from './tabs/PlayerSetsTab';
 import { PlayersTab } from './tabs/PlayersTab';
+import { PreflightTab } from './tabs/PreflightTab';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -50,7 +51,7 @@ export function TournamentOverviewPage() {
   const [tournament, setTournament] = useState<TournamentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'teams' | 'tiers' | 'sets' | 'players'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'teams' | 'tiers' | 'sets' | 'players' | 'preflight'>('overview');
 
   // Edit State
   const [editing, setEditing] = useState(false);
@@ -270,6 +271,18 @@ export function TournamentOverviewPage() {
             <Users className="w-3.5 h-3.5" />
             <span>Player Registry</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('preflight')}
+            className={`inline-flex items-center space-x-2 py-3 px-3 border-b-2 text-xs font-semibold transition-all whitespace-nowrap ${
+              activeTab === 'preflight'
+                ? 'border-emerald-400 text-emerald-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <CheckCircle className="w-3.5 h-3.5" />
+            <span>Preflight Checklist</span>
+          </button>
         </div>
       </header>
 
@@ -421,6 +434,17 @@ export function TournamentOverviewPage() {
           />
         )}
 
+        {activeTab === 'preflight' && (
+          <PreflightTab
+            tournamentId={tournament.id}
+            isOwner={isOwner}
+            onStatusChange={(newStatus) => {
+              setTournament(prev => prev ? { ...prev, status: newStatus } : null);
+            }}
+            onNavigateTab={(tab) => setActiveTab(tab)}
+          />
+        )}
+
         {activeTab === 'overview' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -503,18 +527,21 @@ export function TournamentOverviewPage() {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-slate-800/80 bg-[#0e1424]/60 p-5 space-y-3 opacity-75">
+              <div 
+                onClick={() => setActiveTab('preflight')}
+                className="cursor-pointer group rounded-xl border border-slate-800 bg-[#0e1424] p-5 space-y-3 hover:border-emerald-500/40 transition-all"
+              >
                 <div className="flex items-center space-x-3">
-                  <div className="p-2.5 rounded-lg bg-slate-800 text-slate-400">
+                  <div className="p-2.5 rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20">
                     <CheckCircle className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-300">Preflight Validation</h4>
-                    <p className="text-xs text-slate-500">Milestone 4</p>
+                    <h4 className="text-sm font-semibold text-white group-hover:text-teal-300">Preflight Validation</h4>
+                    <p className="text-xs text-teal-400 font-medium">Milestone 4 (Ready)</p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Feasibility checklist ensuring mathematics, squad limits, and purse rules are verified.
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Mathematical squad feasibility, purse floor reserve checks, and tournament locking approval.
                 </p>
               </div>
 
