@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="TournamentAuction.Api/TournamentAuction.Api.csproj" />
+  <Project Path="TournamentAuction.Tests/TournamentAuction.Tests.csproj" />
+</Solution>

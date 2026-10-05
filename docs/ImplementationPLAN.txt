@@ -1,0 +1,2308 @@
+# Local Football Tournament Auction — Master Implementation Specification
+
+I want you to build a production-quality web application for conducting local football player auctions, inspired by the workflow of an IPL-style auction.
+
+This document is the source of truth for the application. Read the entire specification before making architectural decisions.
+
+Do not attempt to implement the entire application in one uncontrolled pass. Work milestone-by-milestone, keep the application runnable after every milestone, run the relevant tests before considering a milestone complete, and avoid unnecessary architectural complexity.
+
+---
+
+# 1. Product Goal
+
+The application will allow tournament organizers to:
+
+1. Create a tournament.
+2. Configure auction rules for that tournament.
+3. Create participating teams.
+4. Give each team a purse/budget.
+5. Create ordered sets of players.
+6. Add players and assign them to sets.
+7. Configure player base prices.
+8. Validate that the tournament is ready for auction.
+9. Start a live auction.
+10. Randomly order players within each set.
+11. Reveal players one at a time.
+12. Mark players as sold or unsold.
+13. When sold, record the winning team and sale price.
+14. Automatically calculate team expenditure, remaining purse, squad size and auction constraints.
+15. Continue through every set.
+16. Optionally re-auction unsold players.
+17. Complete the tournament auction.
+18. Generate attractive statistics and reports after the auction.
+19. Provide a separate read-only live/projector screen that updates in real time.
+
+The app should be reusable for multiple tournaments.
+
+Tournament-specific rules must NEVER be hard-coded into the application.
+
+---
+
+# 2. Important MVP Assumption
+
+The application does NOT conduct bidding electronically in V1.
+
+Bidding happens physically/offline between team owners.
+
+The application is operated by an auctioneer/admin who records the result.
+
+Example:
+
+Player appears on screen.
+
+Physical bidding occurs.
+
+Auctioneer then selects:
+
+Winning Team:
+Falcons FC
+
+Final Price:
+₹8,500
+
+and presses:
+
+SOLD
+
+Alternatively:
+
+UNSOLD
+
+Electronic bidding from team-owner phones can be considered in a future version, but should NOT be implemented in the MVP.
+
+---
+
+# 3. Technology Stack
+
+Use the following architecture.
+
+## Frontend
+
+- React
+- TypeScript
+- Vite
+- React Router
+- Tailwind CSS
+- shadcn/ui where appropriate
+- TanStack Query for API/server state
+- React Hook Form for larger forms
+- Zod or equivalent for client-side form validation
+- Recharts or a similarly lightweight charting library for statistics
+- Microsoft SignalR JavaScript client for real-time updates
+
+## Backend
+
+- ASP.NET Core Web API
+- C#
+- Entity Framework Core
+- PostgreSQL
+- ASP.NET Core SignalR
+- ASP.NET Core authentication/JWT
+- OpenAPI/Swagger in development
+
+## Hosting
+
+Initially:
+
+Frontend:
+Render Static Site
+
+Backend:
+Render Web Service
+
+Database:
+Supabase-hosted PostgreSQL
+
+Supabase should initially be treated primarily as managed PostgreSQL. Do not redesign the application around Supabase-specific APIs.
+
+If image uploads are implemented, Supabase Storage may be used for player/team/tournament images.
+
+Database access must happen through the ASP.NET Core backend.
+
+Never expose the PostgreSQL connection string or privileged Supabase credentials to React.
+
+---
+
+# 4. Architectural Principle
+
+Keep the architecture simple.
+
+The system should essentially be:
+
+React
+↓
+ASP.NET Core API
+↓
+Entity Framework Core
+↓
+PostgreSQL
+
+Real-time updates:
+
+ASP.NET Core
+↓
+SignalR
+↓
+React clients
+
+DO NOT introduce:
+
+- Microservices
+- Kubernetes
+- Event buses
+- Redis unless a real need appears
+- CQRS frameworks just for the sake of CQRS
+- MediatR unless it provides an actual benefit
+- unnecessary repository abstractions over EF Core
+- complicated serverless infrastructure
+- Redux unless the application genuinely needs it
+
+This is a tournament auction application, not a banking platform.
+
+Prioritize correctness, maintainability and simplicity.
+
+---
+
+# 5. Source of Truth
+
+PostgreSQL is the authoritative source for:
+
+- auction state
+- team purse calculations
+- player sale results
+- squad sizes
+- current set
+- current player
+- randomized player order
+- tournament configuration
+
+Never make React client state authoritative for auction information.
+
+If the browser refreshes or the laptop restarts, reopening the application must reconstruct the complete current auction state from PostgreSQL.
+
+---
+
+# 6. Suggested Repository Structure
+
+Keep frontend and backend together in one repository.
+
+Example:
+
+football-auction/
+    frontend/
+        src/
+            api/
+            components/
+            features/
+                auth/
+                tournaments/
+                teams/
+                players/
+                sets/
+                auction/
+                statistics/
+            hooks/
+            layouts/
+            pages/
+            routes/
+            types/
+            utils/
+
+    backend/
+        TournamentAuction.Api/
+            Auth/
+            Common/
+            Data/
+            Domain/
+            Features/
+                Tournaments/
+                Teams/
+                Players/
+                Sets/
+                Auction/
+                Statistics/
+            Hubs/
+            Services/
+            Program.cs
+
+        TournamentAuction.Tests/
+
+    docs/
+
+    docker-compose.yml
+
+Avoid splitting the backend into many .NET projects unless there is a real reason.
+
+A single well-organized ASP.NET Core application plus a test project is sufficient.
+
+---
+
+# 7. Tournament Model
+
+Everything belongs to a tournament.
+
+Example:
+
+Malabar Super League 2026
+
+A tournament contains:
+
+- tournament settings
+- teams
+- player sets
+- players
+- auction session
+- auction results
+- statistics
+
+Suggested Tournament fields:
+
+- Id
+- Name
+- Slug
+- Season
+- Description
+- LogoUrl
+- TournamentDate
+- Location
+- TimeZone
+- Status
+- OwnerUserId
+- CreatedAtUtc
+- UpdatedAtUtc
+
+Possible TournamentStatus values:
+
+DRAFT
+READY
+LIVE
+COMPLETED
+
+Use UTC for stored timestamps.
+
+Display them according to the tournament timezone.
+
+---
+
+# 8. Tournament Configuration
+
+Each tournament should have its own auction configuration.
+
+TournamentSettings should include at least:
+
+- TournamentId
+- CurrencyCode
+- CurrencySymbol if necessary for display
+- DefaultStartingPurse
+- MinimumSquadSize
+- MaximumSquadSize
+- MinimumAcquisitionPrice
+- DefaultBidIncrement
+- PublicLiveViewEnabled
+
+(Note: As clarified, the Final Unsold Round is now a mandatory auction workflow whenever unsold players remain after all normal sets. Do NOT introduce an EnableUnsoldReauction toggle.)
+
+Example:
+
+Currency:
+INR
+
+Starting purse:
+₹100,000
+
+Minimum players:
+12
+
+Maximum players:
+16
+
+Minimum acquisition price:
+₹500
+
+Default bid increment:
+₹100
+
+These settings must be editable while the tournament is in DRAFT state.
+
+Once an auction is live, dangerous settings such as purse size and squad limits should either become locked or require a privileged correction workflow.
+
+---
+
+# 9. Money Representation
+
+Never use floating-point numbers for currency.
+
+Use an integer representation consistently throughout the system.
+
+Preferred implementation:
+
+store amounts in the smallest currency unit using a PostgreSQL BIGINT / C# long.
+
+Create centralized money-formatting helpers.
+
+Do not spread ad-hoc `/ 100` or `* 100` operations around the codebase.
+
+Examples should be formatted in the UI as:
+
+₹500
+₹1,500
+₹12,500
+₹1,00,000
+
+Indian currency formatting should be supported when INR is selected.
+
+---
+
+# 10. Teams
+
+Tournament administrators can create teams.
+
+Team fields:
+
+- Id
+- TournamentId
+- Name
+- ShortName
+- LogoUrl
+- PrimaryColor
+- SecondaryColor
+- OwnerName
+- InitialPurse
+- CreatedAtUtc
+
+InitialPurse should default to TournamentSettings.DefaultStartingPurse.
+
+Allow a team-specific override if necessary.
+
+Do NOT store remaining purse as an independently editable number.
+
+Remaining purse should be derived from:
+
+InitialPurse - sum of confirmed purchases
+
+Similarly, squad size should be derived from sold players assigned to the team.
+
+---
+
+# 11. Player Sets
+
+Administrators create player sets.
+
+Examples:
+
+1. Marquee Players
+2. Goalkeepers
+3. Defenders
+4. Midfielders
+5. Forwards
+
+These are examples only.
+
+Sets must be completely configurable.
+
+PlayerSet fields:
+
+- Id
+- TournamentId
+- Name
+- Description
+- SortOrder
+- CreatedAtUtc
+
+Administrators should be able to:
+
+- create sets
+- edit sets
+- delete unused sets
+- reorder sets
+- see player count per set
+
+Do not allow deleting a set after it has auction history.
+
+---
+
+# 12. Players
+
+Suggested player fields:
+
+- Id
+- TournamentId
+- PlayerSetId
+- Name
+- PhotoUrl
+- Age
+- Position
+- PreferredFoot
+- BasePrice
+- JerseyNumber
+- PreviousTeam
+- ShortBio
+- Metadata JSON if needed
+- CreatedAtUtc
+- UpdatedAtUtc
+
+Mandatory fields:
+
+- Name
+- Set
+- BasePrice
+
+Other details are optional.
+
+Support:
+
+- player creation
+- editing
+- searching
+- filtering by set
+- filtering by position
+- sorting
+- deleting before auction
+- bulk/CSV import eventually
+
+Create a good default placeholder when a player has no photo.
+
+---
+
+# 13. Base Prices
+
+Allow tournament administrators to configure common base-price levels.
+
+For example:
+
+₹500
+₹1,000
+₹1,500
+₹2,000
+₹5,000
+
+A BasePriceTier model can contain:
+
+- Id
+- TournamentId
+- Label
+- Amount
+- SortOrder
+
+When creating a player, administrators should normally select one of these values.
+
+Do not hard-code these amounts.
+
+---
+
+# 14. Pre-Auction Validation
+
+Before START AUCTION becomes available, run a preflight validation.
+
+Show a checklist such as:
+
+✓ Tournament configured
+✓ 8 teams created
+✓ Team purses valid
+✓ Minimum squad size is valid
+✓ Maximum squad size is valid
+✓ 6 sets configured
+✓ Every player is assigned to a set
+✓ Every player has a base price
+✓ All sets contain players
+✓ Enough players exist for minimum squad requirements
+
+Warnings may include:
+
+⚠ 8 players do not have photos
+
+Warnings should not necessarily prevent the auction.
+
+Errors should.
+
+For example:
+
+8 teams
+×
+12 minimum players
+=
+96 required players
+
+If only 82 players exist, the tournament is mathematically incapable of satisfying the configured minimum squad requirements.
+
+Do not allow the auction to start until critical validation errors are corrected.
+
+---
+
+# 15. Auction Session
+
+Create an AuctionSession model.
+
+Suggested fields:
+
+- Id
+- TournamentId
+- Status
+- CurrentSetId nullable
+- CurrentLotId nullable
+- Version
+- StartedAtUtc
+- PausedAtUtc nullable
+- CompletedAtUtc nullable
+
+AuctionSessionStatus:
+
+READY
+LIVE
+PAUSED
+COMPLETED
+
+Only one active auction session should exist for a tournament.
+
+---
+
+# 16. Auction Lots
+
+AuctionLot represents one auction attempt for one player.
+
+Suggested fields:
+
+- Id
+- AuctionSessionId
+- PlayerId
+- PlayerSetId
+- AttemptNumber
+- DrawPosition
+- Status
+- WinningTeamId nullable
+- FinalPrice nullable
+- RevealedAtUtc nullable
+- CompletedAtUtc nullable
+
+AuctionLotStatus:
+
+PENDING
+ON_AUCTION
+SOLD
+UNSOLD
+CANCELLED if genuinely needed
+
+A player who initially goes unsold and is later re-auctioned can therefore have:
+
+Attempt 1:
+UNSOLD
+
+Attempt 2:
+SOLD
+
+Do not overwrite the original attempt.
+
+---
+
+# 17. Random Player Selection
+
+This is extremely important.
+
+DO NOT randomly select a new player in the React browser every time NEXT PLAYER is clicked.
+
+When a player set begins:
+
+1. Fetch all eligible players in that set.
+2. Randomize them server-side.
+3. Persist the randomized order as AuctionLots with DrawPosition.
+4. Commit this order to PostgreSQL.
+5. Only then reveal the first player.
+
+Example stored queue:
+
+1 Player 38
+2 Player 12
+3 Player 7
+4 Player 25
+5 Player 3
+
+The future order must not be shown to normal users.
+
+Once generated, the order must NEVER change because of:
+
+- refresh
+- reconnect
+- browser restart
+- backend restart
+- another admin opening the auction
+
+The system simply reveals the next PENDING lot ordered by DrawPosition.
+
+This prevents duplicated players and accidental re-randomization.
+
+---
+
+# 18. Auction State Machine
+
+The auction should have explicit legal state transitions.
+
+Tournament:
+
+DRAFT
+→ READY
+→ LIVE
+→ COMPLETED
+
+Auction:
+
+READY
+→ LIVE
+↔ PAUSED
+→ COMPLETED
+
+Player lot:
+
+PENDING
+→ ON_AUCTION
+→ SOLD
+
+or:
+
+PENDING
+→ ON_AUCTION
+→ UNSOLD
+
+Invalid transitions must be rejected server-side.
+
+Examples:
+
+Cannot sell a PENDING player.
+
+Cannot sell an already SOLD player.
+
+Cannot reveal another player when one is currently ON_AUCTION.
+
+Cannot start the second set while the first still has unresolved players unless an explicitly designed admin override exists.
+
+---
+
+# 19. Core Auction Commands
+
+Implement backend business operations such as:
+
+StartAuction
+
+StartSet
+
+RevealNextPlayer
+
+SellCurrentPlayer
+
+MarkCurrentPlayerUnsold
+
+PauseAuction
+
+ResumeAuction
+
+CompleteSet
+
+StartUnsoldRound
+
+CorrectAuctionResult
+
+CompleteAuction
+
+These should be implemented as backend business operations, not as React logic.
+
+---
+
+# 20. Selling a Player
+
+When the auctioneer selects:
+
+Winning Team:
+Falcons
+
+Final Price:
+₹8,500
+
+and presses SOLD:
+
+the server must validate everything before committing.
+
+Validation should include:
+
+- auction is LIVE
+- lot is ON_AUCTION
+- player has not already been sold
+- selected team exists
+- selected team belongs to tournament
+- team has not reached maximum squad size
+- price is at least the player's base price
+- price respects configured bid rules
+- team has sufficient remaining purse
+- purchase does not violate required minimum-squad reserve
+
+Only after validation succeeds should the server transaction commit the result.
+
+---
+
+# 21. Purse Calculations
+
+Do not manually maintain remaining purse.
+
+For each team:
+
+TotalSpent =
+sum of FinalPrice from SOLD lots won by the team
+
+RemainingPurse =
+InitialPurse - TotalSpent
+
+CurrentSquadSize =
+number of SOLD players belonging to team
+
+Expose these calculations through the backend.
+
+The UI can display the returned values but should not be responsible for authoritative calculations.
+
+---
+
+# 22. Minimum Squad Reserve
+
+The application must help prevent a team from spending so much money that it cannot theoretically reach its minimum required squad size.
+
+Example:
+
+Team purse remaining:
+₹15,000
+
+Current squad:
+9
+
+Minimum squad:
+12
+
+Minimum acquisition price:
+₹1,000
+
+Players still required:
+3
+
+Required reserve:
+₹3,000
+
+When considering purchasing the current player, calculate squad size AFTER the potential purchase.
+
+remainingPlayersRequired =
+max(0, minimumSquadSize - (currentSquadSize + 1))
+
+reserveAfterPurchase =
+remainingPlayersRequired × minimumAcquisitionPrice
+
+maximumAllowedPurchase =
+currentRemainingPurse - reserveAfterPurchase
+
+Reject a purchase above the allowed maximum.
+
+Return a meaningful validation message such as:
+
+"Falcons FC cannot spend ₹14,000 on this player. The maximum allowed purchase is ₹13,000 because ₹2,000 must remain available to satisfy the minimum squad requirement."
+
+Do not merely return HTTP 400 with no useful explanation.
+
+---
+
+# 23. Maximum Squad Size
+
+If:
+
+Maximum squad = 16
+
+and a team already owns 16 players:
+
+that team cannot purchase another player.
+
+Disable it in the UI where practical, but ALWAYS validate the rule again on the backend.
+
+Frontend validation is convenience.
+
+Backend validation is authority.
+
+---
+
+# 24. Unsold Players & Mandatory Final Unsold Round
+
+When a player receives no bids, the auctioneer presses UNSOLD.
+Store the attempt as UNSOLD.
+
+### Mandatory Final Unsold Round Rule:
+After ALL normal player sets have finished, if there are unsold players:
+A single FINAL UNSOLD ROUND is MANDATORY before normal auction completion.
+If there are no unsold players, the tournament proceeds directly to auction completion checks.
+
+When the Final Unsold Round begins:
+1. Collect all players whose latest normal auction result is UNSOLD.
+2. Create a new AuctionLot for each unsold player with AttemptNumber = 2.
+3. Base price remains unchanged during the final unsold round.
+4. Randomize the unsold players server-side once and persist with DrawPosition (future order is never exposed publicly).
+5. Reveal players one by one using standard auction workflow.
+6. If a player is unsold in Attempt 2, their status becomes FINAL_UNSOLD. No third automatic attempt occurs in the MVP.
+
+Example history:
+Player A:
+Attempt 1 → UNSOLD
+Attempt 2 → SOLD → Falcons → ₹2,500
+Both attempts remain in the audit history.
+
+---
+
+# 25. Set Completion
+
+When every player in a set has been resolved, display a set summary.
+
+Example:
+
+MARQUEE SET COMPLETE
+
+Players: 12
+Sold: 10
+Unsold: 2
+Total Spend: ₹84,000
+Highest Sale: Arjun — ₹17,500
+
+[ START NEXT SET ]
+
+Do not automatically start the next set.
+
+The tournament organizers may want a pause between sets.
+
+---
+
+# 26. Auction Completion
+
+Before allowing normal completion:
+1. Verify that all normal sets are complete.
+2. If any unsold players exist, verify that the Final Unsold Round has been conducted and all eligible unsold players have received their second attempt. Auction completion is blocked if unresolved eligible unsold players remain.
+3. Validate squads against MinimumSquadSize.
+
+Example:
+
+Falcons      12 / 12 ✓
+Warriors     14 / 12 ✓
+United       11 / 12 ✗
+
+If a team is below the minimum:
+show a blocking warning.
+
+If real-world circumstances require completion anyway, an OWNER may eventually be allowed to override this rule, but:
+- require a written reason
+- record the reason in audit history
+- clearly mark the auction as completed with warnings
+
+Do not silently ignore the problem.
+
+---
+
+# 27. Audit Log
+
+Create an AuctionEvent table.
+
+Suggested fields:
+
+- Id
+- AuctionSessionId
+- TournamentId
+- EventType
+- UserId
+- AuctionLotId nullable
+- EventData JSONB
+- CreatedAtUtc
+
+Possible events:
+
+AUCTION_STARTED
+AUCTION_PAUSED
+AUCTION_RESUMED
+SET_STARTED
+PLAYER_REVEALED
+PLAYER_SOLD
+PLAYER_UNSOLD
+RESULT_CORRECTED
+SET_COMPLETED
+UNSOLD_ROUND_STARTED
+AUCTION_COMPLETED
+
+This should provide a reliable history of important changes.
+
+---
+
+# 28. Corrections / Undo
+
+Human mistakes will happen during a live auction.
+
+The application must have a controlled way to correct the most recent auction result.
+
+Possible correction:
+
+Original:
+
+Arjun
+Warriors
+₹8,500
+
+Correction:
+
+Arjun
+Falcons
+₹9,000
+
+The backend must:
+
+1. Validate the correction.
+2. Recalculate all affected team finances.
+3. Make sure the new team can legally purchase the player.
+4. Update the result.
+5. Write an audit event containing previous and new values.
+
+Do not permanently erase history.
+
+Avoid exposing a generic destructive DELETE RESULT button.
+
+---
+
+# 29. Concurrency and Double-Click Protection
+
+This is a critical requirement.
+
+Possible scenario:
+
+The auctioneer accidentally double-clicks SOLD.
+
+Or:
+
+Two admins have the auction console open.
+
+Both must NOT be capable of selling the player twice.
+
+Auction mutation operations should execute in a PostgreSQL transaction.
+
+Protect relevant rows from concurrent modification.
+
+Use optimistic concurrency/version checks and/or PostgreSQL row locking as appropriate.
+
+The API request should include the current LotId.
+
+If the first request has already completed the lot, the second request must fail safely with HTTP 409 Conflict or equivalent.
+
+Where useful, add database constraints/partial unique indexes to protect against impossible states.
+
+Correctness must not depend on React disabling a button quickly enough.
+
+---
+
+# 30. Real-Time Architecture
+
+Use ASP.NET Core SignalR.
+
+When auction state changes:
+
+ASP.NET Core
+→ commits transaction
+→ broadcasts SignalR event
+
+Clients may include:
+
+- auctioneer laptop
+- admin device
+- projector
+- public live page
+
+For simplicity, SignalR messages should normally indicate that authoritative state changed.
+
+Example:
+
+AuctionStateChanged
+TournamentId
+AuctionSessionVersion
+
+React/TanStack Query can invalidate/refetch the canonical auction-state endpoint.
+
+Avoid duplicating the entire backend auction engine in SignalR payload-handling code.
+
+Create SignalR groups per tournament.
+
+For example:
+
+admin:tournament:{id}
+
+public:tournament:{id}
+
+Public clients must never receive private administrative data.
+
+---
+
+# 31. Auctioneer Screen
+
+Create a dedicated large-screen friendly auction console.
+
+Suggested layout:
+
+Top:
+Tournament name
+Current set
+Player X / Y
+Auction status
+
+Main:
+Large player image
+
+Player Name
+
+Position • Age • Preferred Foot
+
+BASE PRICE
+₹2,000
+
+Actions:
+
+Winning Team
+[ dropdown ]
+
+Final Price
+[ input ]
+
+[ SOLD ]
+
+[ UNSOLD ]
+
+Secondary panel:
+
+Team          Squad    Spent       Purse       Available
+Falcons       9/12     ₹55,000     ₹45,000     ₹42,000
+United        11/12    ₹68,000     ₹32,000     ₹31,000
+Warriors      12/12    ₹73,000     ₹27,000     ₹27,000
+
+Available should represent what the team can currently spend while respecting minimum-squad reserve.
+
+Show current progress:
+
+Set:
+8 / 14
+
+Overall:
+47 / 120
+
+Sold:
+41
+
+Unsold:
+6
+
+Buttons should be large enough to use comfortably during a live event.
+
+---
+
+# 32. Player Sale Experience
+
+After a successful sale, show a visually exciting confirmation.
+
+Example:
+
+SOLD
+
+ARJUN NAIR
+
+FALCONS FC
+
+₹8,500
+
+Use team colors/logo if available.
+
+A tasteful short animation is welcome.
+
+After the animation, show:
+
+NEXT PLAYER
+
+Do not automatically reveal the next player.
+
+The auctioneer must explicitly continue.
+
+---
+
+# 33. Public Live Auction Portal (/live/{tournamentSlug})
+
+Create a read-only Live Auction Portal for team owners, spectators, organizers, and projector display.
+
+Route:
+/live/{tournamentSlug}
+
+This page is strictly read-only and requires no login.
+It should support:
+
+1. Live Overview:
+- Current player photo, name, details, position, preferred foot
+- Current set
+- Base price
+- Auction status
+- Last sold player / result
+- Overall auction progress (sold / unsold counts)
+- Current team purse summaries (using identical authoritative backend calculations)
+
+2. Teams View:
+- Every participating team with logo, squad size, total spent, remaining purse, and minimum squad progress
+- Selecting a team displays its full current squad with purchase prices
+
+3. Players View:
+- Views/filters for ALL, AVAILABLE, SOLD, UNSOLD
+- Available: eligible players not yet sold
+- Sold: player, winning team, final price, set
+- Unsold: player, set, base price, attempt count
+
+### CRITICAL SECURITY INVARIANT — Never Reveal Future Random Order
+Users may see which players remain available. They must NEVER be able to see the upcoming randomized sequence. Public API DTOs must never expose the persisted `DrawPosition` or unrevealed order.
+
+---
+
+# 34. Authentication and Authorization (No Team Login in MVP)
+
+Team login / TEAM_MANAGER accounts are explicitly NOT required for the MVP. Team owners view live data via the public read-only portal.
+
+Administration authentication is required for:
+- OWNER
+- AUCTIONEER
+- VIEWER (authenticated internal viewer if necessary)
+
+OWNER:
+- manage tournament & configure rules
+- manage players, teams, sets
+- run auction, correct results, complete tournament
+
+AUCTIONEER:
+- run auction, record results, perform permitted corrections
+
+Public/team viewers have ZERO mutation permissions. Public endpoints are read-only and sanitized. Mutation endpoints must strictly verify authenticated tournament membership.
+
+---
+
+# 35. Frontend Routes
+
+Suggested routes:
+
+/
+ /login
+ /register
+
+/dashboard
+
+/tournaments/new
+
+/tournaments/:id
+/tournaments/:id/overview
+/tournaments/:id/settings
+/tournaments/:id/teams
+/tournaments/:id/sets
+/tournaments/:id/players
+/tournaments/:id/preflight
+/tournaments/:id/auction
+/tournaments/:id/results
+
+/live/:slug
+
+Use a tournament dashboard layout for management pages.
+
+---
+
+# 36. API Shape
+
+The exact URLs can evolve, but the API should approximately support:
+
+Authentication:
+
+POST /api/auth/register
+POST /api/auth/login
+GET /api/auth/me
+
+Tournaments:
+
+GET /api/tournaments
+POST /api/tournaments
+GET /api/tournaments/{id}
+PUT /api/tournaments/{id}
+
+Settings:
+
+GET /api/tournaments/{id}/settings
+PUT /api/tournaments/{id}/settings
+
+Teams:
+
+GET /api/tournaments/{id}/teams
+POST /api/tournaments/{id}/teams
+PUT /api/tournaments/{id}/teams/{teamId}
+DELETE /api/tournaments/{id}/teams/{teamId}
+
+Sets:
+
+GET /api/tournaments/{id}/sets
+POST /api/tournaments/{id}/sets
+PUT /api/tournaments/{id}/sets/{setId}
+DELETE /api/tournaments/{id}/sets/{setId}
+POST /api/tournaments/{id}/sets/reorder
+
+Players:
+
+GET /api/tournaments/{id}/players
+POST /api/tournaments/{id}/players
+GET /api/tournaments/{id}/players/{playerId}
+PUT /api/tournaments/{id}/players/{playerId}
+DELETE /api/tournaments/{id}/players/{playerId}
+
+Preflight:
+
+GET /api/tournaments/{id}/preflight
+
+Auction:
+
+POST /api/tournaments/{id}/auction/start
+POST /api/tournaments/{id}/auction/pause
+POST /api/tournaments/{id}/auction/resume
+
+POST /api/tournaments/{id}/auction/sets/{setId}/start
+
+GET /api/tournaments/{id}/auction/state
+
+POST /api/tournaments/{id}/auction/reveal-next
+
+POST /api/tournaments/{id}/auction/lots/{lotId}/sell
+POST /api/tournaments/{id}/auction/lots/{lotId}/unsold
+
+POST /api/tournaments/{id}/auction/lots/{lotId}/correct
+
+POST /api/tournaments/{id}/auction/unsold-round/start
+
+POST /api/tournaments/{id}/auction/complete
+
+Statistics:
+
+GET /api/tournaments/{id}/statistics
+
+Public:
+
+GET /api/public/tournaments/{slug}
+GET /api/public/tournaments/{slug}/auction-state
+GET /api/public/tournaments/{slug}/results
+
+Use consistent DTOs.
+
+Do not expose EF entities directly from controllers.
+
+Use ASP.NET Core ProblemDetails or another consistent error structure.
+
+---
+
+# 37. Tournament Statistics
+
+Once an auction starts, statistics should be derived automatically from auction data.
+
+Do not manually maintain statistics counters unless profiling demonstrates a real need.
+
+Overall statistics:
+
+- number of players
+- number sold
+- number unsold
+- sale percentage
+- total money spent
+- average sale price
+- median sale price
+- highest sale price
+
+Player statistics:
+
+- most expensive player
+- top 10 most expensive players
+- most expensive player by position
+- most expensive player by set
+- biggest difference between base price and final price
+- highest finalPrice/basePrice multiplier
+
+Team statistics:
+
+- biggest spender
+- smallest spender
+- largest remaining purse
+- most players purchased
+- average player cost by team
+- most expensive signing for each team
+- position distribution
+- spend by position
+
+Set statistics:
+
+- player count
+- sold count
+- unsold count
+- total spend
+- average sale
+- highest sale
+- sell-through percentage
+
+---
+
+# 38. Results / Auction Wrapped
+
+The final results page should feel more exciting than a traditional admin report.
+
+Create an "Auction Wrapped" experience.
+
+Example sections:
+
+MOST EXPENSIVE PLAYER
+
+Arjun Nair
+Falcons FC
+₹17,500
+
+BIGGEST SPENDER
+
+Warriors FC
+₹93,500
+
+BEST SELLING SET
+
+Marquee Players
+100% sold
+
+Then include charts for:
+
+- team spending
+- team remaining purse
+- spending by position
+- sales by set
+- top player prices
+
+Also provide normal tables below the visual summary.
+
+---
+
+# 39. Team Results Pages
+
+Allow selecting a team after or during the auction.
+
+Show:
+
+FALCONS FC
+
+Squad:
+13
+
+Spent:
+₹84,000
+
+Remaining:
+₹16,000
+
+Players:
+
+Arjun Nair       ₹17,000
+Rahul K          ₹12,500
+Adarsh           ₹9,500
+
+Eventually these pages may become publicly shareable.
+
+---
+
+# 40. CSV Import
+
+After basic player management works, implement CSV import.
+
+Expected columns could include:
+
+Name
+Set
+BasePrice
+Age
+Position
+PreferredFoot
+PreviousTeam
+
+CSV import should have:
+
+1. Upload
+2. Parse
+3. Preview
+4. Display validation problems
+5. Confirm import
+
+Do not directly insert rows before showing a preview.
+
+Show errors such as:
+
+"Row 14: Set 'Strikerss' does not exist."
+
+"Row 27: BasePrice is invalid."
+
+This feature matters because real tournaments may have 100+ players.
+
+---
+
+# 41. Image Handling
+
+Players, teams and tournaments may have images.
+
+Do not store image binary data directly in PostgreSQL.
+
+Use object storage.
+
+Supabase Storage can be used because the PostgreSQL database already lives in the Supabase project.
+
+Create a small storage abstraction so the domain logic does not depend heavily on Supabase-specific code.
+
+Example:
+
+IFileStorage
+
+UploadAsync()
+DeleteAsync()
+
+Never put privileged storage credentials in React.
+
+If image uploads complicate an early milestone, initially support an image URL plus a placeholder and implement proper upload in a later milestone.
+
+---
+
+# 42. Error Handling
+
+Every backend operation should return meaningful errors.
+
+Bad:
+
+400 Bad Request
+
+Better:
+
+{
+  "title": "Team cannot purchase player",
+  "detail": "Falcons FC can spend a maximum of ₹13,000 because ₹2,000 must remain reserved for the minimum squad requirement.",
+  "code": "TEAM_PURSE_RESERVE_VIOLATION"
+}
+
+React should show helpful toast/dialog messages.
+
+Log unexpected backend exceptions.
+
+Never expose database stack traces to production users.
+
+---
+
+# 43. Loading and Connection States
+
+Because this will be used during a live event, clearly display connection problems.
+
+Auction screen should show something like:
+
+LIVE CONNECTION ✓
+
+or:
+
+CONNECTION LOST
+Attempting to reconnect...
+
+Disable dangerous auction mutations when the application knows its connection/state is stale.
+
+SignalR should automatically attempt reconnection.
+
+After reconnection, refetch canonical auction state.
+
+Never assume missed SignalR messages will eventually arrive.
+
+---
+
+# 44. UI Design
+
+The management side should be:
+
+- clean
+- simple
+- fast
+- responsive
+- easy for non-technical organizers
+
+Avoid excessive animations in admin configuration screens.
+
+The live auction experience should have a different feeling:
+
+- dark sports-broadcast aesthetic
+- bold typography
+- large player photos
+- large prices
+- team colors
+- strong SOLD/UNSOLD states
+- tasteful animations
+- high contrast
+- projector friendly
+
+Do not directly copy IPL branding, logos or trademarked visual assets.
+
+It may be inspired by professional sports-auction presentation without pretending to be IPL.
+
+---
+
+# 45. Responsive Design
+
+Management pages should work well on:
+
+- desktop
+- laptop
+- tablet
+- phone
+
+Auctioneer console should prioritize:
+
+- laptop
+- desktop
+- tablet
+
+Projector mode should prioritize:
+
+- 16:9 large displays
+- televisions
+- projectors
+
+Test projector mode at common 1920×1080 resolution.
+
+---
+
+# 46. Core Backend Services
+
+Business logic should be isolated from controllers.
+
+Suggested services:
+
+AuctionService
+
+AuctionValidationService
+
+TeamFinancialService
+
+PlayerDrawService
+
+TournamentPreflightService
+
+AuctionStatisticsService
+
+Controllers/endpoints should coordinate HTTP concerns.
+
+They should not contain hundreds of lines of auction logic.
+
+Similarly, React components must not reimplement auction calculations.
+
+---
+
+# 47. Testing Requirements
+
+Testing is particularly important for financial and auction rules.
+
+Create unit tests for at least:
+
+CalculateTotalSpent
+
+CalculateRemainingPurse
+
+CalculateRequiredReserve
+
+CalculateMaximumPurchase
+
+CanTeamPurchasePlayer
+
+ValidateSale
+
+MinimumSquadValidation
+
+MaximumSquadValidation
+
+AuctionStateTransitions
+
+Statistics calculations
+
+Create integration tests for:
+
+- selling a valid player
+- sale below base price
+- sale with insufficient purse
+- purchase violating minimum-squad reserve
+- purchase exceeding maximum squad size
+- same player being sold twice
+- double submission
+- two simultaneous attempts to close same lot
+- reloading current auction state
+- correction changing price
+- correction changing team
+- unsold player
+- unsold → reauction → sold
+- attempting invalid state transitions
+
+Create at least one end-to-end scenario:
+
+1. Create tournament.
+2. Configure rules.
+3. Create four teams.
+4. Create two sets.
+5. Create players.
+6. Pass preflight.
+7. Start auction.
+8. Start first set.
+9. Sell/unsold players.
+10. Complete first set.
+11. Start second set.
+12. Finish auction.
+13. Validate final purses.
+14. Validate squad sizes.
+15. Validate statistics.
+
+---
+
+# 48. Development Seed Data
+
+Create development-only seed data.
+
+Example:
+
+Tournament:
+Local Super League 2026
+
+Teams:
+Falcons FC
+Warriors FC
+United XI
+Thunder FC
+
+Sets:
+Marquee
+Defenders
+Midfielders
+Forwards
+
+Around 20 demo players.
+
+This makes auction-flow testing fast.
+
+Do not seed demo data into production.
+
+---
+
+# 49. Development Environment
+
+The application should be easy to run locally.
+
+Preferred developer experience:
+
+Frontend:
+
+npm install
+npm run dev
+
+Backend:
+
+dotnet restore
+dotnet run
+
+Database:
+
+local PostgreSQL through Docker Compose OR configured hosted PostgreSQL.
+
+Provide:
+
+.env.example
+
+for frontend values.
+
+Provide configuration documentation for backend values such as:
+
+ConnectionStrings__DefaultConnection
+
+Jwt__Secret
+
+AllowedOrigins
+
+Storage configuration if enabled
+
+Never commit real credentials.
+
+---
+
+# 50. Database Migrations
+
+Use Entity Framework Core migrations.
+
+All schema changes must go through migrations.
+
+Do not tell developers to manually modify production tables.
+
+Create clear commands/documentation for:
+
+creating migration
+
+applying migration
+
+checking migration status
+
+Production deployment should apply migrations in a controlled step.
+
+---
+
+# 51. Deployment
+
+Frontend:
+
+Render Static Site
+
+Build command approximately:
+
+npm ci && npm run build
+
+Publish:
+
+dist
+
+Configure SPA fallback so React Router routes return index.html.
+
+Backend:
+
+Render Web Service.
+
+Use a Dockerfile if that provides the most predictable .NET deployment.
+
+Production environment variables should contain:
+
+PostgreSQL connection string
+
+JWT secret
+
+allowed frontend origin
+
+storage credentials if needed
+
+Supabase PostgreSQL should use the correct SSL configuration.
+
+CORS must allow the production frontend origin.
+
+Confirm SignalR WebSocket connectivity after deployment.
+
+---
+
+# 52. Security Requirements
+
+At minimum:
+
+- hash passwords using established ASP.NET Core mechanisms
+- never create custom password hashing
+- use HTTPS in production
+- validate JWTs server-side
+- authorize every mutation endpoint
+- verify tournament membership
+- never trust TournamentId received from React without authorization
+- validate uploaded files
+- restrict upload types and file sizes
+- never expose connection strings
+- never expose service-role credentials
+- parameterize database operations through EF Core
+- do not expose internal exceptions
+
+Public endpoints must return sanitized DTOs only.
+
+---
+
+# 53. Operational Reliability
+
+This application will potentially be used live in a room full of people.
+
+Optimize for reliability over cleverness.
+
+The following scenarios must be tested before calling the project complete:
+
+- refresh while a player is being auctioned
+- refresh immediately after a sale
+- backend restart
+- SignalR disconnect/reconnect
+- multiple projector screens
+- two admin tabs
+- double click SOLD
+- accidentally entering wrong team
+- accidentally entering wrong price
+- browser being closed and reopened
+- auction paused for 30 minutes
+- auction resumed the following day
+- team nearly exhausting purse
+- team reaching maximum squad
+- player going unsold twice
+
+In every case, PostgreSQL should contain enough information to reconstruct correct auction state.
+
+---
+
+# 54. Export
+
+After the core system works, provide exports.
+
+At minimum:
+
+Auction results CSV
+
+Team squads CSV
+
+Player results CSV
+
+Optionally:
+
+complete tournament JSON backup/export
+
+This is useful for organizers and gives them a portable copy of auction results.
+
+---
+
+# 55. Implementation Milestones
+
+Implement the project in the following order.
+
+Do not jump forward and create half-working implementations of later features before the underlying milestone works.
+
+## MILESTONE 0 — Project Foundation
+
+Create:
+
+- repository structure
+- React/Vite/TypeScript frontend
+- ASP.NET Core backend
+- PostgreSQL connection
+- EF Core setup
+- frontend/backend API connectivity
+- Swagger
+- basic Tailwind/shadcn configuration
+- environment configuration
+- health-check endpoint
+- initial README
+- development Docker Compose if appropriate
+
+Acceptance:
+
+Frontend starts.
+
+Backend starts.
+
+Backend successfully reaches PostgreSQL.
+
+Frontend successfully calls backend health check.
+
+---
+
+## MILESTONE 1 — Authentication + Tournament Management
+
+Implement:
+
+- User authentication
+- registration/login
+- JWT/session handling
+- Tournament entity
+- TournamentMember entity
+- tournament creation
+- tournament list/dashboard
+- tournament editing
+- authorization
+
+Acceptance:
+
+User can register.
+
+User can log in.
+
+User can create a tournament.
+
+Creator becomes OWNER.
+
+User can leave and reopen the app and access their tournament.
+
+Unauthorized users cannot mutate tournaments they don't own.
+
+---
+
+## MILESTONE 2 — Tournament Configuration + Teams
+
+Implement:
+
+- TournamentSettings entity & repository
+- Tournament rules UI
+- Team entity & CRUD
+- Starting purse configuration
+- Squad size configuration (minimum & maximum squad limits)
+- Minimum acquisition price & default bid increment
+- Base-price tiers (create, list, delete)
+- Team colors, logo, and short code metadata
+- Relevant server-side validation & owner authorization
+- (Note: Final unsold round is mandatory by rule; no EnableUnsoldReauction toggle is added)
+
+Acceptance:
+
+- Tournament owner can configure tournament auction settings.
+- Currency configuration works.
+- Starting purse works.
+- Minimum squad size works.
+- Maximum squad size works.
+- Minimum acquisition price works.
+- Bid increment works.
+- Base-price tiers can be managed.
+- Teams can be created.
+- Teams can be edited.
+- Teams can be removed where safe.
+- Team starting purse defaults correctly.
+- Invalid configuration is rejected server-side.
+- Unauthorized users cannot modify tournament settings/teams.
+- EF Core migrations apply successfully.
+- Backend tests pass.
+- Frontend build passes.
+- Existing Milestone 0/1 functionality remains working.
+
+---
+
+## MILESTONE 3 — Sets + Players
+
+Implement:
+
+- PlayerSet
+- set CRUD
+- set ordering
+- Player
+- player CRUD
+- filters/search
+- player assignment
+- player base prices
+- placeholders for missing images
+
+Then implement:
+
+CSV import preview + confirmation.
+
+Acceptance:
+
+Organizer can comfortably configure 100+ players.
+
+All players are assigned to configurable sets.
+
+---
+
+## MILESTONE 4 — Preflight
+
+Implement TournamentPreflightService.
+
+Check:
+
+- teams
+- settings
+- sets
+- players
+- base prices
+- squad feasibility
+- purse feasibility
+
+Build preflight UI.
+
+Acceptance:
+
+Invalid tournaments cannot accidentally begin an auction.
+
+Valid tournaments clearly display READY FOR AUCTION.
+
+---
+
+## MILESTONE 5 — Auction Engine
+
+This milestone is backend-first.
+
+Implement:
+
+- AuctionSession
+- AuctionLot
+- AuctionEvent
+- persisted random set ordering
+- start auction
+- start set
+- reveal player
+- sell player
+- unsold player
+- team financial calculations
+- squad reserve calculations
+- state transitions
+- pause/resume
+- result correction
+- set completion
+- auction completion
+- concurrency protection
+
+Write comprehensive unit and integration tests.
+
+DO NOT spend time on fancy animation before this milestone is correct.
+
+Acceptance:
+
+A complete tournament can be simulated through API/tests without invalid purse values, duplicate player sales or lost auction state.
+
+---
+
+## MILESTONE 6 — Auctioneer UI
+
+Connect React to the auction engine.
+
+Implement:
+
+- current player
+- player details
+- base price
+- team selector
+- price input
+- SOLD
+- UNSOLD
+- NEXT PLAYER
+- pause/resume
+- team purse sidebar
+- squad information
+- reserve/maximum bid information
+- set progress
+- auction progress
+- sold confirmation screen
+- unsold screen
+- set summary
+
+Acceptance:
+
+An organizer can run an entire physical auction from one laptop without accessing Swagger or the database.
+
+---
+
+## MILESTONE 7 — SignalR + Projector View
+
+Implement:
+
+- SignalR AuctionHub
+- tournament groups
+- reconnect handling
+- query invalidation/refetch
+- live connection indicator
+- public read-only auction state
+- projector screen
+
+Acceptance test:
+
+Open:
+
+Browser A → Auctioneer
+
+Browser B → Projector
+
+When A sells/reveals/marks unsold a player, B updates automatically without refresh.
+
+Refreshing either browser restores correct state.
+
+---
+
+## MILESTONE 8 — Unsold Round + Corrections
+
+Finish:
+
+- unsold-player reauction
+- new attempts
+- correction UI
+- correction audit trail
+- affected purse recalculation
+- auction history viewer
+
+Acceptance:
+
+Unsold player can later be sold without losing their previous attempt.
+
+Wrong team/price can be corrected safely.
+
+---
+
+## MILESTONE 9 — Statistics + Auction Wrapped
+
+Implement:
+
+- aggregate statistics
+- player rankings
+- team statistics
+- set statistics
+- charts
+- final Auction Wrapped
+- team squad pages
+- result tables
+
+Acceptance:
+
+Statistics require no manual input.
+
+Changing a corrected auction result updates statistics.
+
+---
+
+## MILESTONE 10 — Images + Polish + Export
+
+Implement:
+
+- tournament logo upload
+- team logos
+- player photos
+- object storage
+- CSV result exports
+- responsive polishing
+- projector design
+- animation polish
+- loading/error states
+- accessibility checks
+
+Acceptance:
+
+Application looks professional and can be confidently used at an actual tournament.
+
+---
+
+# 56. Rules for Working on This Project
+
+When implementing any milestone:
+
+1. Inspect the existing code before changing architecture.
+
+2. Do not rewrite working components simply because another architecture looks more elegant.
+
+3. Explain any necessary architectural deviation from this document.
+
+4. Use database migrations for schema changes.
+
+5. Keep business logic out of React components.
+
+6. Keep business logic out of ASP.NET controllers where practical.
+
+7. Keep PostgreSQL authoritative.
+
+8. Never use floating point for money.
+
+9. Never trust client-side purse calculations.
+
+10. Never regenerate a set's random player order after the set begins.
+
+11. Never permit two active players simultaneously.
+
+12. Never permit the same auction lot to be completed twice.
+
+13. Never silently delete auction history.
+
+14. Never directly overwrite important financial results without creating an audit entry.
+
+15. Every financial/state-changing backend operation must perform authorization and validation.
+
+16. Use transactions for auction mutations.
+
+17. Return useful error messages.
+
+18. Run relevant tests after each implementation task.
+
+19. Keep the application runnable after each milestone.
+
+20. Prefer simple, readable solutions over unnecessarily abstract patterns.
+
+---
+
+# 57. Definition of MVP Complete
+
+The MVP is complete when I can perform this exact workflow:
+
+1. Register/login.
+2. Create "Local Super League 2026".
+3. Configure ₹100,000 purse.
+4. Configure minimum squad 12.
+5. Configure maximum squad 16.
+6. Configure minimum purchase price ₹500.
+7. Configure bid increment ₹100.
+8. Create four or more teams.
+9. Create several player sets.
+10. Add players to sets.
+11. Assign base prices.
+12. Run preflight.
+13. Start auction.
+14. Start Set 1.
+15. Receive a randomly selected/persisted first player.
+16. Physically conduct bidding.
+17. Select winning team and sale price.
+18. Mark SOLD.
+19. See team purse update automatically.
+20. Reveal next player.
+21. Mark another player UNSOLD.
+22. Continue until set finishes.
+23. See set summary.
+24. Start next set.
+25. Refresh the browser at any time without losing state.
+26. Open a projector screen and see live updates.
+27. Prevent teams from illegally overspending.
+28. Prevent teams from exceeding squad maximum.
+29. Correct an incorrectly recorded sale.
+30. Optionally re-auction unsold players.
+31. Finish auction.
+32. See each team's final squad.
+33. See remaining purses.
+34. See most expensive players.
+35. See complete tournament statistics.
+36. Export the results.
+
+If this flow is reliable, the MVP is successful.
+
+---
+
+# 58. Future Features — DO NOT BUILD YET
+
+Design the code so these are possible later, but do not implement them as part of the MVP:
+
+- team owners bidding from phones
+- online bid timers
+- automatic bid increments
+- bid history
+- player registration portal
+- player approval workflow
+- WhatsApp notifications
+- push notifications
+- native mobile applications
+- payments
+- multiple simultaneous auctions
+- AI valuations
+- advanced historical analytics
+- cross-tournament player history
+- team-manager accounts
+- fantasy football features
+
+Do not let hypothetical future features complicate the MVP.
+
+---
+
+# 59. First Task
+
+Before writing substantial feature code:
+
+1. Read this specification completely.
+2. Inspect the existing repository, if any.
+3. Produce a concise implementation checklist covering Milestones 0–10.
+4. Identify any technical contradictions or missing decisions that would block implementation.
+5. If nothing is blocking, begin ONLY with Milestone 0.
+6. Establish the project structure and local development environment.
+7. Run the frontend and backend builds/tests.
+8. Report:
+   - what was created
+   - important architectural decisions
+   - commands to run locally
+   - tests/builds performed
+   - remaining items for Milestone 0
+
+Do not begin implementing future milestones until the current milestone's foundation is working and its acceptance criteria have been satisfied.
+
+The priority throughout this project is:
+
+CORRECT AUCTION STATE
+>
+RELIABILITY
+>
+CLEAR USER EXPERIENCE
+>
+MAINTAINABILITY
+>
+VISUAL POLISH
+>
+EXTRA FEATURES
