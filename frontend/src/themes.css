@@ -1,19 +1,19 @@
-.theme-toggle { position: fixed; right: 18px; bottom: max(18px,env(safe-area-inset-bottom)); z-index: 60; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 11px 15px; border: 1px solid #ffffff30; border-radius: 99px; background: #191d28; color: #f7f3eb; box-shadow: 0 4px 20px #0003; font-size: 12px; font-weight: 700; }
-.theme-toggle:hover { border-color: #a3ce2d; }
+.theme-toggle { position: fixed; right: 18px; bottom: max(18px,env(safe-area-inset-bottom)); z-index: 60; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; min-height: 32px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #a5a8b6; box-shadow: none; }
+.theme-toggle:hover { background: #ffffff0a; color: #f7f3eb; }
 .theme-toggle-inline { position: static; z-index: auto; flex-shrink: 0; box-shadow: none; }
 .auth-panel { position: relative; }
 .auth-theme-slot { position: absolute; right: 24px; top: 24px; }
 .recap-theme-slot { order: 2; }
 .recap-topbar>button { order: 3; }
-.stage-header-actions .theme-toggle { display: flex; height: auto; width: auto; padding: 11px 15px; }
+.stage-header-actions .theme-toggle { display: flex; height: 32px; width: 32px; padding: 0; border-color: transparent; background: transparent; }
 .league-console header>div>div:nth-child(2) { flex-wrap: wrap; max-width: 100%; }
 .league-console header [role="status"] { white-space: nowrap; flex-shrink: 0; }
-.recap-topbar .theme-toggle { min-height: 44px; width: 44px; padding: 0; justify-content: center; }
+.recap-topbar .theme-toggle { min-height: 32px; height: 32px; width: 32px; padding: 0; justify-content: center; border-color: transparent; background: transparent; }
 .recap-topbar .theme-toggle span { display: none; }
 @media(max-width:600px) { .recap-topbar { gap: 8px; } .recap-topbar .league-brand-compact { width: 126px; } .recap-topbar .league-brand-compact img { width: 154px; height: 52px; } .stage-header-actions .theme-toggle { width: 44px; padding: 0; } }
 @media(max-width:1100px) { .league-workspace-label { display: none; } .league-dashboard header .hidden.sm\:flex { display: none; } }
 @media(max-width:600px) { .league-dashboard header .league-brand { width: 156px; height: 38px; } .league-dashboard header .league-brand img { width: 188px; height: 63px; } }
-@media(max-width:600px) { .theme-toggle { right: 12px; bottom: max(12px,env(safe-area-inset-bottom)); width: 44px; padding: 0; justify-content: center; } .theme-toggle span { display: none; } }
+@media(max-width:600px) { .theme-toggle,.stage-header-actions .theme-toggle,.recap-topbar .theme-toggle { right: 12px; bottom: max(12px,env(safe-area-inset-bottom)); width: 44px; height: 44px; min-height: 44px; padding: 0; justify-content: center; } .theme-toggle span { display: none; } }
 
 :root[data-theme="light"] {
   color-scheme: light;
@@ -24,7 +24,11 @@
 }
 :root[data-theme="light"] body { background: #f5f6f8; color: #182130; }
 :root[data-theme="light"] :focus-visible { outline-color: #547400; }
-:root[data-theme="light"] .theme-toggle { background: #fff; color: #263443; border-color: #cbd3dd; box-shadow: 0 4px 20px #24344b18; }
+:root[data-theme="light"] .theme-toggle { background: transparent; color: #657084; border-color: transparent; box-shadow: none; }
+:root[data-theme="light"] .theme-toggle:hover { background: #18213008; color: #182130; }
+:root[data-theme="light"] .preflight-hero { background: linear-gradient(110deg,#eef6e5,#fff 72%); border-color: #c9dbb2; box-shadow: 0 6px 28px #23344d06; }
+:root[data-theme="light"] .preflight-hero[data-preflight-state="eligible"] { background: linear-gradient(110deg,#e6f5f2,#fff 72%); border-color: #bdddd4; }
+:root[data-theme="light"] .preflight-hero[data-preflight-state="blocked"] { background: linear-gradient(110deg,#fff0f3,#fff 72%); border-color: #ecc7d1; }
 /* Existing workspace utilities share the same light surfaces and semantic colors. */
 :root[data-theme="light"] [class*="bg-[#"] { background-color: #fff; }
 :root[data-theme="light"] [class*="from-[#"] { --tw-gradient-from: #fff; --tw-gradient-to: #f5f6f8; }

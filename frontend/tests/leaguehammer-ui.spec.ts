@@ -13,6 +13,7 @@ async function fits(page: Page) {
 test('LeagueHammer sign-in stays accessible and fits phone, tablet and desktop', async ({ page }, info) => {
   if (light) await page.addInitScript(() => localStorage.setItem('leaguehammer-theme', 'light'));
   await page.goto('/login');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', light ? 'light' : 'dark');
   await expect(page).toHaveTitle(/LeagueHammer/);
   await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible();
   await page.getByRole('button', { name: 'Fill Demo Organizer Credentials' }).click();
@@ -123,6 +124,7 @@ test('broadcast, console, results, franchise and history fit mobile with live da
       for (const tab of ['Auction Rules & Purse', 'Participating Teams', 'Base Price Tiers', 'Player Sets', 'Player Registry', 'Preflight Checklist']) {
         await panel.getByRole('button', { name: tab, exact: true }).click();
         await fits(panel);
+        if (tab === 'Preflight Checklist') await expect(panel.locator('.preflight-hero')).not.toHaveCSS('background-image', /rgb\(13, 23, 38\)/);
         await panel.screenshot({ path: info.outputPath(`config-${tab.replaceAll(' ', '-')}.png`), fullPage: true });
       }
       await portal.goto(`/live/${tournament.slug}/recap`);

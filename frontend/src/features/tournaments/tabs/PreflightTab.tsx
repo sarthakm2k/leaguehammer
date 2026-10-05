@@ -219,7 +219,7 @@ export function PreflightTab({
   return (
     <div className="space-y-6">
       {/* Top Hero Banner */}
-      <div className={`rounded-2xl border p-6 shadow-xl relative overflow-hidden transition-all ${
+      <div data-preflight-state={isReady ? 'ready' : report.isReadyForAuction ? 'eligible' : 'blocked'} className={`preflight-hero rounded-2xl border p-6 shadow-xl relative overflow-hidden transition-all ${
         isReady
           ? 'bg-gradient-to-r from-emerald-950/60 via-[#0d1726] to-[#101219] border-emerald-500/40'
           : report.isReadyForAuction

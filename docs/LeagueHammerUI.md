@@ -28,3 +28,5 @@ Run `dotnet test backend/TournamentAuction.Tests/TournamentAuction.Tests.csproj 
 Verified on 2026-10-05: production build succeeds; lint reports no errors and only existing warnings; all 9 browser tests and all 93 backend tests pass. The existing bundle-size warning remains. No backend files were changed.
 
 Light-mode follow-up verification: both light-theme browser checks and the full 9-test default-theme suite pass. Theme selection persists between pages and synchronizes across tabs; both palettes fit the tested device widths. The final light-mode contrast check confirms recap copy-link text exceeds 4.5:1 and chart bars exceed 3:1 against white surfaces. Backend code and database schema are unchanged.
+
+The preflight summary has explicit light palettes for ready, eligible, and blocked states, including all gradient stops. The theme switch is a subtle 32px icon button on desktop and retains a 44px touch target on phones. A fresh browser defaults to dark; a deliberately saved selection is still remembered.
