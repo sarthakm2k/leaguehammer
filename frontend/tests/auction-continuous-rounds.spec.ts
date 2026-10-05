@@ -28,8 +28,9 @@ test('Sell all players setting enables continuous rounds through attempt four', 
   const consolePage = await owner.newPage();
   const publicContext = await browser.newContext();
   const projector = await publicContext.newPage();
+  const upcoming = await publicContext.newPage();
   const errors: string[] = [];
-  for (const page of [consolePage, projector]) page.on('pageerror', error => errors.push(error.message));
+  for (const page of [consolePage, projector, upcoming]) page.on('pageerror', error => errors.push(error.message));
   consolePage.on('dialog', async dialog => { if (dialog.type() === 'alert') errors.push(dialog.message()); await dialog.accept(); });
   try {
     await consolePage.goto(root);
@@ -59,15 +60,22 @@ test('Sell all players setting enables continuous rounds through attempt four', 
     await consolePage.getByRole('button', { name: 'Complete Active Set', exact: true }).click();
     await consolePage.getByRole('button', { name: 'Close set summary' }).click();
     await consolePage.getByRole('button', { name: /Launch Unsold Rounds/ }).click();
+    await upcoming.goto(`/live/${tournament.slug}?view=players`);
+    await expect(upcoming.getByTestId(`upcoming-set-${set.id}`)).toContainText('2 pending');
     const repeat = await reveal();
     expect(repeat.attemptNumber).toBe(2);
     await unsold();
+    await expect(upcoming.getByTestId('upcoming-retry-pool')).toContainText('Next unsold round');
+    await expect(upcoming.getByTestId('upcoming-retry-pool')).toContainText(repeat.playerName);
+    await expect(upcoming.getByTestId(`upcoming-set-${set.id}`)).toContainText('1 pending');
     const sale = await reveal();
     await consolePage.getByRole('button', { name: /Falcons FC FFC/ }).click();
     await consolePage.getByRole('spinbutton', { name: 'Winning bid price' }).fill('1000');
     await consolePage.getByRole('button', { name: /SOLD TO/ }).click();
     await expect(consolePage.getByRole('spinbutton', { name: 'Winning bid price' })).toHaveCount(0);
     await expect(projector.locator('.stage-setline')).toContainText('Unsold Round 2');
+    await expect(upcoming.getByTestId('upcoming-retry-pool')).toHaveCount(0);
+    await expect(upcoming.getByTestId(`upcoming-set-${set.id}`)).toContainText('1 pending');
     await Promise.all([consolePage.reload(), projector.reload()]);
     await expect(consolePage.getByRole('status')).toContainText('Live connection');
     const third = await reveal();

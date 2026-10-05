@@ -34,9 +34,10 @@ test('public portal, franchise links and Wrapped recalculate after a corrected s
   const publicContext = await browser.newContext({ viewport: { width: 1440, height: 1000 }, permissions: ['clipboard-read', 'clipboard-write'] });
   const portal = await publicContext.newPage();
   const franchise = await publicContext.newPage();
+  const upcoming = await publicContext.newPage();
   const errors: string[] = [];
   const publicFrames: string[] = [];
-  for (const page of [internal, portal, franchise]) page.on('pageerror', error => errors.push(error.message));
+  for (const page of [internal, portal, franchise, upcoming]) page.on('pageerror', error => errors.push(error.message));
   for (const page of [portal, franchise]) page.on('websocket', socket => socket.on('framereceived', event => publicFrames.push(String(event.payload))));
   try {
     await Promise.all([internal.goto(`${root}/results`), portal.goto(`/live/${tournament.slug}`)]);
@@ -45,6 +46,15 @@ test('public portal, franchise links and Wrapped recalculate after a corrected s
     await expect(internal.getByRole('status')).toContainText('Live connection');
     expect(await portal.evaluate(() => localStorage.getItem('auth_token'))).toBeNull();
     await portal.getByRole('link', { name: 'Players', exact: true }).click();
+    await upcoming.goto(`/live/${tournament.slug}?view=players`);
+    await expect(upcoming.getByTestId(`upcoming-set-${marquee.id}`)).toContainText('2 pending');
+    await expect(upcoming.getByTestId(`upcoming-set-${keepers.id}`)).toContainText('1 pending');
+    await expect(upcoming.locator('[data-testid^="upcoming-player-"]')).toHaveCount(3);
+    await upcoming.setViewportSize({ width: 320, height: 844 });
+    await expect.poll(() => upcoming.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+    await upcoming.getByRole('button', { name: 'Switch to light mode' }).click();
+    await expect(upcoming.locator('.league-brand')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await upcoming.screenshot({ path: testInfo.outputPath('upcoming-light-mobile.png'), fullPage: true });
     await expect(portal.locator('tbody tr')).toHaveCount(3);
     await portal.getByLabel('Player status').selectOption('AVAILABLE');
     await expect(portal.locator('tbody tr')).toHaveCount(3);
@@ -62,6 +72,10 @@ test('public portal, franchise links and Wrapped recalculate after a corrected s
     const firstLot = (await api('post', `${root}/auction/reveal-next`)).currentLot;
     await api('post', `${root}/auction/bid`, { lotId: firstLot.lotId, currentBid: 1000, leadingTeamId: first.id });
     await expect(portal.getByTestId('portal-current-player')).toHaveText(firstLot.playerName);
+    await expect(upcoming.locator('.upcoming-on-stage')).toContainText(firstLot.playerName);
+    await expect(upcoming.getByTestId(`upcoming-set-${marquee.id}`)).toContainText('Current active set');
+    await expect(upcoming.getByTestId(`upcoming-set-${marquee.id}`)).toContainText('1 pending');
+    await expect(upcoming.getByTestId(`upcoming-player-${firstLot.playerId}`)).toHaveCount(0);
     await expect(portal.getByTestId('portal-current-price')).toHaveText('₹1,000');
     await api('post', `${root}/auction/sell`, { lotId: firstLot.lotId, winningTeamId: first.id, finalPrice: 1000 });
     await expect(franchise.locator('tbody tr')).toHaveCount(1);
@@ -72,12 +86,15 @@ test('public portal, franchise links and Wrapped recalculate after a corrected s
     await api('post', `${root}/auction/start-set`, { setId: keepers.id });
     const unsold = (await api('post', `${root}/auction/reveal-next`)).currentLot;
     await api('post', `${root}/auction/unsold`, { lotId: unsold.lotId });
+    await expect(upcoming.getByTestId('upcoming-retry-pool')).toContainText('Keeper Star');
     await portal.getByRole('link', { name: 'Players', exact: true }).click();
     await portal.getByLabel('Player status').selectOption('UNSOLD');
     await expect(portal.locator('tbody tr')).toHaveCount(1);
     await expect(portal.locator('tbody')).toContainText('Keeper Star');
     await api('post', `${root}/auction/sets/${keepers.id}/complete`);
     await api('post', `${root}/auction/unsold-round/start`);
+    await expect(upcoming.getByTestId('upcoming-retry-pool')).toHaveCount(0);
+    await expect(upcoming.getByTestId(`upcoming-set-${keepers.id}`)).toContainText('This unsold round');
     const retry = (await api('post', `${root}/auction/reveal-next`)).currentLot;
     await api('post', `${root}/auction/sell`, { lotId: retry.lotId, winningTeamId: first.id, finalPrice: 3000 });
     await expect(franchise.locator('tbody tr')).toHaveCount(2);
@@ -111,6 +128,8 @@ test('public portal, franchise links and Wrapped recalculate after a corrected s
     await expect(portal.getByRole('region', { name: 'Team spending' })).toContainText('Warriors FC: ₹6,000');
     await expect(internal.getByRole('region', { name: 'Team spending' })).toBeVisible();
     await api('post', `${root}/auction/complete`, {});
+    await expect(upcoming.getByText("Every player's auction outcome has been recorded.")).toBeVisible();
+    await expect(upcoming.locator('[data-testid^="upcoming-player-"]')).toHaveCount(0);
     await expect(portal.getByRole('heading', { name: 'Auction Wrapped', exact: true })).toBeVisible();
     await expect(internal.getByRole('heading', { name: 'Auction Wrapped', exact: true })).toBeVisible();
     await portal.reload();

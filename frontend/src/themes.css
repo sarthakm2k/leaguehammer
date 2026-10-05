@@ -55,9 +55,10 @@
 :root[data-theme="light"] .league-history tr { background: #f6f8fb; border-color: #dce1e8; }
 :root[data-theme="light"] .league-workspace-label { color: #657084; border-color: #d5dce5; }
 :root[data-theme="light"] .league-console header>div>div:first-child>div::before { color: #426600; }
-/* Keep the supplied white/lime wordmark intact on a compact dark brand plaque. */
-:root[data-theme="light"] .league-brand { background: #101219; border-radius: 10px; }
-:root[data-theme="light"] .auth-story .league-brand { background: transparent; }
+/* Preserve the supplied transparent logo; a small shadow defines its white lettering. */
+:root[data-theme="light"] .league-brand { background: transparent; }
+:root[data-theme="light"] .league-brand img { filter: drop-shadow(0 1px 1px #10121980); }
+:root[data-theme="light"] .auth-story .league-brand img { filter: none; }
 :root[data-theme="light"] .league-auth,:root[data-theme="light"] .auth-panel { background: #f8f9fb; color: #182130; }
 :root[data-theme="light"] .auth-panel { border-color: #dce1e8; }
 :root[data-theme="light"] .auth-panel .league-kicker { color: #426600; }
@@ -156,3 +157,4 @@
 :root[data-theme="light"] .recharts-bar-rectangle [fill="#69caff"] { fill: #2185b8; }
 :root[data-theme="light"] .recharts-bar-rectangle [fill="#e9bc63"] { fill: #b47a20; }
 :root[data-theme="light"] .recharts-bar-rectangle [fill="#c4a4ff"] { fill: #8960c9; }
+:root[data-theme="light"] .result-upcoming { --upcoming-surface:#f5f7fa; --upcoming-border:#dce1e8; --upcoming-text:#182130; --upcoming-muted:#647086; --upcoming-accent:#426600; }

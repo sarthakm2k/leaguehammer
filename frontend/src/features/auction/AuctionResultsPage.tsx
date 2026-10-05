@@ -93,6 +93,35 @@ function PlayersTable({ players, money, title = 'Player results', showFilters = 
   </section>;
 }
 
+function UpcomingPlayers({ data, money }: { data: AuctionResults; money: (value: number) => string }) {
+  const { state, players, statistics } = data;
+  const activeId = !state.isUnsoldRound ? state.currentSetSummary?.setId : null;
+  const waiting = state.sessionStatus === 'COMPLETED' ? [] : players.filter(player =>
+    player.status === 'AVAILABLE' || (state.isUnsoldRound && player.status === 'UNSOLD' && player.attemptCount < state.currentAttemptNumber));
+  const retry = state.sessionStatus === 'COMPLETED' ? [] : players.filter(player => player.status === 'UNSOLD' &&
+    (!state.isUnsoldRound || player.attemptCount >= state.currentAttemptNumber));
+  const sets = [...statistics.sets].sort((a, b) => a.sortOrder - b.sortOrder || a.setId.localeCompare(b.setId));
+  const groups = sets.filter(set => set.setId === activeId || waiting.some(player => player.playerSetId === set.setId));
+  const nextId = groups.find(set => set.setId !== activeId)?.setId;
+  const cards = (list: ResultPlayer[]) => <ul className="upcoming-player-grid">{[...list].sort((a, b) => a.playerName.localeCompare(b.playerName)).map(player =>
+    <li key={player.playerId} data-testid={`upcoming-player-${player.playerId}`}><Portrait name={player.playerName} photo={player.photoUrl} /><div><strong>{player.playerName}</strong><small>{player.jerseyNumber == null ? '' : `#${player.jerseyNumber} · `}{player.position || 'Player'}</small><span>Base price <b>{money(player.basePrice)}</b></span></div></li>)}</ul>;
+  return <section className="result-panel result-upcoming" aria-labelledby="upcoming-title">
+    <div className="upcoming-heading"><div><p className="result-eyebrow">Still to take the stage</p><h2 id="upcoming-title">Upcoming players</h2></div><span className="result-badge">{waiting.length} waiting</span></div>
+    <p className="result-muted">Browse the remaining players by set. Names are listed alphabetically; the auction draw order may differ.</p>
+    {state.currentLot && <div className="upcoming-on-stage"><span className="result-badge sold">Now on the podium</span><strong>{state.currentLot.playerName}</strong><small>{state.currentLot.playerSetName}</small></div>}
+    <div className="upcoming-set-list">{groups.map(set => {
+      const list = waiting.filter(player => player.playerSetId === set.setId);
+      const active = set.setId === activeId;
+      return <details key={set.setId} open={active || set.setId === nextId} className={`upcoming-set${active ? ' upcoming-active-set' : ''}`} data-testid={`upcoming-set-${set.setId}`}>
+        <summary><div><span>{active ? 'Current active set' : state.isUnsoldRound ? 'This unsold round' : set.setId === nextId ? 'Next set' : 'Upcoming set'}</span><h3>{set.setName}</h3></div><span className="upcoming-count">{list.length} pending <ArrowUpRight size={16} /></span></summary>
+        {list.length ? cards(list) : <p className="result-muted">{state.currentLot ? 'The remaining player is on the podium.' : 'All players in this set have been auctioned.'}</p>}
+      </details>;
+    })}</div>
+    {retry.length > 0 && <div className="upcoming-retry" data-testid="upcoming-retry-pool"><h3>{state.isUnsoldRound ? 'Next unsold round' : 'Returning for the unsold round'}</h3><p className="result-muted">{retry.length} {retry.length === 1 ? 'player is' : 'players are'} waiting for another auction attempt.</p>{sets.filter(set => retry.some(player => player.playerSetId === set.setId)).map(set => <details className="upcoming-set" key={set.setId}><summary><h3>{set.setName}</h3><span className="upcoming-count">{retry.filter(player => player.playerSetId === set.setId).length} players <ArrowUpRight size={16} /></span></summary>{cards(retry.filter(player => player.playerSetId === set.setId))}</details>)}</div>}
+    {!waiting.length && !retry.length && !activeId && <p className="result-muted">{state.sessionStatus === 'COMPLETED' ? "Every player's auction outcome has been recorded." : state.currentLot ? 'The final player is on the podium.' : 'No players are waiting to be revealed.'}</p>}
+  </section>;
+}
+
 function TeamSquad({ team, data, publicView, money }: { team: TeamStatistics; data: AuctionResults; publicView: boolean; money: (value: number) => string }) {
   const standing = team.standing;
   const roster = data.players.filter(player => player.status === 'SOLD' && player.winningTeamId === standing.teamId);
@@ -162,7 +191,7 @@ export function AuctionResultsPage({ publicView = false }: { publicView?: boolea
     </>}
     {view === 'teams' && (teamId ? team ? <><Link to={`${base}?view=teams`}>← All franchises</Link><TeamSquad team={team} data={data} publicView={publicView} money={money} /></> : <section className="result-panel"><h2>Franchise not found</h2><p>This franchise does not belong to the tournament.</p><Link to={`${base}?view=teams`}>View tournament franchises</Link></section>
       : <section className="result-panel"><h2>Franchises & squads</h2><div className="result-team-grid">{stats.teams.map(item => <article className="result-team-card" key={item.standing.teamId}><div className="result-team-title"><TeamMark key={item.standing.logoUrl} name={item.standing.teamName} logo={item.standing.logoUrl} color={item.standing.primaryColor} /><h3>{item.standing.teamName}</h3></div><strong>{money(item.standing.remainingPurse)} remaining</strong><p>{item.standing.currentSquadSize} players · {money(item.standing.totalSpent)} spent</p><progress max={item.standing.minimumSquadSize} value={Math.min(item.standing.currentSquadSize, item.standing.minimumSquadSize)} aria-label={`${item.standing.teamName} minimum squad progress`} /><small>Minimum {item.standing.minimumSquadSize} · Maximum {item.standing.maximumSquadSize}</small><Link to={teamUrl(item.standing.teamId)}>View squad →</Link>{data.publicLiveViewEnabled && <CopyLink label={`Copy ${item.standing.shortName} Franchise Link`} path={`/live/${state.slug}/teams/${item.standing.teamId}`} />}</article>)}</div>{!stats.teams.length && <p className="result-muted">No franchises registered yet.</p>}</section>)}
-    {view === 'players' && <PlayersTable players={data.players} money={money} title="Player registry" />}
+    {view === 'players' && <>{publicView && <UpcomingPlayers data={data} money={money} />}<PlayersTable players={data.players} money={money} title="Player registry" /></>}
     {view === 'results' && <>
       <section className="result-wrapped-hero"><p className="result-eyebrow">{state.sessionStatus === 'COMPLETED' ? 'The auction is complete' : 'Live snapshot · Figures update as results are recorded'}</p><h2>{state.sessionStatus === 'COMPLETED' ? 'Auction Wrapped' : 'Auction results'}</h2><p>Every signing. Every squad. The story of {state.tournamentName}.</p>
         <div className="result-awards"><div><small>Most expensive player</small><h3>{stats.topPlayers[0]?.playerName ?? 'Awaiting a sale'}</h3><strong>{money(stats.highestSalePrice)}</strong><p>{stats.topPlayers[0]?.winningTeamName}</p></div><div><small>Biggest spender</small><h3>{biggest?.standing.teamName ?? '—'}</h3><strong>{money(biggest?.standing.totalSpent ?? 0)}</strong></div><div><small>Best selling set</small><h3>{bestSet?.setName ?? '—'}</h3><strong>{percentage(bestSet?.sellThroughPercentage ?? 0)}</strong></div></div>
