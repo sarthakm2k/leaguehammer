@@ -1,0 +1,140 @@
+import { test, expect } from 'playwright/test';
+
+const API = process.env.AUCTION_API_URL || 'http://localhost:5050';
+
+test('completed recap is mobile responsive, shareable, and preserves all player and team outcomes', async ({ browser, request }, testInfo) => {
+  const registration = await request.post(`${API}/api/auth/register`, { data: { email: `recap-${Date.now()}@example.test`, password: 'RecapVerification!2026', fullName: 'Recap Verification' } });
+  expect(registration.ok()).toBeTruthy();
+  const { token } = await registration.json();
+  const headers = { Authorization: `Bearer ${token}` };
+  const api = async (method: 'get' | 'post' | 'put', path: string, data?: unknown) => {
+    const response = await request[method](`${API}/api${path}`, { headers, data });
+    expect(response.ok(), await response.text()).toBeTruthy();
+    return response.json();
+  };
+  const tournament = await api('post', '/tournaments', { name: `Malabar Champions Trophy Recap ${Date.now()}`, season: '2026' });
+  const root = `/tournaments/${tournament.id}`;
+  const settings = { currencyCode: 'INR', currencySymbol: '₹', defaultStartingPurse: 10000, minimumSquadSize: 1, maximumSquadSize: 4, minimumAcquisitionPrice: 500, defaultBidIncrement: 250, publicLiveViewEnabled: true };
+  await api('put', `${root}/settings`, settings);
+  const first = await api('post', `${root}/teams`, { name: 'Falcons Football Club of Malabar', shortName: 'FFC', initialPurse: 10000 });
+  const second = await api('post', `${root}/teams`, { name: 'Warriors FC', shortName: 'WFC', initialPurse: 10000 });
+  const set = await api('post', `${root}/player-sets`, { name: 'Marquee Stars', sortOrder: 1 });
+  const star = await api('post', `${root}/players`, { name: 'Arjun Krishnan', playerSetId: set.id, basePrice: 500, position: 'Forward', jerseyNumber: 10, photoUrl: 'https://example.test/missing-photo.png' });
+  const defender = await api('post', `${root}/players`, { name: 'Sameer Menon', playerSetId: set.id, basePrice: 500, position: 'Defender' });
+  const comeback = await api('post', `${root}/players`, { name: 'Vivek Raj', playerSetId: set.id, basePrice: 1000, position: 'Midfielder' });
+  const unsold = await api('post', `${root}/players`, { name: 'Rahul Nair', playerSetId: set.id, basePrice: 500, position: 'Goalkeeper' });
+  const owner = await browser.newContext({ viewport: { width: 1440, height: 1000 }, permissions: ['clipboard-read', 'clipboard-write'] });
+  await owner.addInitScript(value => localStorage.setItem('auth_token', value), token);
+  const overview = await owner.newPage();
+  const guest = await browser.newContext({ viewport: { width: 390, height: 844 }, permissions: ['clipboard-read', 'clipboard-write'] });
+  const recap = await guest.newPage();
+  await recap.route('https://example.test/**', route => route.abort());
+  const errors: string[] = [];
+  for (const page of [overview, recap]) page.on('pageerror', error => errors.push(error.message));
+  try {
+    await overview.goto(root);
+    await expect(overview.getByRole('link', { name: 'Open Auction Recap' })).toHaveCount(0);
+    await recap.goto(`/live/${tournament.slug}/recap`);
+    await expect(recap.getByRole('heading', { name: 'Your recap is on its way.' })).toBeVisible();
+    await expect(recap.getByTestId('recap-total-spent')).toHaveCount(0);
+    await api('post', `${root}/preflight/approve-ready`);
+    await api('post', `${root}/auction/start`);
+    await api('post', `${root}/auction/start-set`, { setId: set.id });
+    for (let i = 0; i < 4; i++) {
+      const lot = (await api('post', `${root}/auction/reveal-next`)).currentLot;
+      if (lot.playerId === star.id || lot.playerId === defender.id) await api('post', `${root}/auction/sell`, { lotId: lot.lotId, winningTeamId: lot.playerId === star.id ? first.id : second.id, finalPrice: lot.playerId === star.id ? 5000 : 2000 });
+      else await api('post', `${root}/auction/unsold`, { lotId: lot.lotId });
+    }
+    await api('post', `${root}/auction/sets/${set.id}/complete`);
+    await api('post', `${root}/auction/unsold-round/start`);
+    for (let i = 0; i < 2; i++) {
+      const lot = (await api('post', `${root}/auction/reveal-next`)).currentLot;
+      if (lot.playerId === comeback.id) await api('post', `${root}/auction/sell`, { lotId: lot.lotId, winningTeamId: first.id, finalPrice: 3000 });
+      else await api('post', `${root}/auction/unsold`, { lotId: lot.lotId });
+    }
+    await api('post', `${root}/auction/complete`, {});
+    await overview.reload();
+    await overview.getByRole('button', { name: 'Copy Recap Link', exact: true }).click();
+    const url = await overview.evaluate(() => navigator.clipboard.readText());
+    expect(url).toBe(new URL(`/live/${tournament.slug}/recap`, overview.url()).href);
+    await recap.goto(url);
+    await expect(recap.getByRole('heading', { level: 1 })).toHaveText('BIG BIDS.BIGGERMOMENTS.');
+    await expect(recap.getByTestId('recap-record-price')).toHaveText('₹5,000');
+    await expect(recap.getByTestId('recap-total-spent')).toHaveText('₹10,000');
+    await expect(recap.locator('.recap-player-grid > article')).toHaveCount(4);
+    await expect(recap.getByTestId(`recap-player-${comeback.id}`)).toContainText('Comeback · 2 attempts');
+    await expect(recap.getByTestId(`recap-player-${unsold.id}`)).toContainText('Unsold');
+    await expect(recap.getByTestId(`recap-team-${first.id}`)).toContainText('TOP SPENDER');
+    await expect(recap.getByTestId(`recap-team-${first.id}`)).toContainText('₹8,000');
+    await expect(recap.locator('.recharts-wrapper, canvas, table')).toHaveCount(0);
+    expect(await recap.evaluate(() => localStorage.getItem('auth_token'))).toBeNull();
+    await recap.getByRole('button', { name: 'Copy Recap Link', exact: true }).click();
+    expect(await recap.evaluate(() => navigator.clipboard.readText())).toBe(url);
+    await recap.evaluate(() => Object.defineProperty(navigator, 'share', { configurable: true, value: async (data: unknown) => { (window as unknown as { lastShare: unknown }).lastShare = data; } }));
+    await recap.getByRole('button', { name: 'Share Recap', exact: true }).click();
+    expect((await recap.evaluate(() => (window as unknown as { lastShare: { url: string } }).lastShare)).url).toBe(url);
+    await recap.getByLabel('Find a player').fill('Vivek');
+    await expect(recap.locator('.recap-player-grid > article')).toHaveCount(1);
+    await recap.getByLabel('Find a player').fill('');
+    await recap.getByLabel('Filter recap by team').selectOption('UNSOLD');
+    await expect(recap.locator('.recap-player-grid > article')).toHaveCount(1);
+    await recap.getByLabel('Filter recap by team').selectOption(first.id);
+    await expect(recap.locator('.recap-player-grid > article')).toHaveCount(2);
+    await recap.getByLabel('Filter recap by team').selectOption('ALL');
+    await recap.getByTestId(`recap-team-${first.id}`).getByText('Meet the squad').click();
+    await expect(recap.getByTestId(`recap-team-${first.id}`).locator('details li')).toHaveCount(2);
+    for (const width of [320, 390, 768, 1440]) {
+      await recap.setViewportSize({ width, height: 900 });
+      await recap.evaluate(() => window.scrollTo(0, 0));
+      await expect.poll(() => recap.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+      await recap.screenshot({ path: testInfo.outputPath(`recap-${width}.png`), fullPage: true });
+      if (width === 390) await recap.screenshot({ path: testInfo.outputPath('recap-mobile-first-screen.png') });
+    }
+    await overview.getByRole('link', { name: 'Open Auction Recap', exact: true }).click();
+    await expect(overview).toHaveURL(new URL(`${root}/recap`, overview.url()).href);
+    await expect(overview.getByTestId('recap-total-spent')).toHaveText('₹10,000');
+    await overview.goto(`${root}/results`);
+    await expect(overview.getByRole('link', { name: 'Open Auction Recap' })).toBeVisible();
+    await expect(overview.getByRole('region', { name: 'Team spending' })).toBeVisible();
+    await overview.goto(`${root}/auction`);
+    await expect(overview.getByRole('link', { name: 'Open Auction Recap' })).toBeVisible();
+    const snapshot = await api('get', `${root}/results`);
+    // Completed edge cases use the same result shape without changing the verified auction.
+    const tied = structuredClone(snapshot);
+    const tiedPlayer = tied.players.find((p: { playerId: string }) => p.playerId === defender.id);
+    tiedPlayer.finalPrice = 5000; tiedPlayer.pricePremium = 4500; tiedPlayer.priceMultiplier = 10;
+    tied.statistics.totalSpent = 13000; tied.statistics.averageSalePrice = 13000 / 3; tied.statistics.medianSalePrice = 5000;
+    const tiedTeam = tied.statistics.teams.find((t: { standing: { teamId: string } }) => t.standing.teamId === second.id);
+    tiedTeam.standing.totalSpent = 5000; tiedTeam.standing.remainingPurse = 5000; tiedTeam.averagePlayerCost = 5000; tiedTeam.mostExpensiveSigning = tiedPlayer;
+    await recap.route(`**/api/public/tournaments/${tournament.slug}/results`, route => route.fulfill({ json: tied }));
+    await recap.goto(url);
+    await expect(recap.getByText('Joint record signing', { exact: true })).toBeVisible();
+    await expect(recap.getByText('Also at this price: Sameer Menon.', { exact: true })).toBeVisible();
+    await recap.unroute(`**/api/public/tournaments/${tournament.slug}/results`);
+    const empty = structuredClone(snapshot);
+    empty.players.forEach((p: Record<string, unknown>) => { p.status = 'FINAL_UNSOLD'; p.winningTeamId = null; p.winningTeamName = null; p.finalPrice = null; p.priceMultiplier = null; p.pricePremium = null; p.attemptCount = 2; });
+    empty.state.soldPlayers = []; empty.state.totalSoldPlayersCount = 0; empty.state.totalUnsoldPlayersCount = 4;
+    Object.assign(empty.statistics, { soldPlayers: 0, unsoldPlayers: 4, totalSpent: 0, salePercentage: 0, averageSalePrice: 0, medianSalePrice: 0, highestSalePrice: 0, topPlayers: [], highestPriceMultiplier: null, biggestPricePremium: null });
+    empty.statistics.teams.forEach((t: { standing: Record<string, unknown>; averagePlayerCost: number; mostExpensiveSigning: unknown }) => { Object.assign(t.standing, { totalSpent: 0, remainingPurse: 10000, currentSquadSize: 0 }); t.averagePlayerCost = 0; t.mostExpensiveSigning = null; });
+    await recap.route(`**/api/public/tournaments/${tournament.slug}/results`, route => route.fulfill({ json: empty }));
+    await recap.goto(url);
+    await expect(recap.getByRole('heading', { name: 'Every auction has its own story.' })).toBeVisible();
+    await expect(recap.getByTestId('recap-total-spent')).toHaveText('₹0');
+    await expect(recap.getByText('TOP SPENDER', { exact: true })).toHaveCount(0);
+    await expect(recap.locator('.recap-player-grid > article')).toHaveCount(4);
+    await recap.unroute(`**/api/public/tournaments/${tournament.slug}/results`);
+    await overview.route(`**/api/tournaments/${tournament.id}/results`, route => route.fulfill({ json: { ...snapshot, publicLiveViewEnabled: false } }));
+    await overview.goto(`${root}/recap`);
+    await expect(overview.getByTestId('recap-total-spent')).toHaveText('₹10,000');
+    await expect(overview.getByRole('button', { name: 'Copy Recap Link', exact: true })).toHaveCount(0);
+    await expect(overview.getByRole('button', { name: 'Share Recap', exact: true })).toHaveCount(0);
+    await expect(overview.getByText('This recap is visible to tournament members. Public sharing is disabled.')).toBeVisible();
+    const privateTournament = await api('post', '/tournaments', { name: `Private Recap ${Date.now()}`, season: '2026' });
+    await api('put', `/tournaments/${privateTournament.id}/settings`, { ...settings, publicLiveViewEnabled: false });
+    await recap.goto(`/live/${privateTournament.slug}/recap`);
+    await expect(recap.getByRole('heading', { name: 'Recap unavailable' })).toBeVisible();
+    await recap.goto('/live/nonexistent-recap/recap');
+    await expect(recap.getByRole('heading', { name: 'Recap unavailable' })).toBeVisible();
+    expect(errors).toEqual([]);
+  } finally { await Promise.all([owner.close(), guest.close()]); }
+});

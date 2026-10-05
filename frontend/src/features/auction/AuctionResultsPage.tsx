@@ -8,6 +8,7 @@ import { useAuctionSocket } from './useAuctionSocket';
 import { ConnectionIndicator } from './ConnectionIndicator';
 import type { AuctionResults, ResultPlayer, TeamStatistics } from './resultsTypes';
 import './results.css';
+import { AuctionRecapLinks } from './AuctionRecapLinks';
 
 const API = import.meta.env.VITE_API_BASE_URL || '';
 const percentage = (value: number) => `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`;
@@ -148,6 +149,7 @@ export function AuctionResultsPage({ publicView = false }: { publicView?: boolea
       <Link to={`/tournaments/${state.tournamentId}/projector`} target="_blank" rel="noopener noreferrer">Projector <ArrowUpRight size={14} /></Link>
       {!publicView && <Link to={`/tournaments/${state.tournamentId}`}>Tournament workspace</Link>}</div></header>
     {query.isError && <p role="alert">{query.error?.message}</p>}
+    {state.sessionStatus === 'COMPLETED' && <AuctionRecapLinks tournamentId={state.tournamentId} slug={state.slug} publicView={publicView} />}
     <nav aria-label="Auction views" className="result-nav">{['overview', 'teams', 'players', 'results'].map(tab => <Link key={tab} aria-current={view === tab ? 'page' : undefined} to={`${base}?view=${tab}`}>{tab === 'results' && state.sessionStatus === 'COMPLETED' ? 'Auction Wrapped' : tab[0].toUpperCase() + tab.slice(1)}</Link>)}</nav>
     {publicView && !teamId && <CopyLink path={base} label="Copy Live Link" />}
     {view === 'overview' && <>

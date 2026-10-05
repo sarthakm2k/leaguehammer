@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuctionSocket } from './useAuctionSocket';
 import { ConnectionIndicator } from './ConnectionIndicator';
 import { ShareProjectorLink } from './ShareProjectorLink';
+import { AuctionRecapLinks } from './AuctionRecapLinks';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { 
@@ -1037,6 +1038,8 @@ export function AuctioneerConsolePage() {
                 );
               })}
             </div>
+
+            {isCompleted && <AuctionRecapLinks tournamentId={state.tournamentId} />}
 
             {/* Quick Actions Footer */}
             <div className="pt-3 border-t border-slate-800 text-xs flex justify-between items-center text-slate-400">

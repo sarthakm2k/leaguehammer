@@ -79,6 +79,8 @@ Each **Participating Teams** card includes its shareable franchise URL, copy but
 
 Once a tournament is READY, its Overview displays the **Auctioneer panel link**, **Copy Auctioneer Link**, and **Open Auctioneer Console**. The link stays available during live and completed auctions. Open it on another system and sign in with the existing configuring account; successful sign-in returns to the linked tournament console. The URL contains no credentials and preserves normal tournament permissions. Direct sign-in without a protected destination still opens the dashboard. Run `npm run test:access` to verify this flow. Development milestone labels and internal engine/console version badges are excluded from the application UI.
 
+Completed auctions also have a dedicated **Auction Recap** at `/live/{slug}/recap` for public sharing and `/tournaments/{id}/recap` for members. It presents the headline signing, every player, team spending, price lifts, and comeback stories in a mobile-first single-page layout without charts. Open/copy links appear in the overview, console, and results page after completion. Native device sharing and clipboard fallback are supported; Public Live View controls guest access. See [the auction recap](docs/AuctionRecap.md) and run `npm run test:recap`.
+
 ## Specification Reference & Milestones
 
 See `docs/ImplementationPLAN.txt` for the full master specification.

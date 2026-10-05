@@ -24,6 +24,7 @@ import { PlayerSetsTab } from './tabs/PlayerSetsTab';
 import { PlayersTab } from './tabs/PlayersTab';
 import { PreflightTab } from './tabs/PreflightTab';
 import { ShareAuctioneerLink } from '../auction/ShareAuctioneerLink';
+import { AuctionRecapLinks } from '../auction/AuctionRecapLinks';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -355,6 +356,7 @@ export function TournamentOverviewPage() {
             </div>
           )}
           {activeTab === 'overview' && statusStr !== 'DRAFT' && <ShareAuctioneerLink tournamentId={tournament.id} />}
+          {activeTab === 'overview' && statusStr === 'COMPLETED' && <AuctionRecapLinks tournamentId={tournament.id} />}
         </div>
 
         {/* Edit Form (if toggled) */}

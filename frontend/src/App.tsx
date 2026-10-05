@@ -11,6 +11,7 @@ import { ProjectorPage } from './features/auction/ProjectorPage';
 import { AuctionHistoryPage } from './features/auction/AuctionHistoryPage';
 
 const AuctionResultsPage = lazy(() => import('./features/auction/AuctionResultsPage').then(module => ({ default: module.AuctionResultsPage })));
+const AuctionRecapPage = lazy(() => import('./features/auction/AuctionRecapPage').then(module => ({ default: module.AuctionRecapPage })));
 
 function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -31,8 +32,10 @@ export function App() {
           <Route path="/tournaments/:id/stage" element={<ProjectorPage />} />
           <Route path="/live/:slug" element={<AuctionResultsPage publicView />} />
           <Route path="/live/:slug/projector" element={<ProjectorPage />} />
+          <Route path="/live/:slug/recap" element={<AuctionRecapPage publicView />} />
           <Route path="/live/:slug/teams/:teamId" element={<AuctionResultsPage publicView />} />
           <Route path="/tournaments/:id/results" element={<ProtectedRoute><AuctionResultsPage /></ProtectedRoute>} />
+          <Route path="/tournaments/:id/recap" element={<ProtectedRoute><AuctionRecapPage /></ProtectedRoute>} />
           <Route path="/tournaments/:id/teams/:teamId/squad" element={<ProtectedRoute><AuctionResultsPage /></ProtectedRoute>} />
           <Route path="/tournaments/:id/auction/history" element={<ProtectedRoute><AuctionHistoryPage /></ProtectedRoute>} />
           <Route
