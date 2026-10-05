@@ -45,7 +45,7 @@ export function PlayerSetsTab({ tournamentId, isOwner, status }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050';
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
   const isDraft = status === 'DRAFT';
 
   const fetchSets = useCallback(async () => {

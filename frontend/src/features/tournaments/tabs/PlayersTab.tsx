@@ -116,7 +116,7 @@ export function PlayersTab({ tournamentId, isOwner, status, currencySymbol = 'â‚
   const [csvImporting, setCsvImporting] = useState(false);
   const [csvError, setCsvError] = useState<string | null>(null);
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5050';
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
   const isDraft = status === 'DRAFT';
 
   const fetchReferenceData = useCallback(async () => {
