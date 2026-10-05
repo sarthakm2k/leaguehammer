@@ -5,6 +5,7 @@ import { RegisterPage } from './features/auth/RegisterPage';
 import { ProtectedRoute } from './features/auth/ProtectedRoute';
 import { TournamentDashboard } from './features/tournaments/TournamentDashboard';
 import { TournamentOverviewPage } from './features/tournaments/TournamentOverviewPage';
+import { AuctioneerConsolePage } from './features/auction/AuctioneerConsolePage';
 
 function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -33,6 +34,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <TournamentOverviewPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tournaments/:id/auction"
+            element={
+              <ProtectedRoute>
+                <AuctioneerConsolePage />
               </ProtectedRoute>
             }
           />

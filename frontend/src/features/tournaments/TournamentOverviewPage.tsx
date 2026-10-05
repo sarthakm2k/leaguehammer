@@ -186,6 +186,16 @@ export function TournamentOverviewPage() {
               <span>{tournament.userRole}</span>
             </span>
 
+            {isOwner && (statusStr === 'READY' || statusStr === 'LIVE') && (
+              <Link
+                to={`/tournaments/${tournament.id}/auction`}
+                className="inline-flex items-center space-x-1.5 text-xs font-bold px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25 transition-all"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Live Auction Console</span>
+              </Link>
+            )}
+
             {isOwner && (
               <button
                 onClick={() => setEditing(!editing)}
@@ -324,6 +334,24 @@ export function TournamentOverviewPage() {
               </div>
             </div>
           </div>
+
+          {(statusStr === 'READY' || statusStr === 'LIVE') && (
+            <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center space-x-2 text-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-emerald-400 font-semibold">
+                  {statusStr === 'READY' ? 'Preflight validation passed. Tournament is READY for auction!' : 'Tournament Auction is currently LIVE!'}
+                </span>
+              </div>
+              <Link
+                to={`/tournaments/${tournament.id}/auction`}
+                className="inline-flex items-center space-x-2 text-xs font-bold px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/20 transition-all"
+              >
+                <Play className="w-4 h-4 fill-current" />
+                <span>Open Auctioneer Console</span>
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Edit Form (if toggled) */}
@@ -545,20 +573,23 @@ export function TournamentOverviewPage() {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-slate-800/80 bg-[#0e1424]/60 p-5 space-y-3 opacity-75">
+              <Link
+                to={`/tournaments/${tournament.id}/auction`}
+                className="group rounded-xl border border-emerald-500/30 bg-[#0e1424] p-5 space-y-3 hover:border-emerald-500/60 hover:shadow-lg hover:shadow-emerald-500/10 transition-all block"
+              >
                 <div className="flex items-center space-x-3">
-                  <div className="p-2.5 rounded-lg bg-slate-800 text-slate-400">
-                    <Play className="w-5 h-5" />
+                  <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 group-hover:scale-105 transition-transform">
+                    <Play className="w-5 h-5 fill-current" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-300">Auction Engine & UI</h4>
-                    <p className="text-xs text-slate-500">Milestones 5 & 6</p>
+                    <h4 className="text-sm font-semibold text-white group-hover:text-emerald-300">Auction Engine & UI</h4>
+                    <p className="text-xs text-emerald-400 font-medium">Milestone 6 (Live Console Ready)</p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Live bidding console, server-side randomized lots, SOLD/UNSOLD, and squad reserve guards.
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Live bidding podium, keyboard hotkeys (Space/Enter/U), team purse & squad guards, and real-time result correction.
                 </p>
-              </div>
+              </Link>
             </div>
           </div>
         )}
