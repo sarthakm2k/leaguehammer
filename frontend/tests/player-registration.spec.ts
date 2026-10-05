@@ -27,7 +27,14 @@ test('registration survives cold start and lost response; organiser reviews, app
     await expect(page.getByText('The registration service is starting', { exact: false })).toBeVisible();
     await expect(page.getByLabel('Full name')).toBeVisible({ timeout: 20000 });
     await page.getByLabel('Full name').fill('Mobile Player'); await page.getByLabel('Contact number').fill('+91 9876543210');
-    await page.getByLabel('Age (optional)').fill('24'); await page.getByLabel('About you').fill('Ready for the auction.');
+    await page.getByLabel('Age (optional)').fill('24');
+    for (const field of ['Jersey number', 'Previous team', 'About you']) await expect(page.getByLabel(field)).toHaveCount(0);
+    // Older saved drafts must not silently submit fields removed from registration.
+    await page.evaluate(slug => {
+      const key = `leaguehammer-registration-${slug}`; const draft = JSON.parse(localStorage.getItem(key)!);
+      Object.assign(draft.details, { jerseyNumber: '10', previousTeam: 'Old team', shortBio: 'Old biography' });
+      localStorage.setItem(key, JSON.stringify(draft));
+    }, tournament.slug);
     await page.reload(); await expect(page.getByLabel('Full name')).toHaveValue('Mobile Player');
     await page.getByRole('checkbox').check();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
@@ -45,13 +52,28 @@ test('registration survives cold start and lost response; organiser reviews, app
     await expect(page.locator('.registration-success code')).toHaveText(`LH-${saved.submissionId.replaceAll('-', '')}`);
     expect(await page.evaluate(slug => localStorage.getItem(`leaguehammer-registration-${slug}`), tournament.slug)).toBeNull();
     const registry = await api('get', `${root}/players`); expect(registry.totalCount).toBe(0);
+    // The same phone/browser can register a different player with a fresh reference.
+    await page.unroute(`**/api/registration/${tournament.slug}/submissions`);
+    await page.getByRole('button', { name: 'Register another player' }).click();
+    await expect(page.getByLabel('Full name')).toHaveValue('');
+    await expect(page.getByLabel('Contact number')).toHaveValue('');
+    await expect(page.getByRole('checkbox')).not.toBeChecked();
+    await page.getByLabel('Full name').fill('Second Player');
+    await page.getByLabel('Contact number').fill('+91 9876543210');
+    await page.getByLabel('Playing position').selectOption('Defender'); await page.getByRole('checkbox').check();
+    const secondDraft = await page.evaluate(slug => JSON.parse(localStorage.getItem(`leaguehammer-registration-${slug}`)!), tournament.slug);
+    expect(secondDraft.submissionId).not.toBe(saved.submissionId);
+    await page.getByRole('button', { name: 'Submit registration', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'You’re registered.' })).toBeVisible();
+    await expect(page.locator('.registration-success code')).toHaveText(`LH-${secondDraft.submissionId.replaceAll('-', '')}`);
     // PostgreSQL locking handles two simultaneous retries, including after the form is closed.
-    const concurrentId = crypto.randomUUID();
+    const concurrentId = secondDraft.submissionId;
     const payload = { submissionId: concurrentId, name: 'Second Player', phone: '+91 9876543210', position: 'Defender', consent: 'true' };
     const retries = await Promise.all([request.post(`${API}/api/registration/${tournament.slug}/submissions`, { multipart: payload }), request.post(`${API}/api/registration/${tournament.slug}/submissions`, { multipart: payload })]);
     for (const response of retries) expect(response.ok(), await response.text()).toBeTruthy();
     const queue = await api('get', `${root}/registrations`);
     expect(queue.length).toBe(2); expect(queue.every((entry: { hasPhoto: boolean }) => entry.hasPhoto === false)).toBeTruthy();
+    expect(queue.every((entry: { jerseyNumber: number | null; previousTeam: string | null; shortBio: string | null }) => entry.jerseyNumber === null && entry.previousTeam === null && entry.shortBio === null)).toBeTruthy();
     await api('put', `${root}/registrations/settings`, { ...settings, closedManually: true });
     expect((await request.post(`${API}/api/registration/${tournament.slug}/submissions`, { multipart: payload })).ok()).toBeTruthy();
     const late = await request.post(`${API}/api/registration/${tournament.slug}/submissions`, { multipart: { ...payload, submissionId: crypto.randomUUID() } }); expect(late.status()).toBe(409);
@@ -65,6 +87,7 @@ test('registration survives cold start and lost response; organiser reviews, app
     const first = owner.locator('.registration-entry').filter({ hasText: 'Mobile Player' });
     await expect(first).toContainText('Possible duplicate'); await first.getByRole('button', { name: 'Review submission' }).click();
     const review = owner.getByRole('region', { name: 'Review player submission' });
+    for (const field of ['Jersey number', 'Previous team', 'About you']) await expect(review.getByLabel(field)).toHaveCount(0);
     await review.getByLabel('Full name').fill('Verified Mobile Player'); await review.getByLabel('Auction player set').selectOption(set.id);
     await review.getByLabel('Base price', { exact: true }).fill('500'); await review.getByRole('checkbox').check();
     await review.getByRole('button', { name: 'Approve & add player' }).click();

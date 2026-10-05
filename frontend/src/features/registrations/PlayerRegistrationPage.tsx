@@ -71,6 +71,10 @@ function RegistrationFormPage({ slug }: { slug: string }) {
     setReceipt(value); setError(''); setPhoto(null);
     try { localStorage.removeItem(key); } catch { /* No stored draft. */ }
   };
+  const startFreshDraft = () => {
+    setDraft({ details: { ...blankPlayer }, submissionId: crypto.randomUUID(), pending: false, hadPhoto: false });
+    setReceipt(null); setPhoto(null); setConsent(false); setWebsite(''); setError(''); setNotice('');
+  };
   const checkReceipt = async () => {
     try { confirm(await registrationRequest<Receipt>(`${root}/receipts/${draft.submissionId}`)); return true; }
     catch (e) { if ((e as { status?: number }).status === 404) return false; throw e; }
@@ -80,9 +84,9 @@ function RegistrationFormPage({ slug }: { slug: string }) {
     let disposed = false;
     void registrationRequest<Receipt>(`${root}/receipts/${draft.submissionId}`).then(value => { if (!disposed) confirm(value); }).catch(() => { /* Retry button verifies again before posting. */ });
     return () => { disposed = true; };
-    // Only recovery after loading a persisted pending submission.
+    // Recover persisted submissions; a fresh player invalidates any previous receipt lookup.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form?.tournamentId]);
+  }, [form?.tournamentId, draft.submissionId]);
   const serverNow = now + clockOffset;
   const open = form && form.enabled && !form.closedManually && !form.finalizedAtUtc && form.status !== 'CLOSED' &&
     (!form.opensAtUtc || Date.parse(form.opensAtUtc) <= serverNow) && (!form.closesAtUtc || Date.parse(form.closesAtUtc) > serverNow);
@@ -113,7 +117,7 @@ function RegistrationFormPage({ slug }: { slug: string }) {
     <main className="registration-layout">
       <section className="registration-intro"><span className="registration-eyebrow"><Trophy size={16} />PLAYER REGISTRATION</span><h1>{form?.tournamentName || 'Your next chapter starts here.'}</h1><p>Bring your game.<br /><em>Find your squad.</em></p><div className="registration-note"><ShieldCheck /><span>Your application goes to the tournament organisers for review. They assign your auction set and base price.</span></div>{form?.closesAtUtc && <div className="registration-deadline"><Clock3 /><div><small>Registration closes</small><strong>{date(form.closesAtUtc)}</strong><small>{form.timeZone}</small></div></div>}</section>
       <section className="registration-card">
-        {receipt ? <div className="registration-success" role="status"><CheckCircle2 size={48} /><h2>You’re registered.</h2><p>Your application has been saved for organiser review. This does not yet confirm selection for the auction.</p><small>YOUR SUBMISSION REFERENCE</small><code>{receipt.reference}</code><p>Submitted {date(receipt.submittedAtUtc)}</p><button type="button" onClick={() => void navigator.clipboard.writeText(receipt.reference).then(() => setNotice('Reference copied.')).catch(() => setNotice('Select and copy the reference above.'))}>Copy reference</button>{notice && <p>{notice}</p>}</div> : <>
+        {receipt ? <div className="registration-success" role="status"><CheckCircle2 size={48} /><h2>You’re registered.</h2><p>Your application has been saved for organiser review. This does not yet confirm selection for the auction.</p><small>YOUR SUBMISSION REFERENCE</small><code>{receipt.reference}</code><p>Submitted {date(receipt.submittedAtUtc)}</p><button type="button" onClick={() => void navigator.clipboard.writeText(receipt.reference).then(() => setNotice('Reference copied.')).catch(() => setNotice('Select and copy the reference above.'))}>Copy reference</button>{notice && <p>{notice}</p>}{open && <><p className="registration-muted">Save this reference before registering the next player.</p><button type="button" className="registration-primary" onClick={startFreshDraft}>Register another player</button></>}</div> : <>
           <h2>Step onto the shortlist.</h2><p className="registration-muted">Tell us about yourself. Fields marked optional can be left blank.</p>
           {connecting && <div className="registration-alert" role="status">Connecting to registration… This may take about a minute when the service is waking up.</div>}
           {connectionError && <p className="registration-alert" role="status">{connectionError}</p>}
@@ -131,7 +135,7 @@ function RegistrationFormPage({ slug }: { slug: string }) {
             {draft.pending && <p className="registration-muted">A submission is awaiting confirmation. Your details are locked to keep retries consistent. Reference: <code>LH-{draft.submissionId.replaceAll('-', '')}</code></p>}
             {error && <p className="registration-error" role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
             <button className="registration-primary" disabled={busy || connecting} type="submit">{busy ? 'Confirming registration…' : draft.pending ? 'Check & retry submission' : 'Submit registration'}</button>
-            {!draft.pending && <button type="button" className="registration-quiet" disabled={busy} onClick={() => { setDraft({ details: { ...blankPlayer }, submissionId: crypto.randomUUID(), pending: false, hadPhoto: false }); setPhoto(null); setConsent(false); }}>Clear draft</button>}
+            {!draft.pending && <button type="button" className="registration-quiet" disabled={busy} onClick={startFreshDraft}>Clear draft</button>}
             <p className="registration-muted registration-draft-note">Your draft is saved in this browser until submission. Clear it when using a shared device. Keep this page open during a submission.</p>
           </form>}
         </>}

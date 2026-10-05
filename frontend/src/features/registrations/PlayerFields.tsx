@@ -9,8 +9,5 @@ export function PlayerFields({ value, onChange, disabled = false }: { value: Pla
     <label>Playing position<select {...field('position')}>{['Goalkeeper', 'Defender', 'Midfielder', 'Forward'].map(p => <option key={p}>{p}</option>)}</select></label>
     <label>Preferred foot<select {...field('preferredFoot')}><option value="">Not specified</option>{['Right', 'Left', 'Both'].map(p => <option key={p}>{p}</option>)}</select></label>
     <label>Age (optional)<input {...field('age')} type="number" min={10} max={70} inputMode="numeric" /></label>
-    <label>Jersey number (optional)<input {...field('jerseyNumber')} type="number" min={1} max={99} inputMode="numeric" /></label>
-    <label className="registration-wide">Previous team (optional)<input {...field('previousTeam')} maxLength={150} /></label>
-    <label className="registration-wide">About you (optional)<textarea {...field('shortBio')} maxLength={1000} rows={3} /></label>
   </div>;
 }

@@ -8,10 +8,9 @@ export interface RegistrationForm {
 }
 export interface PlayerDetails {
   name: string; phone: string; email: string; age: string; position: string; preferredFoot: string;
-  jerseyNumber: string; previousTeam: string; shortBio: string;
 }
-export const blankPlayer: PlayerDetails = { name: '', phone: '', email: '', age: '', position: 'Forward', preferredFoot: '', jerseyNumber: '', previousTeam: '', shortBio: '' };
-export interface RegistrationEntry extends Omit<PlayerDetails, 'age' | 'jerseyNumber' | 'email' | 'preferredFoot' | 'previousTeam' | 'shortBio'> {
+export const blankPlayer: PlayerDetails = { name: '', phone: '', email: '', age: '', position: 'Forward', preferredFoot: '' };
+export interface RegistrationEntry extends Omit<PlayerDetails, 'age' | 'email' | 'preferredFoot'> {
   id: string; age: number | null; jerseyNumber: number | null; email: string | null;
   preferredFoot: string | null; previousTeam: string | null; shortBio: string | null;
   photoUrl: string | null; status: string; reviewReason: string | null; playerId: string | null;

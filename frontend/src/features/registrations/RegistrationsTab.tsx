@@ -59,7 +59,7 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
   };
   const startReview = (r: RegistrationEntry) => {
     setReview(r); setDetails({ name: r.name, phone: r.phone, email: r.email || '', age: r.age?.toString() || '', position: r.position,
-      preferredFoot: r.preferredFoot || '', jerseyNumber: r.jerseyNumber?.toString() || '', previousTeam: r.previousTeam || '', shortBio: r.shortBio || '' });
+      preferredFoot: r.preferredFoot || '' });
     setSetId(''); setPrice(''); setReason(''); setDuplicateConfirmed(false); setError('');
     if (r.hasPhoto) void request<{ photoUrl: string }>(`/registrations/${r.id}/photo`).then(value => {
       setReview(current => current?.id === r.id ? { ...current, photoUrl: value.photoUrl } : current);
@@ -68,7 +68,8 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
   const decide = (approve: boolean) => void action(async () => {
     if (!review || !details) return;
     await request(`/registrations/${review.id}/review`, 'POST', { ...details, approve,
-      email: details.email || null, age: details.age ? Number(details.age) : null, jerseyNumber: details.jerseyNumber ? Number(details.jerseyNumber) : null,
+      email: details.email || null, age: details.age ? Number(details.age) : null,
+      jerseyNumber: review.jerseyNumber, previousTeam: review.previousTeam, shortBio: review.shortBio,
       playerSetId: setId || null, basePrice: price ? Number(price) : null, reason: reason || null, duplicateConfirmed,
     });
     setReview(null); setDetails(null); await load(); setNotice(approve ? 'Player approved and added to the registry.' : 'Submission rejected.');
