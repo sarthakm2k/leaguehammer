@@ -20,6 +20,8 @@ import {
 import { TournamentSettingsTab } from './tabs/TournamentSettingsTab';
 import { TeamsTab } from './tabs/TeamsTab';
 import { BasePriceTiersTab } from './tabs/BasePriceTiersTab';
+import { PlayerSetsTab } from './tabs/PlayerSetsTab';
+import { PlayersTab } from './tabs/PlayersTab';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -48,7 +50,7 @@ export function TournamentOverviewPage() {
   const [tournament, setTournament] = useState<TournamentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'teams' | 'tiers'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'teams' | 'tiers' | 'sets' | 'players'>('overview');
 
   // Edit State
   const [editing, setEditing] = useState(false);
@@ -244,6 +246,30 @@ export function TournamentOverviewPage() {
             <Tag className="w-3.5 h-3.5" />
             <span>Base Price Tiers</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('sets')}
+            className={`inline-flex items-center space-x-2 py-3 px-3 border-b-2 text-xs font-semibold transition-all whitespace-nowrap ${
+              activeTab === 'sets'
+                ? 'border-emerald-400 text-emerald-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Player Sets</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('players')}
+            className={`inline-flex items-center space-x-2 py-3 px-3 border-b-2 text-xs font-semibold transition-all whitespace-nowrap ${
+              activeTab === 'players'
+                ? 'border-emerald-400 text-emerald-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Player Registry</span>
+          </button>
         </div>
       </header>
 
@@ -379,6 +405,22 @@ export function TournamentOverviewPage() {
           />
         )}
 
+        {activeTab === 'sets' && (
+          <PlayerSetsTab
+            tournamentId={tournament.id}
+            isOwner={isOwner}
+            status={statusStr}
+          />
+        )}
+
+        {activeTab === 'players' && (
+          <PlayersTab
+            tournamentId={tournament.id}
+            isOwner={isOwner}
+            status={statusStr}
+          />
+        )}
+
         {activeTab === 'overview' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -442,19 +484,22 @@ export function TournamentOverviewPage() {
                 </p>
               </div>
 
-              {/* Future Milestone Cards */}
-              <div className="rounded-xl border border-slate-800/80 bg-[#0e1424]/60 p-5 space-y-3 opacity-75">
+              {/* Milestone 3: Sets & Players */}
+              <div 
+                onClick={() => setActiveTab('players')}
+                className="cursor-pointer group rounded-xl border border-slate-800 bg-[#0e1424] p-5 space-y-3 hover:border-purple-500/40 transition-all"
+              >
                 <div className="flex items-center space-x-3">
-                  <div className="p-2.5 rounded-lg bg-slate-800 text-slate-400">
+                  <div className="p-2.5 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
                     <Layers className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-300">Sets & Players</h4>
-                    <p className="text-xs text-slate-500">Milestone 3</p>
+                    <h4 className="text-sm font-semibold text-white group-hover:text-purple-300">Sets & Players</h4>
+                    <p className="text-xs text-purple-400 font-medium">Milestone 3 (Ready)</p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Create player sets, player registration, base price assignment, and CSV roster import.
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Sequential player auction sets, player registry, position roles, and bulk CSV roster import.
                 </p>
               </div>
 

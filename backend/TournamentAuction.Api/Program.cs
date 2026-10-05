@@ -6,6 +6,8 @@ using System.Text;
 using TournamentAuction.Api.Data;
 using TournamentAuction.Api.Features.Auth;
 using TournamentAuction.Api.Features.BasePriceTiers;
+using TournamentAuction.Api.Features.PlayerSets;
+using TournamentAuction.Api.Features.Players;
 using TournamentAuction.Api.Features.Settings;
 using TournamentAuction.Api.Features.Teams;
 using TournamentAuction.Api.Features.Tournaments;
@@ -26,6 +28,8 @@ builder.Services.AddScoped<ITournamentService, TournamentService>();
 builder.Services.AddScoped<ITournamentSettingsService, TournamentSettingsService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IBasePriceTierService, BasePriceTierService>();
+builder.Services.AddScoped<IPlayerSetService, PlayerSetService>();
+builder.Services.AddScoped<IPlayerService, PlayerService>();
 
 // SignalR
 builder.Services.AddSignalR();

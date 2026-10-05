@@ -16,6 +16,8 @@ public class TournamentAuctionDbContext : DbContext
     public DbSet<TournamentSettings> TournamentSettings => Set<TournamentSettings>();
     public DbSet<BasePriceTier> BasePriceTiers => Set<BasePriceTier>();
     public DbSet<Team> Teams => Set<Team>();
+    public DbSet<PlayerSet> PlayerSets => Set<PlayerSet>();
+    public DbSet<Player> Players => Set<Player>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -111,6 +113,48 @@ public class TournamentAuctionDbContext : DbContext
                 .WithMany(u => u.Memberships)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // PlayerSet
+        modelBuilder.Entity<PlayerSet>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(500);
+
+            entity.HasIndex(e => new { e.TournamentId, e.Name }).IsUnique();
+
+            entity.HasOne(e => e.Tournament)
+                .WithMany(t => t.PlayerSets)
+                .HasForeignKey(e => e.TournamentId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Player
+        modelBuilder.Entity<Player>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(150);
+            entity.Property(e => e.PhotoUrl).HasMaxLength(1000);
+            entity.Property(e => e.Position).HasMaxLength(50);
+            entity.Property(e => e.PreferredFoot).HasMaxLength(20);
+            entity.Property(e => e.PreviousTeam).HasMaxLength(150);
+            entity.Property(e => e.ShortBio).HasMaxLength(1000);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(30);
+
+            entity.HasIndex(e => new { e.TournamentId, e.PlayerSetId });
+            entity.HasIndex(e => new { e.TournamentId, e.Status });
+            entity.HasIndex(e => new { e.TournamentId, e.Name });
+
+            entity.HasOne(e => e.Tournament)
+                .WithMany(t => t.Players)
+                .HasForeignKey(e => e.TournamentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.PlayerSet)
+                .WithMany(s => s.Players)
+                .HasForeignKey(e => e.PlayerSetId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

@@ -22,4 +22,6 @@ public class Tournament
     public ICollection<TournamentMember> Members { get; set; } = new List<TournamentMember>();
     public ICollection<Team> Teams { get; set; } = new List<Team>();
     public ICollection<BasePriceTier> BasePriceTiers { get; set; } = new List<BasePriceTier>();
+    public ICollection<PlayerSet> PlayerSets { get; set; } = new List<PlayerSet>();
+    public ICollection<Player> Players { get; set; } = new List<Player>();
 }
