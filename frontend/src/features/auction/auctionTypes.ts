@@ -63,6 +63,9 @@ export interface AuctionStateDto {
   currencySymbol: string;
   defaultBidIncrement: number;
   lastResult?: AuctionLotDto | null;
+  completedSetIds?: string[];
+  unsoldRoundRemainingCount: number;
+  minimumAcquisitionPrice: number;
   tournamentId: string;
   tournamentName: string;
   tournamentStatus: string;

@@ -65,6 +65,10 @@ Open the auctioneer at `/tournaments/{id}/auction` and use its **Projector** lin
 
 See [Milestone 7 implementation and verification](docs/Milestone7.md). Run `npm run test:realtime` from `frontend` with the local API, Vite, and Chrome available to verify synchronization in separate browser windows.
 
+Use **Copy Projector Link** in the console to share the public screen with another device after hosting. The link uses the site's current origin and contains no authentication token. Production targets and configuration are documented in [Render and Supabase setup](docs/RenderSupabase.md).
+
+The console's **Auction history** link opens `/tournaments/{id}/auction/history`, with separate attempt rows, current purse balances, and the correction audit trail. See [Milestone 8 implementation and verification](docs/Milestone8.md). Run `npm run test:workflow` for the unsold-round and correction browser workflow.
+
 ## Specification Reference & Milestones
 
 See `docs/ImplementationPLAN.txt` for the full master specification.
@@ -77,6 +81,6 @@ See `docs/ImplementationPLAN.txt` for the full master specification.
 - **Milestone 5**: Backend Auction Engine (Transactions, Reserves, Lots) (Completed)
 - **Milestone 6**: Auctioneer Console UI (Completed)
 - **Milestone 7**: SignalR Real-Time Sync & Projector Screen (`/live/:slug`) (Completed)
-- **Milestone 8**: Unsold Rounds & Controlled Corrections Audit
+- **Milestone 8**: Unsold Rounds & Controlled Corrections Audit (Completed)
 - **Milestone 9**: Statistics & Auction Wrapped Experience
 - **Milestone 10**: Media Handling, Exports & Final Polish

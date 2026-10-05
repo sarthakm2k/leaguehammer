@@ -7,6 +7,7 @@ import { TournamentDashboard } from './features/tournaments/TournamentDashboard'
 import { TournamentOverviewPage } from './features/tournaments/TournamentOverviewPage';
 import { AuctioneerConsolePage } from './features/auction/AuctioneerConsolePage';
 import { ProjectorPage } from './features/auction/ProjectorPage';
+import { AuctionHistoryPage } from './features/auction/AuctionHistoryPage';
 
 function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -25,6 +26,7 @@ export function App() {
           <Route path="/tournaments/:id/projector" element={<ProjectorPage />} />
           <Route path="/tournaments/:id/stage" element={<ProjectorPage />} />
           <Route path="/live/:slug" element={<ProjectorPage />} />
+          <Route path="/tournaments/:id/auction/history" element={<ProtectedRoute><AuctionHistoryPage /></ProtectedRoute>} />
           <Route
             path="/dashboard"
             element={

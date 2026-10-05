@@ -181,6 +181,16 @@ public partial class AuctionEngineService : IAuctionEngineService
         if (set == null)
             throw new KeyNotFoundException($"Player set with ID '{request.SetId}' was not found in this tournament.");
 
+        if (session.IsUnsoldRound)
+            throw new InvalidOperationException("Normal sets cannot restart after the Final Unsold Round begins.");
+        if (session.CurrentSetId != null && session.CurrentSetId != set.Id)
+            throw new InvalidOperationException("Complete the active set before starting another set.");
+        var completedSets = await GetCompletedSetIdsAsync(session.Id);
+        var nextSet = await _db.PlayerSets.Where(s => s.TournamentId == tournamentId && !completedSets.Contains(s.Id))
+            .OrderBy(s => s.SortOrder).ThenBy(s => s.Id).FirstOrDefaultAsync();
+        if (nextSet?.Id != set.Id)
+            throw new InvalidOperationException("Start the next unfinished player set in tournament order.");
+
         // Check if lots already exist for this set in this session
         var existingLots = await _db.AuctionLots
             .Where(l => l.AuctionSessionId == session.Id && l.PlayerSetId == request.SetId && l.AttemptNumber == 1)
@@ -201,7 +211,8 @@ public partial class AuctionEngineService : IAuctionEngineService
             }
 
             // Server-side randomization (Fisher-Yates) and persisted DrawPosition
-            var shuffled = players.OrderBy(_ => Random.Shared.Next()).ToList();
+            var shuffled = players.ToList();
+            Random.Shared.Shuffle(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(shuffled));
             for (int i = 0; i < shuffled.Count; i++)
             {
                 var lot = new AuctionLot
@@ -484,6 +495,10 @@ public partial class AuctionEngineService : IAuctionEngineService
         var tournament = await GetTournamentWithAuthAsync(tournamentId, userId, requireOrganizer: true);
         var session = await GetActiveSessionAsync(tournamentId);
 
+        ValidateSessionIsLive(session);
+        if (session.IsUnsoldRound || session.CurrentSetId != setId)
+            throw new InvalidOperationException("Only the active normal set can be completed.");
+
         var set = await _db.PlayerSets
             .FirstOrDefaultAsync(s => s.Id == setId && s.TournamentId == tournamentId);
 
@@ -530,6 +545,10 @@ public partial class AuctionEngineService : IAuctionEngineService
 
         ValidateSessionIsLive(session);
 
+        await ValidateNormalSetsCompletedAsync(tournamentId, session);
+        if (session.IsUnsoldRound)
+            throw new InvalidOperationException("The Final Unsold Round has already started. Continue its persisted draw.");
+
         // Verify that all regular sets are finished
         var pendingRegularLots = await _db.AuctionLots
             .CountAsync(l => l.AuctionSessionId == session.Id && l.AttemptNumber == 1 &&
@@ -566,7 +585,8 @@ public partial class AuctionEngineService : IAuctionEngineService
             .ToListAsync();
 
         // Server-side randomization for final unsold round
-        var shuffled = players.OrderBy(_ => Random.Shared.Next()).ToList();
+        var shuffled = players.ToList();
+        Random.Shared.Shuffle(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(shuffled));
         for (int i = 0; i < shuffled.Count; i++)
         {
             var lot = new AuctionLot
@@ -607,6 +627,15 @@ public partial class AuctionEngineService : IAuctionEngineService
         var tournament = await GetTournamentWithAuthAsync(tournamentId, userId, requireOrganizer: true);
         var session = await GetActiveSessionAsync(tournamentId);
 
+        if (session.Status != AuctionSessionStatus.LIVE && session.Status != AuctionSessionStatus.PAUSED)
+            throw new InvalidOperationException("Results can only be corrected during a live or paused auction.");
+        if (session.CurrentLotId != null)
+            throw new InvalidOperationException("Resolve the active player before correcting a result.");
+        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length > 500)
+            throw new InvalidOperationException("A correction audit reason of 1 to 500 characters is required.");
+        if (request.NewFinalPrice < 1 || request.NewFinalPrice > 10000000000)
+            throw new InvalidOperationException("The correction price is outside the supported range.");
+
         var lot = await _db.AuctionLots
             .Include(l => l.Player)
             .FirstOrDefaultAsync(l => l.Id == request.LotId && l.AuctionSessionId == session.Id);
@@ -617,6 +646,13 @@ public partial class AuctionEngineService : IAuctionEngineService
         if (lot.Status != AuctionLotStatus.SOLD && lot.Status != AuctionLotStatus.UNSOLD)
             throw new InvalidOperationException("Only completed (SOLD or UNSOLD) lots can have their results corrected.");
 
+        var latestResultId = await _db.AuctionLots.Where(l => l.AuctionSessionId == session.Id &&
+            (l.Status == AuctionLotStatus.SOLD || l.Status == AuctionLotStatus.UNSOLD))
+            .OrderByDescending(l => l.CompletedAtUtc).ThenBy(l => l.Id).Select(l => l.Id).FirstOrDefaultAsync();
+        if (latestResultId != lot.Id || await _db.AuctionLots.AnyAsync(l => l.AuctionSessionId == session.Id &&
+            l.PlayerId == lot.PlayerId && l.AttemptNumber > lot.AttemptNumber))
+            throw new InvalidOperationException("Only the most recent result without a later attempt can be corrected.");
+
         var newTeam = await _db.Teams
             .FirstOrDefaultAsync(t => t.Id == request.NewWinningTeamId && t.TournamentId == tournamentId);
 
@@ -625,7 +661,7 @@ public partial class AuctionEngineService : IAuctionEngineService
 
         var settings = tournament.Settings ?? throw new InvalidOperationException("Tournament settings are missing.");
 
-        if (request.NewFinalPrice < lot.Player.BasePrice)
+        if (request.NewFinalPrice < Math.Max(lot.Player.BasePrice, settings.MinimumAcquisitionPrice))
         {
             throw new InvalidOperationException(
                 $"New final price cannot be less than the player's base price ({settings.CurrencySymbol}{lot.Player.BasePrice:N0}).");
@@ -690,19 +726,29 @@ public partial class AuctionEngineService : IAuctionEngineService
                 newTeamId = newTeam.Id,
                 newTeamName = newTeam.Name,
                 newPrice = request.NewFinalPrice,
-                reason = request.Reason
+                newStatus = AuctionLotStatus.SOLD.ToString(),
+                attemptNumber = lot.AttemptNumber,
+                reason = request.Reason.Trim()
             }
         );
 
         await _db.SaveChangesAsync();
 
-        return await PublishChangeAsync(tournament, session, "ResultCorrected", lot.Id, request.Reason);
+        return await PublishChangeAsync(tournament, session, "ResultCorrected", lot.Id, request.Reason.Trim());
     }
 
     public async Task<AuctionStateDto> CompleteAuctionAsync(Guid tournamentId, CompleteAuctionRequest? request, Guid userId)
     {
         var tournament = await GetTournamentWithAuthAsync(tournamentId, userId, requireOrganizer: true);
         var session = await GetActiveSessionAsync(tournamentId);
+
+        ValidateSessionIsLive(session);
+        await ValidateNormalSetsCompletedAsync(tournamentId, session);
+        if (!string.IsNullOrWhiteSpace(request?.OverrideReason) &&
+            tournament.OwnerUserId != userId && !tournament.Members.Any(m => m.UserId == userId && m.Role == TournamentRole.OWNER))
+            throw new UnauthorizedAccessException("Only a tournament owner may override squad shortfalls.");
+        if (request?.OverrideReason?.Length > 500)
+            throw new InvalidOperationException("The override reason must not exceed 500 characters.");
 
         // 1. Verify regular sets are all completed
         var pendingLots = await _db.AuctionLots
@@ -721,7 +767,7 @@ public partial class AuctionEngineService : IAuctionEngineService
             .Where(l => !_db.AuctionLots.Any(a2 => a2.AuctionSessionId == session.Id && a2.PlayerId == l.PlayerId && a2.AttemptNumber == 2))
             .CountAsync();
 
-        if (unresolvedUnsoldCount > 0 && string.IsNullOrWhiteSpace(request?.OverrideReason))
+        if (unresolvedUnsoldCount > 0)
         {
             throw new InvalidOperationException(
                 $"Cannot complete auction: {unresolvedUnsoldCount} unsold player(s) have not received their mandatory Final Unsold Round attempt.");
@@ -777,7 +823,7 @@ public partial class AuctionEngineService : IAuctionEngineService
         return await PublishChangeAsync(tournament, session);
     }
 
-    public async Task<List<AuctionEventDto>> GetAuctionEventsAsync(Guid tournamentId, Guid userId, int take = 50)
+    public async Task<List<AuctionEventDto>> GetAuctionEventsAsync(Guid tournamentId, Guid userId, int take = 50, int skip = 0)
     {
         var tournament = await _db.Tournaments
             .Include(t => t.Members)
@@ -794,7 +840,9 @@ public partial class AuctionEngineService : IAuctionEngineService
             .Include(e => e.User)
             .Where(e => e.TournamentId == tournamentId)
             .OrderByDescending(e => e.CreatedAtUtc)
-            .Take(take)
+            .ThenBy(e => e.Id)
+            .Skip(Math.Max(0, skip))
+            .Take(Math.Clamp(take, 1, 100))
             .Select(e => new AuctionEventDto(
                 e.Id,
                 e.AuctionSessionId,
@@ -812,6 +860,29 @@ public partial class AuctionEngineService : IAuctionEngineService
     }
 
     #region Helper Methods
+
+    public async Task<AuctionHistoryDto> GetAuctionHistoryAsync(Guid tournamentId, Guid userId)
+    {
+        await GetTournamentWithAuthAsync(tournamentId, userId, requireOrganizer: false);
+        var lots = await _db.AuctionLots.Include(l => l.Player).Include(l => l.PlayerSet).Include(l => l.WinningTeam)
+            .Where(l => l.TournamentId == tournamentId && (l.Status == AuctionLotStatus.SOLD || l.Status == AuctionLotStatus.UNSOLD))
+            .OrderByDescending(l => l.CompletedAtUtc).ThenBy(l => l.Id).ToListAsync();
+        return new(lots.Select(MapLot).ToList());
+    }
+
+    private async Task<List<Guid>> GetCompletedSetIdsAsync(Guid sessionId)
+    {
+        var events = await _db.AuctionEvents.Where(e => e.AuctionSessionId == sessionId && e.EventType == AuctionEventTypes.SetCompleted)
+            .Select(e => e.EventData).ToListAsync();
+        return events.Select(json => JsonSerializer.Deserialize<SetSummaryDto>(json)!.SetId).Distinct().ToList();
+    }
+
+    private async Task ValidateNormalSetsCompletedAsync(Guid tournamentId, AuctionSession session)
+    {
+        var completed = await GetCompletedSetIdsAsync(session.Id);
+        if (session.CurrentSetId != null || await _db.PlayerSets.AnyAsync(s => s.TournamentId == tournamentId && !completed.Contains(s.Id)))
+            throw new InvalidOperationException("Complete all normal player sets before the Final Unsold Round or auction completion.");
+    }
 
     private async Task<Tournament> GetTournamentWithAuthAsync(Guid tournamentId, Guid userId, bool requireOrganizer)
     {
@@ -885,7 +956,7 @@ public partial class AuctionEngineService : IAuctionEngineService
         var lots = await _db.AuctionLots
             .Include(l => l.Player)
             .Include(l => l.WinningTeam)
-            .Where(l => l.AuctionSessionId == sessionId && l.PlayerSetId == setId)
+            .Where(l => l.AuctionSessionId == sessionId && l.PlayerSetId == setId && l.AttemptNumber == 1)
             .ToListAsync();
 
         var soldLots = lots.Where(l => l.Status == AuctionLotStatus.SOLD).ToList();
@@ -979,11 +1050,15 @@ public partial class AuctionEngineService : IAuctionEngineService
         var totalSold = await _db.AuctionLots
             .CountAsync(l => l.AuctionSessionId == session.Id && l.Status == AuctionLotStatus.SOLD);
 
-        var totalUnsold = await _db.AuctionLots
-            .CountAsync(l => l.AuctionSessionId == session.Id && l.Status == AuctionLotStatus.UNSOLD);
+        var totalUnsold = await _db.Players
+            .CountAsync(p => p.TournamentId == tournament.Id && (p.Status == "UNSOLD" || p.Status == "FINAL_UNSOLD"));
 
-        var totalPending = await _db.AuctionLots
-            .CountAsync(l => l.AuctionSessionId == session.Id && l.Status == AuctionLotStatus.PENDING);
+        var totalPending = await _db.Players
+            .CountAsync(p => p.TournamentId == tournament.Id && (p.Status == "AVAILABLE" || p.Status == "ON_AUCTION"));
+        var completedSetIds = await GetCompletedSetIdsAsync(session.Id);
+        var unsoldRoundRemaining = await _db.AuctionLots.CountAsync(l => l.AuctionSessionId == session.Id &&
+            l.AttemptNumber == 2 && (l.Status == AuctionLotStatus.PENDING || l.Status == AuctionLotStatus.ON_AUCTION));
+        if (session.IsUnsoldRound) totalPending = unsoldRoundRemaining;
 
         var totalSpent = standings.Sum(s => s.TotalSpent);
 
@@ -1002,10 +1077,10 @@ public partial class AuctionEngineService : IAuctionEngineService
             session.Version,
             session.IsUnsoldRound,
             session.CurrentSetId,
-            session.CurrentSet?.Name,
+            currentSetSummary?.SetName,
             currentLotDto,
             totalSets,
-            0, // completed sets count
+            completedSetIds.Count,
             totalPlayers,
             totalSold,
             totalUnsold,
@@ -1020,7 +1095,10 @@ public partial class AuctionEngineService : IAuctionEngineService
             settings.CurrencyCode,
             settings.CurrencySymbol,
             settings.DefaultBidIncrement,
-            lastResult
+            lastResult,
+            completedSetIds,
+            unsoldRoundRemaining,
+            settings.MinimumAcquisitionPrice
         );
     }
 

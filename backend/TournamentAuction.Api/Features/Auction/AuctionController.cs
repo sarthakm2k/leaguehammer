@@ -27,7 +27,7 @@ public class AuctionController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { detail = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {
@@ -46,7 +46,7 @@ public class AuctionController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { detail = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {
@@ -69,7 +69,7 @@ public class AuctionController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { detail = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {
@@ -92,7 +92,7 @@ public class AuctionController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { detail = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {
@@ -115,7 +115,7 @@ public class AuctionController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { detail = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {
@@ -138,7 +138,7 @@ public class AuctionController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { detail = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {
@@ -161,7 +161,7 @@ public class AuctionController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { detail = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {
@@ -193,7 +193,7 @@ public class AuctionController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { detail = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {
@@ -216,7 +216,7 @@ public class AuctionController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { detail = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {
@@ -239,7 +239,7 @@ public class AuctionController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { detail = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {
@@ -262,7 +262,7 @@ public class AuctionController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { detail = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {
@@ -285,7 +285,7 @@ public class AuctionController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { detail = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {
@@ -298,22 +298,30 @@ public class AuctionController : ControllerBase
     }
 
     [HttpGet("events")]
-    public async Task<IActionResult> GetEvents(Guid tournamentId, [FromQuery] int take = 50)
+    public async Task<IActionResult> GetEvents(Guid tournamentId, [FromQuery] int take = 50, [FromQuery] int skip = 0)
     {
         try
         {
             var userId = GetCurrentUserId();
-            var events = await _auctionService.GetAuctionEventsAsync(tournamentId, userId, take);
+            var events = await _auctionService.GetAuctionEventsAsync(tournamentId, userId, take, skip);
             return Ok(events);
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, new { detail = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { detail = ex.Message });
         }
+    }
+
+    [HttpGet("history")]
+    public async Task<IActionResult> GetHistory(Guid tournamentId)
+    {
+        try { return Ok(await _auctionService.GetAuctionHistoryAsync(tournamentId, GetCurrentUserId())); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { detail = ex.Message }); }
+        catch (KeyNotFoundException ex) { return NotFound(new { detail = ex.Message }); }
     }
 
     private Guid GetCurrentUserId()

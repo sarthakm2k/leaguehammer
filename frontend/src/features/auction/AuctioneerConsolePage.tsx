@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuctionSocket } from './useAuctionSocket';
 import { ConnectionIndicator } from './ConnectionIndicator';
+import { ShareProjectorLink } from './ShareProjectorLink';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { 
@@ -58,6 +59,15 @@ export function AuctioneerConsolePage() {
     },
   });
   const state = auctionQuery.data ?? null;
+  const membershipQuery = useQuery({
+    queryKey: ['auction-membership', tournamentId, token],
+    enabled: !!token && !!tournamentId,
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error('Failed to load tournament role');
+      return await res.json() as { userRole: string };
+    },
+  });
   // Draft inputs belong to one canonical bid. A remote bid or a new lot immediately replaces them.
   const canonicalBid = state?.currentLot?.currentBid ?? state?.currentLot?.basePrice ?? 0;
   const canonicalLeader = state?.currentLot?.leadingTeamId ?? '';
@@ -172,6 +182,8 @@ export function AuctioneerConsolePage() {
 
   const handleRevealNext = async () => {
     if (mutationBlocked || !token || !tournamentId) return;
+    if (state?.isUnsoldRound && state.unsoldRoundRemainingCount === 0) return;
+    if (!state?.isUnsoldRound && state?.currentSetSummary?.remainingCount === 0) return;
     setActionLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/auction/reveal-next`, {
@@ -347,7 +359,7 @@ export function AuctioneerConsolePage() {
 
       if (!res.ok) {
         const err = await res.json();
-        if (err.detail && err.detail.includes('explicit override reason')) {
+        if (err.detail && err.detail.includes('explicit override reason') && membershipQuery.data?.userRole === 'OWNER') {
           const override = window.prompt(
             `${err.detail}\n\nEnter an explicit override reason to complete anyway:`
           );
@@ -364,6 +376,7 @@ export function AuctioneerConsolePage() {
               await fetchState();
               return;
             }
+            throw new Error((await overrideRes.json()).detail || 'Failed to apply owner override');
           }
         }
         throw new Error(err.detail || 'Failed to complete auction');
@@ -482,6 +495,7 @@ export function AuctioneerConsolePage() {
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
+            <Link to={`/tournaments/${tournamentId}/auction/history`} className="text-xs text-amber-300 hover:text-white">Auction history</Link>
 
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
@@ -505,6 +519,7 @@ export function AuctioneerConsolePage() {
           <div className="flex items-center gap-3">
             <ConnectionIndicator status={connectionStatus} />
             <Link to={`/tournaments/${tournamentId}/projector`} target="_blank" rel="noopener noreferrer" title="Open projector view" className="text-emerald-300 flex items-center gap-2 text-xs"><Monitor size={18} />Projector</Link>
+            <ShareProjectorLink tournamentId={tournamentId!} />
           </div>
           <div className="flex items-center space-x-2">
             <span className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
@@ -848,7 +863,7 @@ export function AuctioneerConsolePage() {
                 <div className="space-y-3 w-full max-w-sm">
                   <button
                     onClick={handleRevealNext}
-                    disabled={mutationBlocked}
+                    disabled={mutationBlocked || (state.isUnsoldRound ? state.unsoldRoundRemainingCount === 0 : state.currentSetSummary?.remainingCount === 0)}
                     className="w-full py-4 px-6 rounded-2xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-base shadow-xl shadow-emerald-500/25 flex items-center justify-center space-x-2 transition cursor-pointer transform hover:-translate-y-0.5"
                   >
                     <Sparkles className="w-5 h-5" />
@@ -858,10 +873,15 @@ export function AuctioneerConsolePage() {
                   {state.currentSetId && (
                     <button
                       onClick={() => handleCompleteSet(state.currentSetId!)}
-                      disabled={mutationBlocked}
+                      disabled={mutationBlocked || state.currentSetSummary?.remainingCount !== 0}
                       className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 border border-slate-700 transition"
                     >
-                      Complete Active Set Early
+                      Complete Active Set
+                    </button>
+                  )}
+                  {state.isUnsoldRound && state.unsoldRoundRemainingCount === 0 && (
+                    <button onClick={handleCompleteAuction} disabled={mutationBlocked} className="w-full p-4 rounded-xl bg-purple-500/20 text-purple-300 font-bold">
+                      Conclude & Complete Tournament Auction
                     </button>
                   )}
                 </div>
@@ -871,7 +891,7 @@ export function AuctioneerConsolePage() {
                   <div className="space-y-2">
                     <span className="text-xs font-medium text-slate-300">Choose Player Set to Launch:</span>
                     <div className="grid grid-cols-1 gap-2">
-                      {allSets.map((s) => (
+                      {allSets.filter(s => !state.completedSetIds?.includes(s.id)).slice(0, 1).map((s) => (
                         <button
                           key={s.id}
                           onClick={() => handleStartSet(s.id)}
@@ -889,7 +909,7 @@ export function AuctioneerConsolePage() {
                   </div>
 
                   {/* Or Final Unsold Round */}
-                  {state.totalUnsoldPlayersCount > 0 && !state.isUnsoldRound && (
+                  {state.totalUnsoldPlayersCount > 0 && !state.isUnsoldRound && state.completedSetsCount === state.totalSetsCount && (
                     <button
                       onClick={handleStartUnsoldRound}
                       disabled={mutationBlocked}
@@ -1017,6 +1037,7 @@ export function AuctioneerConsolePage() {
           lot={correctingLot}
           teams={teamStandings}
           currencySymbol={currencySymbol}
+          minimumAcquisitionPrice={state.minimumAcquisitionPrice}
           onConfirm={handleCommitCorrection}
           onClose={() => setCorrectingLot(null)}
         />

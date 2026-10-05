@@ -22,7 +22,7 @@ export function SetSummaryModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-xl rounded-3xl border border-emerald-500/40 bg-gradient-to-b from-[#0f172a] to-[#090d16] p-6 sm:p-8 shadow-2xl space-y-6 text-slate-100">
+      <div role="dialog" aria-modal="true" aria-label="Set summary" className="w-full max-w-xl rounded-3xl border border-emerald-500/40 bg-gradient-to-b from-[#0f172a] to-[#090d16] p-6 sm:p-8 shadow-2xl space-y-6 text-slate-100">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
@@ -39,6 +39,7 @@ export function SetSummaryModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close set summary"
             className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
           >
             <X className="w-5 h-5" />

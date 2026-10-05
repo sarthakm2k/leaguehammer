@@ -89,7 +89,10 @@ public record AuctionStateDto(
     string CurrencyCode = "INR",
     string CurrencySymbol = "₹",
     long DefaultBidIncrement = 100,
-    AuctionLotDto? LastResult = null
+    AuctionLotDto? LastResult = null,
+    List<Guid>? CompletedSetIds = null,
+    int UnsoldRoundRemainingCount = 0,
+    long MinimumAcquisitionPrice = 1
 );
 
 public record StartSetRequest(
@@ -134,3 +137,5 @@ public record AuctionEventDto(
     string EventData,
     DateTime CreatedAtUtc
 );
+
+public record AuctionHistoryDto(List<AuctionLotDto> Attempts);
