@@ -433,6 +433,7 @@ export function TournamentOverviewPage() {
         {activeTab === 'teams' && (
           <TeamsTab
             tournamentId={tournament.id}
+            tournamentSlug={tournament.slug}
             isOwner={isOwner}
             status={statusStr}
             defaultPurse={100000}

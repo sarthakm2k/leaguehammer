@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../../auth/AuthContext';
-import { Plus, Users, Edit2, Trash2, AlertCircle, X, Shield } from 'lucide-react';
+import { Plus, Users, Edit2, Trash2, AlertCircle, X, Shield, Copy, ExternalLink } from 'lucide-react';
 import { formatInr } from '../../../utils/formatters';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -19,6 +19,7 @@ export interface Team {
 
 interface Props {
   tournamentId: string;
+  tournamentSlug: string;
   isOwner: boolean;
   status: string;
   defaultPurse: number;
@@ -35,7 +36,29 @@ const PRESET_COLORS = [
   '#F97316', // Orange
 ];
 
-export function TeamsTab({ tournamentId, isOwner, status, defaultPurse }: Props) {
+function TeamShareLink({ slug, team }: { slug: string; team: Team }) {
+  const [message, setMessage] = useState('');
+  const path = `/live/${encodeURIComponent(slug)}/teams/${team.id}`;
+  const url = new URL(path, window.location.origin).href;
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url); setMessage('Franchise link copied'); }
+    catch { setMessage('Select and copy the link below'); }
+  };
+  return <div className="space-y-2 border-t border-slate-800/80 pt-3">
+    <div className="flex flex-wrap gap-3 text-xs text-emerald-300">
+      <button type="button" onClick={copy} aria-label={`Copy ${team.shortName} Franchise Link`} className="inline-flex items-center gap-1.5 hover:text-white">
+        <Copy className="w-3.5 h-3.5" />Copy Franchise Link
+      </button>
+      <a href={path} target="_blank" rel="noopener noreferrer" aria-label={`Open ${team.shortName} Franchise View`} className="inline-flex items-center gap-1.5 hover:text-white">
+        <ExternalLink className="w-3.5 h-3.5" />Open
+      </a>
+    </div>
+    <input aria-label={`${team.shortName} franchise link`} readOnly value={url} onFocus={event => event.target.select()} className="w-full min-w-0 rounded-lg border border-slate-700 bg-slate-900 p-2 text-xs text-slate-300" />
+    {message && <p aria-live="polite" className="text-xs text-slate-400">{message}</p>}
+  </div>;
+}
+
+export function TeamsTab({ tournamentId, tournamentSlug, isOwner, status, defaultPurse }: Props) {
   const { token } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -178,6 +201,7 @@ export function TeamsTab({ tournamentId, isOwner, status, defaultPurse }: Props)
           <p className="text-xs text-slate-400 mt-0.5">
             Teams competing in the auction. Each team has an initial purse and club identity colors.
           </p>
+          <p className="text-xs text-slate-500 mt-1">Share each franchise link for live rosters and purse balances. Guests can view them when Public Live View is enabled in Auction Rules &amp; Purse.</p>
         </div>
 
         {isOwner && !isLocked && (
@@ -249,6 +273,8 @@ export function TeamsTab({ tournamentId, isOwner, status, defaultPurse }: Props)
                   </span>
                 </div>
               </div>
+
+              <TeamShareLink slug={tournamentSlug} team={t} />
 
               <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
                 <div className="flex items-center space-x-1.5">

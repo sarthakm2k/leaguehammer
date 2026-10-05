@@ -92,6 +92,10 @@ export function AuctioneerConsolePage() {
   });
   const mutationBlocked = actionLoading || auctionQuery.isError || connectionStatus !== 'connected';
   const currencySymbol = state?.currencySymbol ?? '₹';
+  const normalSetFinished = !!state?.currentSetId && !state.isUnsoldRound && state.currentSetSummary?.remainingCount === 0;
+  const unsoldRoundFinished = !!state?.isUnsoldRound && state.unsoldRoundRemainingCount === 0;
+  const nextNormalSet = allSets.find(set => set.id !== state?.currentSetId && !state?.completedSetIds?.includes(set.id));
+  const visibleSetSummary = showSetSummary && (!state?.currentSetId || state.currentSetId === showSetSummary.setId) ? showSetSummary : null;
 
   // Fetch all sets for the tournament
   const fetchSets = useCallback(async () => {
@@ -268,7 +272,7 @@ export function AuctioneerConsolePage() {
     }
   };
 
-  const handleCompleteSet = async (setId: string) => {
+  const handleCompleteSet = async (setId: string, nextSetId?: string) => {
     if (mutationBlocked || !token || !tournamentId) return;
     setActionLoading(true);
     try {
@@ -282,9 +286,22 @@ export function AuctioneerConsolePage() {
       }
       const summary: SetSummaryDto = await res.json();
       setShowSetSummary(summary);
+      if (nextSetId) {
+        const next = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/auction/start-set`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ setId: nextSetId })
+        });
+        if (!next.ok) {
+          const err = await next.json();
+          throw new Error(err.detail || 'Set completed, but the next set could not be started');
+        }
+        setShowSetSummary(null);
+      }
       await fetchState();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Action failed');
+      await fetchState().catch(() => undefined);
     } finally {
       setActionLoading(false);
     }
@@ -410,7 +427,7 @@ export function AuctioneerConsolePage() {
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (mutationBlocked || correctingLot || showSetSummary || state?.sessionStatus !== 'LIVE') return;
+      if (mutationBlocked || correctingLot || visibleSetSummary || state?.sessionStatus !== 'LIVE') return;
       // Don't trigger if user is typing in an input
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) {
         return;
@@ -436,7 +453,7 @@ export function AuctioneerConsolePage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [state?.currentLot, state?.sessionStatus, selectedTeamId, currentBidPrice, mutationBlocked, correctingLot, showSetSummary]);
+  }, [state?.currentLot, state?.sessionStatus, selectedTeamId, currentBidPrice, mutationBlocked, correctingLot, visibleSetSummary]);
 
   if (loading) {
     return (
@@ -853,9 +870,12 @@ export function AuctioneerConsolePage() {
               </div>
 
               <div className="space-y-2 max-w-md">
-                <h3 className="text-2xl font-black text-white">Auction Podium Ready</h3>
+                <h3 className="text-2xl font-black text-white">{normalSetFinished ? 'All players in this set are done' : unsoldRoundFinished ? 'All players in this round are done' : 'Auction Podium Ready'}</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  {state.currentSetId || state.isUnsoldRound
+                  {normalSetFinished
+                    ? `${state.currentSetName}: ${state.currentSetSummary?.soldCount} sold, ${state.currentSetSummary?.unsoldCount} unsold. ${nextNormalSet ? 'Go to the next set when you are ready, or review this set summary.' : 'Complete this set to continue to unsold rounds or auction completion.'}`
+                    : unsoldRoundFinished ? 'Every player in this round has been resolved. You can now complete the auction.'
+                    : state.currentSetId || state.isUnsoldRound
                     ? `Active Set: ${state.currentSetName || 'Final Unsold Round'}. Reveal the next randomized player to start bidding.`
                     : 'Select a player set to activate the randomized auction draw.'}
                 </p>
@@ -864,14 +884,22 @@ export function AuctioneerConsolePage() {
               {/* Actions depending on state */}
               {state.currentSetId || state.isUnsoldRound ? (
                 <div className="space-y-3 w-full max-w-sm">
-                  <button
+                  {!normalSetFinished && !unsoldRoundFinished && <button
                     onClick={handleRevealNext}
                     disabled={mutationBlocked || (state.isUnsoldRound ? state.unsoldRoundRemainingCount === 0 : state.currentSetSummary?.remainingCount === 0)}
                     className="w-full py-4 px-6 rounded-2xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-base shadow-xl shadow-emerald-500/25 flex items-center justify-center space-x-2 transition cursor-pointer transform hover:-translate-y-0.5"
                   >
                     <Sparkles className="w-5 h-5" />
                     <span>REVEAL NEXT PLAYER [SPACE / N]</span>
-                  </button>
+                  </button>}
+
+                  {normalSetFinished && nextNormalSet && <button
+                    onClick={() => handleCompleteSet(state.currentSetId!, nextNormalSet.id)}
+                    disabled={mutationBlocked}
+                    className="w-full py-4 px-6 rounded-2xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    Go to Next Set: {nextNormalSet.name}<ChevronRight className="w-5 h-5" />
+                  </button>}
 
                   {state.currentSetId && (
                     <button
@@ -1046,9 +1074,9 @@ export function AuctioneerConsolePage() {
         />
       )}
 
-      {showSetSummary && (
+      {visibleSetSummary && (
         <SetSummaryModal
-          summary={showSetSummary}
+          summary={visibleSetSummary}
           currencySymbol={currencySymbol}
           allSets={allSets}
           onStartSet={handleStartSet}
