@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "test:realtime": "playwright test tests/auction-realtime.spec.ts",
     "test:workflow": "playwright test tests/auction-workflow.spec.ts",
+    "test:results": "playwright test tests/auction-results.spec.ts",
     "preview": "vite preview"
   },
   "dependencies": {

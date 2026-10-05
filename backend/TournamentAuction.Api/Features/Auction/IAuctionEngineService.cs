@@ -18,4 +18,6 @@ public interface IAuctionEngineService
     Task<AuctionStateDto> CompleteAuctionAsync(Guid tournamentId, CompleteAuctionRequest? request, Guid userId);
     Task<List<AuctionEventDto>> GetAuctionEventsAsync(Guid tournamentId, Guid userId, int take = 50, int skip = 0);
     Task<AuctionHistoryDto> GetAuctionHistoryAsync(Guid tournamentId, Guid userId);
+    Task<AuctionResultsDto> GetAuctionResultsAsync(Guid tournamentId, Guid userId);
+    Task<AuctionResultsDto> GetPublicAuctionResultsAsync(string tournamentKey);
 }

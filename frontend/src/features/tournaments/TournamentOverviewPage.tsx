@@ -176,6 +176,7 @@ export function TournamentOverviewPage() {
               <div>
                 <h1 className="font-bold text-base text-white">{tournament.name}</h1>
                 <p className="text-[11px] font-mono text-slate-400">/live/{tournament.slug}</p>
+                <div className="flex gap-4 text-xs mt-1"><Link to={`/tournaments/${id}/results`} className="text-emerald-300">Results & statistics</Link><Link to={`/live/${tournament.slug}`} target="_blank" rel="noopener noreferrer" className="text-amber-300">Public live portal</Link></div>
               </div>
             </div>
           </div>

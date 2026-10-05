@@ -1,0 +1,158 @@
+import { test, expect } from 'playwright/test';
+
+const API = process.env.AUCTION_API_URL || 'http://localhost:5050';
+
+test('public portal, franchise links and Wrapped recalculate after a corrected second attempt', async ({ browser, request }, testInfo) => {
+  const registration = await request.post(`${API}/api/auth/register`, { data: {
+    email: `milestone9-${Date.now()}@example.test`, password: 'Milestone9Test!2026', fullName: 'Results Verification',
+  } });
+  expect(registration.ok()).toBeTruthy();
+  const { token } = await registration.json();
+  const headers = { Authorization: `Bearer ${token}` };
+  const api = async (method: 'get' | 'post' | 'put', path: string, data?: unknown) => {
+    const response = await request[method](`${API}/api${path}`, { headers, data });
+    expect(response.ok(), await response.text()).toBeTruthy();
+    return response.json();
+  };
+  const tournament = await api('post', '/tournaments', { name: `Milestone 9 Results Cup ${Date.now()}`, season: '2026' });
+  const root = `/tournaments/${tournament.id}`;
+  const settings = { currencyCode: 'INR', currencySymbol: '₹', defaultStartingPurse: 10000,
+    minimumSquadSize: 1, maximumSquadSize: 4, minimumAcquisitionPrice: 500, defaultBidIncrement: 250, publicLiveViewEnabled: true };
+  await api('put', `${root}/settings`, settings);
+  const first = await api('post', `${root}/teams`, { name: 'Falcons FC', shortName: 'FFC', initialPurse: 10000 });
+  const second = await api('post', `${root}/teams`, { name: 'Warriors FC', shortName: 'WFC', initialPurse: 10000 });
+  const marquee = await api('post', `${root}/player-sets`, { name: 'Marquee Stars', sortOrder: 1 });
+  const keepers = await api('post', `${root}/player-sets`, { name: 'Goalkeepers', sortOrder: 2 });
+  for (const [name, position] of [['Forward Star', 'Forward'], ['Defender Star', 'Defender']]) {
+    await api('post', `${root}/players`, { name, playerSetId: marquee.id, basePrice: 500, position, preferredFoot: 'Right', age: 23 });
+  }
+  const keeper = await api('post', `${root}/players`, { name: 'Keeper Star', playerSetId: keepers.id, basePrice: 500, position: 'Goalkeeper', preferredFoot: 'Left', jerseyNumber: 1 });
+  await api('post', `${root}/preflight/approve-ready`);
+  const owner = await browser.newContext({ viewport: { width: 1440, height: 1000 }, permissions: ['clipboard-read', 'clipboard-write'] });
+  await owner.addInitScript(value => localStorage.setItem('auth_token', value), token);
+  const internal = await owner.newPage();
+  const publicContext = await browser.newContext({ viewport: { width: 1440, height: 1000 }, permissions: ['clipboard-read', 'clipboard-write'] });
+  const portal = await publicContext.newPage();
+  const franchise = await publicContext.newPage();
+  const errors: string[] = [];
+  const publicFrames: string[] = [];
+  for (const page of [internal, portal, franchise]) page.on('pageerror', error => errors.push(error.message));
+  for (const page of [portal, franchise]) page.on('websocket', socket => socket.on('framereceived', event => publicFrames.push(String(event.payload))));
+  try {
+    await Promise.all([internal.goto(`${root}/results`), portal.goto(`/live/${tournament.slug}`)]);
+    await expect(portal.getByRole('heading', { name: tournament.name })).toBeVisible();
+    await expect(portal.getByRole('status')).toContainText('Live connection');
+    await expect(internal.getByRole('status')).toContainText('Live connection');
+    expect(await portal.evaluate(() => localStorage.getItem('auth_token'))).toBeNull();
+    await portal.getByRole('link', { name: 'Players', exact: true }).click();
+    await expect(portal.locator('tbody tr')).toHaveCount(3);
+    await portal.getByLabel('Player status').selectOption('AVAILABLE');
+    await expect(portal.locator('tbody tr')).toHaveCount(3);
+    await portal.getByRole('link', { name: 'Teams', exact: true }).click();
+    await portal.getByRole('button', { name: 'Copy FFC Franchise Link' }).click();
+    const franchiseUrl = await portal.evaluate(() => navigator.clipboard.readText());
+    expect(franchiseUrl).toBe(new URL(`/live/${tournament.slug}/teams/${first.id}`, portal.url()).href);
+    await franchise.goto(franchiseUrl);
+    await expect(franchise.getByRole('heading', { name: 'Falcons FC', exact: true })).toBeVisible();
+    await expect(franchise.getByRole('status')).toContainText('Live connection');
+    await expect(franchise.getByText('No players match this view.')).toBeVisible();
+    await portal.getByRole('link', { name: 'Overview', exact: true }).click();
+    await api('post', `${root}/auction/start`);
+    await api('post', `${root}/auction/start-set`, { setId: marquee.id });
+    const firstLot = (await api('post', `${root}/auction/reveal-next`)).currentLot;
+    await api('post', `${root}/auction/bid`, { lotId: firstLot.lotId, currentBid: 1000, leadingTeamId: first.id });
+    await expect(portal.getByTestId('portal-current-player')).toHaveText(firstLot.playerName);
+    await expect(portal.getByTestId('portal-current-price')).toHaveText('₹1,000');
+    await api('post', `${root}/auction/sell`, { lotId: firstLot.lotId, winningTeamId: first.id, finalPrice: 1000 });
+    await expect(franchise.locator('tbody tr')).toHaveCount(1);
+    await expect(franchise.locator('tbody')).toContainText(firstLot.playerName);
+    const secondLot = (await api('post', `${root}/auction/reveal-next`)).currentLot;
+    await api('post', `${root}/auction/sell`, { lotId: secondLot.lotId, winningTeamId: second.id, finalPrice: 2000 });
+    await api('post', `${root}/auction/sets/${marquee.id}/complete`);
+    await api('post', `${root}/auction/start-set`, { setId: keepers.id });
+    const unsold = (await api('post', `${root}/auction/reveal-next`)).currentLot;
+    await api('post', `${root}/auction/unsold`, { lotId: unsold.lotId });
+    await portal.getByRole('link', { name: 'Players', exact: true }).click();
+    await portal.getByLabel('Player status').selectOption('UNSOLD');
+    await expect(portal.locator('tbody tr')).toHaveCount(1);
+    await expect(portal.locator('tbody')).toContainText('Keeper Star');
+    await api('post', `${root}/auction/sets/${keepers.id}/complete`);
+    await api('post', `${root}/auction/unsold-round/start`);
+    const retry = (await api('post', `${root}/auction/reveal-next`)).currentLot;
+    await api('post', `${root}/auction/sell`, { lotId: retry.lotId, winningTeamId: first.id, finalPrice: 3000 });
+    await expect(franchise.locator('tbody tr')).toHaveCount(2);
+    await publicContext.setOffline(true);
+    await expect(portal.getByRole('status')).toContainText('Reconnecting');
+    await api('post', `${root}/auction/correct-result`, { lotId: retry.lotId, newWinningTeamId: second.id, newFinalPrice: 4000, reason: 'Private Milestone 9 correction reason' });
+    await publicContext.setOffline(false);
+    await expect(franchise.getByRole('status')).toContainText('Live connection');
+    await expect(franchise.locator('tbody tr')).toHaveCount(1);
+    await expect(franchise.locator('tbody')).not.toContainText('Keeper Star');
+    await expect(portal.locator('tbody tr')).toHaveCount(0); // Keeper is sold; the unsold filter clears.
+    await portal.getByLabel('Player status').selectOption('SOLD');
+    await expect(portal.locator('tbody tr')).toHaveCount(3);
+    await expect(portal.getByTestId(`result-player-${keeper.id}`)).toContainText('Warriors FC');
+    await expect(portal.getByTestId(`result-player-${keeper.id}`)).toContainText('2 attempts');
+    await portal.getByRole('link', { name: 'Results', exact: true }).click();
+    await expect(portal.getByRole('heading', { name: 'Auction results', exact: true })).toBeVisible();
+    const stats = await api('get', `${root}/statistics`);
+    expect(stats.totalSpent).toBe(7000);
+    expect(stats.medianSalePrice).toBe(2000);
+    expect(stats.topPlayers[0].playerName).toBe('Keeper Star');
+    expect(stats.topPlayers[0].finalPrice).toBe(4000);
+    expect(stats.highestPriceMultiplier.priceMultiplier).toBe(8);
+    await expect(portal.getByRole('region', { name: 'Team spending' })).toBeVisible();
+    const spendingBars = portal.getByRole('region', { name: 'Team spending' }).locator('.recharts-bar-rectangle');
+    await expect(spendingBars).toHaveCount(2);
+    await expect.poll(() => spendingBars.first().evaluate(element => element.getBoundingClientRect().width)).toBeGreaterThan(0);
+    await expect(portal.getByRole('region', { name: 'Spending by position' })).toBeVisible();
+    await expect(portal.getByRole('region', { name: 'Top player prices' })).toBeVisible();
+    await portal.getByRole('region', { name: 'Team spending' }).getByText('View chart values').click();
+    await expect(portal.getByRole('region', { name: 'Team spending' })).toContainText('Warriors FC: ₹6,000');
+    await expect(internal.getByRole('region', { name: 'Team spending' })).toBeVisible();
+    await api('post', `${root}/auction/complete`, {});
+    await expect(portal.getByRole('heading', { name: 'Auction Wrapped', exact: true })).toBeVisible();
+    await expect(internal.getByRole('heading', { name: 'Auction Wrapped', exact: true })).toBeVisible();
+    await portal.reload();
+    await expect(portal.getByRole('heading', { name: 'Auction Wrapped', exact: true })).toBeVisible();
+    await portal.screenshot({ path: testInfo.outputPath('auction-wrapped-desktop.png'), fullPage: true });
+    await franchise.reload();
+    await expect(franchise.locator('tbody tr')).toHaveCount(1);
+    await franchise.getByRole('button', { name: 'Copy Franchise Link', exact: true }).click();
+    expect(await franchise.evaluate(() => navigator.clipboard.readText())).toBe(franchiseUrl);
+    await franchise.screenshot({ path: testInfo.outputPath('public-franchise-desktop.png'), fullPage: true });
+    await portal.setViewportSize({ width: 390, height: 844 });
+    await expect(portal.getByRole('heading', { name: 'Auction Wrapped', exact: true })).toBeVisible();
+    await expect.poll(() => portal.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+    await portal.screenshot({ path: testInfo.outputPath('auction-wrapped-mobile.png'), fullPage: true });
+    const publicResultsResponse = await request.get(`${API}/api/public/tournaments/${tournament.slug}/results`);
+    expect(publicResultsResponse.ok()).toBeTruthy();
+    const publicResults = await publicResultsResponse.json();
+    expect(publicResults.players).toHaveLength(3);
+    const squad = await request.get(`${API}/api/public/tournaments/${tournament.slug}/teams/${second.id}`);
+    expect(squad.ok()).toBeTruthy();
+    expect((await squad.json()).players).toHaveLength(2);
+    expect(publicFrames.length).toBeGreaterThan(0);
+    const publicPayloads = JSON.stringify(publicResults) + publicFrames.join('');
+    for (const forbidden of ['drawPosition', 'eventData', 'userId', 'Private Milestone 9 correction reason']) expect(publicPayloads).not.toContain(forbidden);
+    const anonymousStats = await request.get(`${API}/api${root}/statistics`);
+    expect(anonymousStats.status()).toBe(401);
+    const privateTournament = await api('post', '/tournaments', { name: `Private Results Cup ${Date.now()}`, season: '2026' });
+    await api('put', `/tournaments/${privateTournament.id}/settings`, { ...settings, publicLiveViewEnabled: false });
+    for (const path of ['results', `teams/${first.id}`]) {
+      const response = await request.get(`${API}/api/public/tournaments/${privateTournament.slug}/${path}`);
+      expect(response.status()).toBe(404);
+    }
+    const crossTeam = await request.get(`${API}/api/public/tournaments/${tournament.slug}/teams/${privateTournament.id}`);
+    expect(crossTeam.status()).toBe(404);
+    await franchise.goto(`/live/${privateTournament.slug}/teams/${first.id}`);
+    await expect(franchise.getByRole('heading', { name: 'Auction unavailable' })).toBeVisible();
+    const privateStats = await api('get', `/tournaments/${privateTournament.id}/statistics`);
+    expect(privateStats.totalPlayers).toBe(0);
+    await internal.goto(`${root}/teams/${second.id}/squad`);
+    await expect(internal.getByRole('heading', { name: 'Warriors FC', exact: true })).toBeVisible();
+    await expect(internal.locator('tbody tr')).toHaveCount(2);
+    expect(errors).toEqual([]);
+    console.log(`Verified results tournament: ${tournament.id}`);
+  } finally { await Promise.all([owner.close(), publicContext.close()]); }
+});

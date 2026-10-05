@@ -11,9 +11,12 @@ The auction console provides **Projector** and **Copy Projector Link**. Copying 
 ```text
 https://<frontend-domain>/tournaments/<tournament-id>/projector
 https://<frontend-domain>/live/<tournament-slug>
+https://<frontend-domain>/live/<tournament-slug>/teams/<team-id>
 ```
 
 Open the link in any other device's browser. No login is required when **Public Live View** is enabled in tournament settings. The projector reads the public state endpoint and joins the public SignalR group. Disabling public viewing blocks new public reads and subscriptions. Each viewer can enter fullscreen independently.
+
+The public portal now has live Overview, Teams, Players, and Results views. Each franchise's squad page provides **Copy Franchise Link**, with current players, purchase prices, spending and remaining purse. These links use the same frontend origin as the projector link and require the SPA fallback below.
 
 Local `localhost` links refer to the device opening them. For remote viewers, share the deployed HTTPS URL. The separate static-site origin and API origin are supported through `VITE_API_BASE_URL` and the API CORS allowlist.
 

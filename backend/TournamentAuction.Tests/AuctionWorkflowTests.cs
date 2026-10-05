@@ -8,7 +8,7 @@ using Xunit;
 
 namespace TournamentAuction.Tests;
 
-public class AuctionWorkflowTests
+public partial class AuctionWorkflowTests
 {
     private static async Task<(TournamentAuctionDbContext db, AuctionEngineService engine, Tournament tournament, Team first, Team second, PlayerSet set)> Setup(int players = 2)
     {

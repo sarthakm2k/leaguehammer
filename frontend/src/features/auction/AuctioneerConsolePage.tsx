@@ -496,6 +496,7 @@ export function AuctioneerConsolePage() {
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <Link to={`/tournaments/${tournamentId}/auction/history`} className="text-xs text-amber-300 hover:text-white">Auction history</Link>
+            <Link to={`/tournaments/${tournamentId}/results`} className="text-xs text-emerald-300 hover:text-white">Results & statistics</Link>
 
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">

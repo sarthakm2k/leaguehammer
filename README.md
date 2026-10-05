@@ -69,6 +69,8 @@ Use **Copy Projector Link** in the console to share the public screen with anoth
 
 The console's **Auction history** link opens `/tournaments/{id}/auction/history`, with separate attempt rows, current purse balances, and the correction audit trail. See [Milestone 8 implementation and verification](docs/Milestone8.md). Run `npm run test:workflow` for the unsold-round and correction browser workflow.
 
+Milestone 9 adds `/tournaments/{id}/results` for live statistics and the completed **Auction Wrapped** experience. `/live/{slug}` now provides the public Overview, Teams, Players, and Results views; fullscreen remains at `/tournaments/{id}/projector` or `/live/{slug}/projector`. **Copy Franchise Link** shares `/live/{slug}/teams/{teamId}` without login. See [Milestone 9 implementation and verification](docs/Milestone9.md); run `npm run test:results` or all browser suites with `npx playwright test`.
+
 ## Specification Reference & Milestones
 
 See `docs/ImplementationPLAN.txt` for the full master specification.
@@ -82,5 +84,5 @@ See `docs/ImplementationPLAN.txt` for the full master specification.
 - **Milestone 6**: Auctioneer Console UI (Completed)
 - **Milestone 7**: SignalR Real-Time Sync & Projector Screen (`/live/:slug`) (Completed)
 - **Milestone 8**: Unsold Rounds & Controlled Corrections Audit (Completed)
-- **Milestone 9**: Statistics & Auction Wrapped Experience
+- **Milestone 9**: Statistics & Auction Wrapped Experience (Completed)
 - **Milestone 10**: Media Handling, Exports & Final Polish

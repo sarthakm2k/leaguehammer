@@ -69,7 +69,7 @@ test('auctioneer and anonymous projector synchronize, refresh, and reconnect', a
   });
   for (const page of [consolePage, secondConsole, projector]) page.on('pageerror', err => errors.push(err.message));
   try {
-    await Promise.all([consolePage.goto(`${root}/auction`), secondConsole.goto(`${root}/auction`), projector.goto(`/live/${tournament.slug}`)]);
+    await Promise.all([consolePage.goto(`${root}/auction`), secondConsole.goto(`${root}/auction`), projector.goto(`/live/${tournament.slug}/projector`)]);
     await expect(consolePage.getByRole('status')).toContainText('Live connection');
     await expect(secondConsole.getByRole('status')).toContainText('Live connection');
     await expect(projector.getByRole('status')).toContainText('Live connection');

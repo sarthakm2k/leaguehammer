@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import { LoginPage } from './features/auth/LoginPage';
 import { RegisterPage } from './features/auth/RegisterPage';
@@ -8,6 +9,8 @@ import { TournamentOverviewPage } from './features/tournaments/TournamentOvervie
 import { AuctioneerConsolePage } from './features/auction/AuctioneerConsolePage';
 import { ProjectorPage } from './features/auction/ProjectorPage';
 import { AuctionHistoryPage } from './features/auction/AuctionHistoryPage';
+
+const AuctionResultsPage = lazy(() => import('./features/auction/AuctionResultsPage').then(module => ({ default: module.AuctionResultsPage })));
 
 function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -19,13 +22,18 @@ export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <Suspense fallback={<div className="min-h-screen bg-[#070c15] text-slate-200 p-8">Loading auction views…</div>}>
         <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/tournaments/:id/projector" element={<ProjectorPage />} />
           <Route path="/tournaments/:id/stage" element={<ProjectorPage />} />
-          <Route path="/live/:slug" element={<ProjectorPage />} />
+          <Route path="/live/:slug" element={<AuctionResultsPage publicView />} />
+          <Route path="/live/:slug/projector" element={<ProjectorPage />} />
+          <Route path="/live/:slug/teams/:teamId" element={<AuctionResultsPage publicView />} />
+          <Route path="/tournaments/:id/results" element={<ProtectedRoute><AuctionResultsPage /></ProtectedRoute>} />
+          <Route path="/tournaments/:id/teams/:teamId/squad" element={<ProtectedRoute><AuctionResultsPage /></ProtectedRoute>} />
           <Route path="/tournaments/:id/auction/history" element={<ProtectedRoute><AuctionHistoryPage /></ProtectedRoute>} />
           <Route
             path="/dashboard"
@@ -53,6 +61,7 @@ export function App() {
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   );
