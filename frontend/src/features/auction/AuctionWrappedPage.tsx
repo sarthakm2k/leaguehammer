@@ -183,7 +183,7 @@ function WrappedStory({ data, publicView }: { data: AuctionResults; publicView: 
       const exported = artwork.cloneNode(true) as SVGSVGElement;
       exported.setAttribute('xmlns','http://www.w3.org/2000/svg'); exported.setAttribute('width','300'); exported.setAttribute('height','450');
       const missingPhoto = await downloadSigningImage(data,slide.player,new XMLSerializer().serializeToString(exported));
-      setMessage(missingPhoto ? 'Image downloaded with initials. The player photo could not be exported.' : 'Portrait image downloaded. Ready to share.');
+      setMessage(missingPhoto ? 'Image downloaded with an avatar. The player photo could not be exported.' : 'Portrait image downloaded. Ready to share.');
     }
     catch { setMessage('Image download failed. Please try again or copy this slide link.'); }
     finally { setDownloading(false); }

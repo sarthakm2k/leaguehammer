@@ -140,10 +140,13 @@ test('player spotlights, individual sharing and portrait PNG downloads work outs
 });
 
 test('a missing player photo still produces a signing image and native sharing targets that player', async ({ page }) => {
+  await page.setViewportSize({width:390,height:844});
   const data = storyData(); data.players[0].photoUrl = 'https://photos.example.test/missing.jpg';
   await mock(page,data); await page.route('https://photos.example.test/**',route=>route.abort());
   await page.addInitScript(() => Object.defineProperty(navigator,'share',{ configurable:true, value:async (value:ShareData) => { (window as unknown as { shared: ShareData }).shared = value; } }));
   await page.goto('/live/demo/wrapped?slide=signing-p-0');
+  await expect(page.locator('.football-card-avatar')).toBeVisible();
+  await expect(page.locator('.football-card-avatar')).toHaveAttribute('src','/brand/player-avatar.svg');
   await page.getByRole('button',{name:'Share Auction Wrapped'}).click();
   const shared = await page.evaluate(() => (window as unknown as { shared: ShareData }).shared);
   expect(shared.url).toBe(new URL('/live/demo/wrapped?slide=signing-p-0',page.url()).href);
@@ -151,11 +154,13 @@ test('a missing player photo still produces a signing image and native sharing t
   const downloadEvent = page.waitForEvent('download');
   await page.getByRole('button',{name:'Download signing image'}).click();
   expect(await (await downloadEvent).failure()).toBeNull();
-  await expect(page.getByRole('status')).toContainText('Image downloaded with initials');
+  await expect(page.getByRole('status')).toContainText('Image downloaded with an avatar');
+  await page.screenshot({path:'../.cache/wrapped-player-avatar-mobile.png',animations:'disabled'});
 });
 
 test('team card collections keep every signing, share deep links and open individual player stories',async({page,context})=>{
   const data=storyData(); data.players[0].cardPosition='ST';
+  data.players[1].photoUrl=null;
   data.players[0].ratings={overall:87,isGoalkeeper:false,attributes:{pace:99,shooting:80}};
   await mock(page,data); await context.grantPermissions(['clipboard-read','clipboard-write']);
   await page.setViewportSize({width:390,height:844});
@@ -163,6 +168,7 @@ test('team card collections keep every signing, share deep links and open indivi
   await page.goto(`/live/demo/wrapped?slide=${first}`);
   await expect(page.getByRole('heading',{name:'Falcons FC',exact:true})).toBeVisible();
   await expect(page.locator('.wrapped-squad-card')).toHaveCount(4);
+  await expect(page.getByRole('article',{name:'Player 02 player card'}).locator('.football-card-avatar')).toBeVisible();
   const card=page.getByRole('article',{name:'Player 01 player card'});
   await expect(card.getByLabel('Overall 87')).toHaveText('87');
   await expect(card.getByLabel('Passing not rated')).toBeEmpty();

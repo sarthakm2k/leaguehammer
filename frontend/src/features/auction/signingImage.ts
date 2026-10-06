@@ -26,7 +26,7 @@ async function loadImage(url?: string | null): Promise<HTMLImageElement | null> 
 /** A standalone portrait PNG; remote images must permit anonymous CORS. */
 export async function downloadSigningImage(data: AuctionResults, player: ResultPlayer, artworkSvg: string): Promise<boolean> {
   const team = data.state.teamStandings.find(t => t.teamId === player.winningTeamId);
-  const [photo, crest, brand, artwork] = await Promise.all([loadImage(player.photoUrl), loadImage(team?.logoUrl), loadImage('/brand/leaguehammer.png'),loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(artworkSvg)}`)]);
+  const [photo, crest, brand, artwork, avatar] = await Promise.all([loadImage(player.photoUrl), loadImage(team?.logoUrl), loadImage('/brand/leaguehammer.png'),loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(artworkSvg)}`),loadImage('/brand/player-avatar.svg')]);
   if (!artwork) throw new Error('Unable to render the player card artwork.');
   const canvas = document.createElement('canvas'); canvas.width = 1080; canvas.height = 1920;
   const ctx = canvas.getContext('2d');
@@ -78,8 +78,12 @@ export async function downloadSigningImage(data: AuctionResults, player: ResultP
   ctx.strokeStyle=gold; ctx.lineWidth=2;
   ctx.beginPath(); ctx.moveTo(cardX+cardWidth*.45,cardY+cardHeight*.08); ctx.lineTo(cardX+cardWidth*.55,cardY+cardHeight*.08); ctx.lineTo(cardX+cardWidth*.54,cardY+cardHeight*.135); ctx.lineTo(cardX+cardWidth*.5,cardY+cardHeight*.16); ctx.lineTo(cardX+cardWidth*.46,cardY+cardHeight*.135); ctx.closePath();ctx.stroke();
   cardText('LH',.5,.115,cardWidth*.045,cardWidth*.09,'center',false);
-  if(photo) image(photo,cardX+cardWidth*.32,cardY+cardHeight*.19,cardWidth*.59,cardHeight*.43);
-  else cardText(player.playerName.split(' ').map(p=>p[0]).slice(0,2).join(''),.615,.415,cardWidth*.17,cardWidth*.5,'center',false);
+  if(photo || avatar) image((photo || avatar)!,cardX+cardWidth*.32,cardY+cardHeight*.19,cardWidth*.59,cardHeight*.43);
+  else {
+    // Even if the bundled avatar cannot load, the export retains a silhouette.
+    ctx.fillStyle=gold; ctx.beginPath();ctx.arc(cardX+cardWidth*.615,cardY+cardHeight*.32,cardWidth*.075,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cardX+cardWidth*.615,cardY+cardHeight*.48,cardWidth*.14,cardHeight*.1,0,0,Math.PI*2);ctx.fill();
+  }
   if(player.jerseyNumber!=null) cardText(`#${player.jerseyNumber}`,.23,.45,cardWidth*.06,cardWidth*.2,'center',false);
   cardText(player.playerName.toUpperCase(),.5,.63,cardWidth*.1,cardWidth*.8);
   ctx.strokeStyle='#dabd7070'; ctx.lineWidth=2;
