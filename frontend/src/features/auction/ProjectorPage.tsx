@@ -1,9 +1,10 @@
+import { FootballPlayerCard } from '../players/FootballPlayerCard';
 import { LeagueHammerBrand } from '../../components/LeagueHammerBrand';
 import { useCallback, useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowUpRight, Gavel, Maximize, Minimize, Shield, Trophy, UserRound } from 'lucide-react';
+import { ArrowUpRight, Gavel, Maximize, Minimize, Shield, Trophy } from 'lucide-react';
 import type { PublicAuctionLotDto, PublicAuctionStateDto } from './auctionTypes';
 import { useAuctionSocket } from './useAuctionSocket';
 import { ConnectionIndicator } from './ConnectionIndicator';
@@ -13,14 +14,7 @@ import './projector.css';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 function PlayerPortrait({ lot }: { lot: PublicAuctionLotDto }) {
-  const [failed, setFailed] = useState(false);
-  return <div className="stage-portrait">
-    {lot.photoUrl && !failed
-      ? <img src={lot.photoUrl} alt={lot.playerName} onError={() => setFailed(true)} />
-      : <div className="stage-avatar"><UserRound aria-hidden="true" /><span>{lot.playerName.split(' ').map(n => n[0]).slice(0, 2).join('')}</span></div>}
-    {lot.jerseyNumber != null && <span className="stage-jersey">#{lot.jerseyNumber}</span>}
-    <span className="stage-photo-caption">{lot.position || 'Footballer'} · Round {lot.attemptNumber}</span>
-  </div>;
+  return <div className="stage-portrait stage-card-wrap"><FootballPlayerCard key={`${lot.playerId}:${lot.photoUrl}`} player={lot} /></div>;
 }
 
 export function ProjectorPage() {

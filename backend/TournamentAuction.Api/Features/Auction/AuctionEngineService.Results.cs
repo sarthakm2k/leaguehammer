@@ -1,3 +1,4 @@
+using TournamentAuction.Api.Features.Players;
 using System.Data;
 using Microsoft.EntityFrameworkCore;
 using TournamentAuction.Api.Domain;
@@ -42,7 +43,7 @@ public partial class AuctionEngineService
                 player.PreferredFoot, player.JerseyNumber, player.PlayerSetId, player.PlayerSet.Name, player.BasePrice,
                 player.Status, attempts.Count(l => l.RevealedAtUtc != null), sold?.WinningTeamId, sold?.WinningTeam?.Name,
                 sold?.FinalPrice, sold?.FinalPrice - player.BasePrice,
-                sold?.FinalPrice != null && player.BasePrice > 0 ? (decimal)sold.FinalPrice.Value / player.BasePrice : null);
+                sold?.FinalPrice != null && player.BasePrice > 0 ? (decimal)sold.FinalPrice.Value / player.BasePrice : null, player.CardPosition, CardRatings.FromPlayer(player));
         }).ToList();
         var soldPlayers = results.Where(p => p.Status == "SOLD" && p.FinalPrice != null)
             .OrderByDescending(p => p.FinalPrice).ThenBy(p => p.PlayerName).ThenBy(p => p.PlayerId).ToList();

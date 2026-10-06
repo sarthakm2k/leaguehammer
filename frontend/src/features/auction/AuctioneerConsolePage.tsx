@@ -1,3 +1,4 @@
+import { FootballPlayerCard } from '../players/FootballPlayerCard';
 import { LeagueHammerBrand } from '../../components/LeagueHammerBrand';
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -630,25 +631,7 @@ export function AuctioneerConsolePage() {
               <div className="console-player-spotlight py-6 grid grid-cols-1 sm:grid-cols-12 gap-6 items-center">
                 {/* Photo / Avatar */}
                 <div className="sm:col-span-5 flex flex-col items-center">
-                  <div className="w-48 h-56 sm:w-52 sm:h-64 rounded-3xl bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-slate-700/80 p-2 shadow-2xl flex flex-col items-center justify-center relative overflow-hidden group">
-                    {currentLot.photoUrl ? (
-                      <img
-                        src={currentLot.photoUrl}
-                        alt={currentLot.playerName}
-                        className="w-full h-full object-cover rounded-2xl"
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center space-y-2 text-slate-500">
-                        <Users className="w-16 h-16 text-slate-600" />
-                        <span className="text-[11px] font-mono text-slate-500">NO PHOTO UPLOADED</span>
-                      </div>
-                    )}
-                    {currentLot.jerseyNumber && (
-                      <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-950/90 border border-slate-700 flex items-center justify-center font-black text-xs text-white shadow">
-                        #{currentLot.jerseyNumber}
-                      </div>
-                    )}
-                  </div>
+                  <FootballPlayerCard key={`${currentLot.playerId}:${currentLot.photoUrl}`} player={currentLot} />
                 </div>
 
                 {/* Player Credentials & Base Price Spotlight */}

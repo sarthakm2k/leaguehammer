@@ -512,3 +512,5 @@
 .upcoming-retry details+details { margin-top:10px; }
 @media(max-width:1000px) { .upcoming-player-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:600px) { .upcoming-player-grid { grid-template-columns:1fr; } .upcoming-set { padding:14px; } .upcoming-set summary { gap:10px; } .upcoming-count { font-size:10px; } }
+.result-player-card { display:flex; justify-content:center; width:220px; max-width:100%; }
+@media(max-width:600px) { .result-player-card { width:210px; margin:auto; } }

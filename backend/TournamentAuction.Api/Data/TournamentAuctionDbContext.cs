@@ -36,6 +36,7 @@ public class TournamentAuctionDbContext : DbContext
         });
         modelBuilder.Entity<PlayerRegistration>(entity =>
         {
+            entity.Property(e => e.CardPosition).HasMaxLength(3);
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).HasMaxLength(150);
             entity.Property(e => e.Phone).HasMaxLength(30);
@@ -163,6 +164,7 @@ public class TournamentAuctionDbContext : DbContext
         // Player
         modelBuilder.Entity<Player>(entity =>
         {
+            entity.ToTable(table => table.HasCheckConstraint("CK_Players_CardRatings", "(\"Pace\" IS NULL OR \"Pace\" BETWEEN 1 AND 99) AND (\"Shooting\" IS NULL OR \"Shooting\" BETWEEN 1 AND 99) AND (\"Passing\" IS NULL OR \"Passing\" BETWEEN 1 AND 99) AND (\"Dribbling\" IS NULL OR \"Dribbling\" BETWEEN 1 AND 99) AND (\"Defending\" IS NULL OR \"Defending\" BETWEEN 1 AND 99) AND (\"Physical\" IS NULL OR \"Physical\" BETWEEN 1 AND 99) AND (\"Diving\" IS NULL OR \"Diving\" BETWEEN 1 AND 99) AND (\"Handling\" IS NULL OR \"Handling\" BETWEEN 1 AND 99) AND (\"Kicking\" IS NULL OR \"Kicking\" BETWEEN 1 AND 99) AND (\"Reflexes\" IS NULL OR \"Reflexes\" BETWEEN 1 AND 99) AND (\"Speed\" IS NULL OR \"Speed\" BETWEEN 1 AND 99) AND (\"Positioning\" IS NULL OR \"Positioning\" BETWEEN 1 AND 99)"));
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(150);
             entity.Property(e => e.PhotoUrl).HasMaxLength(1000);

@@ -44,8 +44,9 @@ public class RegistrationTests
     public async Task Submission_StaysPending_AndRetryAfterDeadlineReturnsSameReceipt()
     {
         var (db, service, clock, _, t, _) = await Fixture();
-        var request = Submission();
+        var request = Submission(); request.CardPosition = "LW";
         var first = await service.SubmitAsync(t.Slug, request);
+        Assert.Equal("LW",(await service.ListAsync(t.Id,t.OwnerUserId)).Single().CardPosition);
         clock.Current = clock.Current.AddHours(2);
         var again = await service.SubmitAsync(t.Slug, request);
         Assert.Equal(first, again);

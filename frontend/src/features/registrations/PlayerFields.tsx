@@ -1,3 +1,4 @@
+import { CARD_POSITIONS } from '../players/playerCardTypes';
 import type { PlayerDetails } from './registrationApi';
 
 export function PlayerFields({ value, onChange, disabled = false }: { value: PlayerDetails; onChange: (v: PlayerDetails) => void; disabled?: boolean }) {
@@ -8,6 +9,7 @@ export function PlayerFields({ value, onChange, disabled = false }: { value: Pla
     <label>Email (optional)<input {...field('email')} type="email" maxLength={256} autoComplete="email" /></label>
     <label>Playing position<select {...field('position')}>{['Goalkeeper', 'Defender', 'Midfielder', 'Forward'].map(p => <option key={p}>{p}</option>)}</select></label>
     <label>Preferred foot<select {...field('preferredFoot')}><option value="">Not specified</option>{['Right', 'Left', 'Both'].map(p => <option key={p}>{p}</option>)}</select></label>
+    <label>Card position (optional)<select {...field('cardPosition')}><option value="">Not specified</option>{CARD_POSITIONS.map(p => <option key={p}>{p}</option>)}</select></label>
     <label>Age (optional)<input {...field('age')} type="number" min={10} max={70} inputMode="numeric" /></label>
   </div>;
 }

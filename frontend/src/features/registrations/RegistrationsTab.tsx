@@ -1,3 +1,5 @@
+import { PlayerRatingsEditor } from '../players/PlayerRatingsEditor';
+import type { RatingValues } from '../players/playerCardTypes';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Copy, ExternalLink, RefreshCw, UserRoundCheck } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
@@ -25,6 +27,7 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
   const [filter, setFilter] = useState('PENDING'); const [search, setSearch] = useState('');
   const [review, setReview] = useState<RegistrationEntry | null>(null);
   const reviewPanel = useRef<HTMLElement>(null);
+  const [ratings, setRatings] = useState<RatingValues>({});
   const [details, setDetails] = useState<PlayerDetails | null>(null);
   const [setId, setSetId] = useState(''); const [price, setPrice] = useState('');
   const [reason, setReason] = useState(''); const [duplicateConfirmed, setDuplicateConfirmed] = useState(false);
@@ -59,7 +62,8 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
   };
   const startReview = (r: RegistrationEntry) => {
     setReview(r); setDetails({ name: r.name, phone: r.phone, email: r.email || '', age: r.age?.toString() || '', position: r.position,
-      preferredFoot: r.preferredFoot || '' });
+      preferredFoot: r.preferredFoot || '', cardPosition: r.cardPosition || '' });
+    setRatings({});
     setSetId(''); setPrice(''); setReason(''); setDuplicateConfirmed(false); setError('');
     if (r.hasPhoto) void request<{ photoUrl: string }>(`/registrations/${r.id}/photo`).then(value => {
       setReview(current => current?.id === r.id ? { ...current, photoUrl: value.photoUrl } : current);
@@ -67,7 +71,7 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
   };
   const decide = (approve: boolean) => void action(async () => {
     if (!review || !details) return;
-    await request(`/registrations/${review.id}/review`, 'POST', { ...details, approve,
+    await request(`/registrations/${review.id}/review`, 'POST', { ...details, approve, cardPosition: details.cardPosition, ratings,
       email: details.email || null, age: details.age ? Number(details.age) : null,
       jerseyNumber: review.jerseyNumber, previousTeam: review.previousTeam, shortBio: review.shortBio,
       playerSetId: setId || null, basePrice: price ? Number(price) : null, reason: reason || null, duplicateConfirmed,
@@ -98,7 +102,7 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
     </section>
     {review && details && <section ref={reviewPanel} className="registration-card registration-review" aria-label="Review player submission"><div className="registration-admin-heading"><h3>Review {review.name}</h3><button disabled={busy} onClick={() => setReview(null)}>Close review</button></div>
       {review.photoUrl && <img className="registration-review-photo" src={review.photoUrl} alt={`${review.name} submitted photo`} />}
-      <form onSubmit={e => { e.preventDefault(); decide(true); }}><PlayerFields value={details} onChange={setDetails} disabled={busy || locked} />
+      <form onSubmit={e => { e.preventDefault(); decide(true); }}><PlayerFields value={details} onChange={setDetails} disabled={busy || locked} /><PlayerRatingsEditor value={ratings} onChange={setRatings} name={details.name} position={details.position} cardPosition={details.cardPosition} photoUrl={review.photoUrl || undefined} disabled={busy || locked} />
         <div className="registration-fields"><label>Auction player set<select value={setId} onChange={e => setSetId(e.target.value)} required><option value="">Select a set</option>{sets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label><label>Base price<input aria-label="Base price" type="number" min={10} max={1000000000} value={price} onChange={e => setPrice(e.target.value)} list="registration-tiers" required /><datalist id="registration-tiers">{tiers.map(t => <option value={t.amount} key={t.id}>{t.label}</option>)}</datalist></label><label className="registration-wide">Review note / rejection reason<textarea rows={2} maxLength={1000} value={reason} onChange={e => setReason(e.target.value)} /></label></div>
         {(review.possibleDuplicate || error.startsWith('Possible duplicate')) && <label className="registration-consent registration-duplicate"><input type="checkbox" checked={duplicateConfirmed} onChange={e => setDuplicateConfirmed(e.target.checked)} /><span>I checked the possible duplicate and want to approve this player.</span></label>}
         {error && <p className="registration-error" role="alert">{error}</p>}

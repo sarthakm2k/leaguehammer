@@ -87,7 +87,7 @@ test('projector fits laptop viewports with the player, progress and ticker visib
       const box = await page.locator(selector).boundingBox();
       expect(box!.y + box!.height).toBeLessThanOrEqual(size.height + 1);
     }
-    await expect(page.locator('.stage-portrait>img')).toHaveCSS('object-fit', 'contain');
+    await expect(page.locator('.stage-portrait .football-card-photo img')).toHaveCSS('object-fit', 'contain');
     expect(await page.locator('.stage-team-list').evaluate(node => node.scrollHeight <= node.clientHeight + 1)).toBe(true);
     for (const card of await page.locator('.stage-team').all()) {
       const box = await card.boundingBox();

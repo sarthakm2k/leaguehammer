@@ -88,7 +88,7 @@ public class RegistrationService(TournamentAuctionDbContext db, IPlayerService p
         if (await db.PlayerRegistrations.CountAsync(x => x.TournamentId == t.Id) >= 10000) throw new InvalidOperationException("The registration limit has been reached. Contact the organiser.");
         var entry = new PlayerRegistration {
             Id = r.SubmissionId, TournamentId = t.Id, Name = r.Name.Trim(), Phone = Phone(r.Phone), Email = Clean(r.Email)?.ToLowerInvariant(),
-            Age = r.Age, Position = r.Position, PreferredFoot = Clean(r.PreferredFoot), JerseyNumber = r.JerseyNumber,
+            Age = r.Age, Position = r.Position, CardPosition = CardRatings.Position(r.CardPosition), PreferredFoot = Clean(r.PreferredFoot), JerseyNumber = r.JerseyNumber,
             PreviousTeam = Clean(r.PreviousTeam), ShortBio = Clean(r.ShortBio), SubmittedAtUtc = Now
         };
         if (r.Photo != null) entry.PhotoPath = await photos.UploadAsync(t.Id, r.SubmissionId, r.Photo);
@@ -109,7 +109,7 @@ public class RegistrationService(TournamentAuctionDbContext db, IPlayerService p
                 names.Any(x => x.Id != r.PlayerId && x.Name.Equals(r.Name, StringComparison.OrdinalIgnoreCase));
             result.Add(new(r.Id, r.Name, r.Phone, r.Email, r.Age, r.Position, r.PreferredFoot, r.JerseyNumber,
                 r.PreviousTeam, r.ShortBio, null,
-                r.Status, r.ReviewReason, r.PlayerId, r.SubmittedAtUtc, r.ReviewedAtUtc, duplicate, r.PhotoPath != null));
+                r.Status, r.ReviewReason, r.PlayerId, r.SubmittedAtUtc, r.ReviewedAtUtc, duplicate, r.PhotoPath != null, r.CardPosition));
         }
         return result;
     }
@@ -130,6 +130,7 @@ public class RegistrationService(TournamentAuctionDbContext db, IPlayerService p
         var r = await db.PlayerRegistrations.SingleOrDefaultAsync(r => r.Id == submissionId && r.TournamentId == id) ?? throw new KeyNotFoundException("Registration not found.");
         if (r.Status != "PENDING") throw new InvalidOperationException("This submission has already been reviewed. Refresh the queue.");
         Validate(request.Name, request.Phone, request.Position, request.PreferredFoot);
+        var reviewedCardPosition = CardRatings.Position(request.CardPosition ?? r.CardPosition);
         if (request.Approve)
         {
             if (request.PlayerSetId == null || request.BasePrice == null) throw new ArgumentException("Assign a player set and base price before approving.");
@@ -139,7 +140,7 @@ public class RegistrationService(TournamentAuctionDbContext db, IPlayerService p
             if (duplicate && !request.DuplicateConfirmed) throw new InvalidOperationException("Possible duplicate. Verify it and confirm before approving.");
             var player = await players.CreatePlayerAsync(id, new CreatePlayerRequest(request.Name, request.PlayerSetId.Value,
                 request.BasePrice.Value, null, request.Age, request.Position, request.PreferredFoot,
-                request.JerseyNumber, request.PreviousTeam, request.ShortBio), user);
+                request.JerseyNumber, request.PreviousTeam, request.ShortBio, reviewedCardPosition, request.Ratings), user);
             if (r.PhotoPath != null)
             {
                 var approvedPlayer = await db.Players.FindAsync(player.Id);
@@ -149,7 +150,7 @@ public class RegistrationService(TournamentAuctionDbContext db, IPlayerService p
         }
         else if (string.IsNullOrWhiteSpace(request.Reason)) throw new ArgumentException("Provide a reason for rejection.");
         r.Name = request.Name.Trim(); r.Phone = Phone(request.Phone); r.Email = Clean(request.Email)?.ToLowerInvariant();
-        r.Age = request.Age; r.Position = request.Position; r.PreferredFoot = Clean(request.PreferredFoot);
+        r.Age = request.Age; r.Position = request.Position; r.CardPosition = reviewedCardPosition; r.PreferredFoot = Clean(request.PreferredFoot);
         r.JerseyNumber = request.JerseyNumber; r.PreviousTeam = Clean(request.PreviousTeam); r.ShortBio = Clean(request.ShortBio);
         r.Status = request.Approve ? "APPROVED" : "REJECTED"; r.ReviewReason = Clean(request.Reason);
         r.ReviewedByUserId = user; r.ReviewedAtUtc = Now;

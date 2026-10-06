@@ -68,7 +68,7 @@ public class PlayerService : IPlayerService
                 p.ShortBio,
                 p.Status,
                 p.CreatedAtUtc,
-                p.UpdatedAtUtc
+                p.UpdatedAtUtc, p.CardPosition, CardRatings.FromPlayer(p)
             ))
             .ToListAsync();
 
@@ -104,7 +104,7 @@ public class PlayerService : IPlayerService
             p.ShortBio,
             p.Status,
             p.CreatedAtUtc,
-            p.UpdatedAtUtc
+            p.UpdatedAtUtc, p.CardPosition, CardRatings.FromPlayer(p)
         );
     }
 
@@ -140,6 +140,7 @@ public class PlayerService : IPlayerService
             CreatedAtUtc = DateTime.UtcNow
         };
 
+        CardRatings.Apply(player, request.CardPosition, request.Ratings);
         _db.Players.Add(player);
         await _db.SaveChangesAsync();
 
@@ -159,7 +160,7 @@ public class PlayerService : IPlayerService
             player.ShortBio,
             player.Status,
             player.CreatedAtUtc,
-            player.UpdatedAtUtc
+            player.UpdatedAtUtc, player.CardPosition, CardRatings.FromPlayer(player)
         );
     }
 
@@ -193,6 +194,7 @@ public class PlayerService : IPlayerService
         player.JerseyNumber = request.JerseyNumber;
         player.PreviousTeam = string.IsNullOrWhiteSpace(request.PreviousTeam) ? null : request.PreviousTeam.Trim();
         player.ShortBio = string.IsNullOrWhiteSpace(request.ShortBio) ? null : request.ShortBio.Trim();
+        CardRatings.Apply(player, request.CardPosition, request.Ratings);
         player.UpdatedAtUtc = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
@@ -213,7 +215,7 @@ public class PlayerService : IPlayerService
             player.ShortBio,
             player.Status,
             player.CreatedAtUtc,
-            player.UpdatedAtUtc
+            player.UpdatedAtUtc, player.CardPosition, CardRatings.FromPlayer(player)
         );
     }
 

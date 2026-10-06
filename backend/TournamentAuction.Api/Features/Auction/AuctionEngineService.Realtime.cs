@@ -1,3 +1,4 @@
+using TournamentAuction.Api.Features.Players;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using TournamentAuction.Api.Domain;
@@ -124,10 +125,10 @@ public partial class AuctionEngineService
         lot.Player.Name, lot.Player.PhotoUrl, lot.Player.Position, lot.Player.Age, lot.Player.PreferredFoot,
         lot.Player.JerseyNumber, lot.Player.PreviousTeam, lot.Player.ShortBio, lot.PlayerSetId, lot.PlayerSet.Name,
         lot.AttemptNumber, lot.DrawPosition, lot.Status.ToString(), lot.WinningTeamId, lot.WinningTeam?.Name,
-        lot.FinalPrice, lot.Player.BasePrice, lot.RevealedAtUtc, lot.CompletedAtUtc, lot.CurrentBid, lot.LeadingTeamId);
+        lot.FinalPrice, lot.Player.BasePrice, lot.RevealedAtUtc, lot.CompletedAtUtc, lot.CurrentBid, lot.LeadingTeamId, lot.Player.CardPosition, CardRatings.FromPlayer(lot.Player));
 
     private static PublicAuctionLotDto? ToPublic(AuctionLotDto? lot) => lot == null ? null : new(lot.LotId,
         lot.PlayerId, lot.PlayerName, lot.PhotoUrl, lot.Position, lot.Age, lot.PreferredFoot, lot.JerseyNumber,
         lot.PlayerSetName, lot.AttemptNumber, lot.Status, lot.WinningTeamId, lot.WinningTeamName, lot.FinalPrice,
-        lot.BasePrice, lot.CurrentBid, lot.LeadingTeamId);
+        lot.BasePrice, lot.CurrentBid, lot.LeadingTeamId, lot.CardPosition, lot.Ratings);
 }

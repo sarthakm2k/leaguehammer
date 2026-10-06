@@ -1,3 +1,4 @@
+using TournamentAuction.Api.Features.Players;
 using System.ComponentModel.DataAnnotations;
 
 namespace TournamentAuction.Api.Features.Registrations;
@@ -17,6 +18,7 @@ public class RegistrationSubmissionRequest
     [Range(1, 99)] public int? JerseyNumber { get; set; }
     [MaxLength(150)] public string? PreviousTeam { get; set; }
     [MaxLength(1000)] public string? ShortBio { get; set; }
+    [RegularExpression(CardRatings.PositionPattern)] public string? CardPosition { get; set; }
     public bool Consent { get; set; }
     public string? Website { get; set; } // Honeypot: real users leave this empty.
     public IFormFile? Photo { get; set; }
@@ -33,7 +35,8 @@ public record RegistrationReviewRequest(bool Approve,
     [MaxLength(150)] string? PreviousTeam,
     [MaxLength(1000)] string? ShortBio,
     Guid? PlayerSetId, [Range(10, 1000000000)] long? BasePrice,
-    [MaxLength(1000)] string? Reason, bool DuplicateConfirmed = false);
+    [MaxLength(1000)] string? Reason, bool DuplicateConfirmed = false,
+    [RegularExpression(CardRatings.PositionPattern)] string? CardPosition = null, PlayerRatingsRequest? Ratings = null);
 
 public record RegistrationFormDto(Guid TournamentId, string TournamentName, string Slug, string TimeZone,
     bool Enabled, DateTime? OpensAtUtc, DateTime? ClosesAtUtc, bool ClosedManually,
@@ -42,4 +45,4 @@ public record RegistrationReceipt(Guid SubmissionId, string Reference, DateTime 
 public record RegistrationEntryDto(Guid Id, string Name, string Phone, string? Email, int? Age,
     string Position, string? PreferredFoot, int? JerseyNumber, string? PreviousTeam, string? ShortBio,
     string? PhotoUrl, string Status, string? ReviewReason, Guid? PlayerId, DateTime SubmittedAtUtc,
-    DateTime? ReviewedAtUtc, bool PossibleDuplicate, bool HasPhoto);
+    DateTime? ReviewedAtUtc, bool PossibleDuplicate, bool HasPhoto, string? CardPosition = null);

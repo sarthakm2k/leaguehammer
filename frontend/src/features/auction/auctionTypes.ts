@@ -1,3 +1,4 @@
+import type { PlayerRatings } from '../players/playerCardTypes';
 export interface TeamAuctionStandingDto {
   teamId: string;
   teamName: string;
@@ -24,6 +25,8 @@ export interface AuctionLotDto {
   playerId: string;
   playerName: string;
   photoUrl?: string | null;
+  cardPosition?: string | null;
+  ratings?: PlayerRatings | null;
   position?: string | null;
   age?: number | null;
   preferredFoot?: string | null;

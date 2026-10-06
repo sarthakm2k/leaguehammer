@@ -27,6 +27,21 @@ public class Player
     [MaxLength(20)]
     public string? PreferredFoot { get; set; } // Right, Left, Both
 
+    [MaxLength(3)]
+    public string? CardPosition { get; set; }
+    public int? Pace { get; set; }
+    public int? Shooting { get; set; }
+    public int? Passing { get; set; }
+    public int? Dribbling { get; set; }
+    public int? Defending { get; set; }
+    public int? Physical { get; set; }
+    public int? Diving { get; set; }
+    public int? Handling { get; set; }
+    public int? Kicking { get; set; }
+    public int? Reflexes { get; set; }
+    public int? Speed { get; set; }
+    public int? Positioning { get; set; }
+
     public long BasePrice { get; set; }
 
     public int? JerseyNumber { get; set; }

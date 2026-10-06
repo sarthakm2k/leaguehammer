@@ -1,7 +1,9 @@
+import type { PlayerRatings } from '../players/playerCardTypes';
 import type { PublicAuctionStateDto, TeamAuctionStandingDto } from './auctionTypes';
 
 export interface ResultPlayer {
   playerId: string; playerName: string; photoUrl: string | null; position: string | null;
+  cardPosition?: string | null; ratings?: PlayerRatings | null;
   age: number | null; preferredFoot: string | null; jerseyNumber: number | null;
   playerSetId: string; playerSetName: string; basePrice: number; status: string; attemptCount: number;
   winningTeamId: string | null; winningTeamName: string | null; finalPrice: number | null;

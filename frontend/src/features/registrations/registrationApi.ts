@@ -7,11 +7,12 @@ export interface RegistrationForm {
   status: 'OPEN' | 'SCHEDULED' | 'CLOSED' | 'FINALIZED'; serverTimeUtc: string; photoUploadAvailable: boolean;
 }
 export interface PlayerDetails {
-  name: string; phone: string; email: string; age: string; position: string; preferredFoot: string;
+  name: string; phone: string; email: string; age: string; position: string; preferredFoot: string; cardPosition: string;
 }
-export const blankPlayer: PlayerDetails = { name: '', phone: '', email: '', age: '', position: 'Forward', preferredFoot: '' };
-export interface RegistrationEntry extends Omit<PlayerDetails, 'age' | 'email' | 'preferredFoot'> {
+export const blankPlayer: PlayerDetails = { name: '', phone: '', email: '', age: '', position: 'Forward', preferredFoot: '', cardPosition: '' };
+export interface RegistrationEntry extends Omit<PlayerDetails, 'age' | 'email' | 'preferredFoot' | 'cardPosition'> {
   id: string; age: number | null; jerseyNumber: number | null; email: string | null;
+  cardPosition: string | null;
   preferredFoot: string | null; previousTeam: string | null; shortBio: string | null;
   photoUrl: string | null; status: string; reviewReason: string | null; playerId: string | null;
   submittedAtUtc: string; reviewedAtUtc: string | null; possibleDuplicate: boolean;

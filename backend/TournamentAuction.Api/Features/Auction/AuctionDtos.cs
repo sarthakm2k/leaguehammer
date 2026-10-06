@@ -1,3 +1,4 @@
+using TournamentAuction.Api.Features.Players;
 using System.ComponentModel.DataAnnotations;
 
 namespace TournamentAuction.Api.Features.Auction;
@@ -46,7 +47,8 @@ public record AuctionLotDto(
     DateTime? RevealedAtUtc,
     DateTime? CompletedAtUtc,
     long? CurrentBid = null,
-    Guid? LeadingTeamId = null
+    Guid? LeadingTeamId = null,
+    string? CardPosition = null, PlayerRatingsDto? Ratings = null
 );
 
 public record SetSummaryDto(

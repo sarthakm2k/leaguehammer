@@ -78,6 +78,10 @@ public class PlayersController : ControllerBase
         {
             return NotFound(new { detail = ex.Message });
         }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { detail = ex.Message });
+        }
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { detail = ex.Message });
@@ -101,6 +105,10 @@ public class PlayersController : ControllerBase
         {
             return NotFound(new { detail = ex.Message });
         }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { detail = ex.Message });
+        }
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { detail = ex.Message });
@@ -123,6 +131,10 @@ public class PlayersController : ControllerBase
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { detail = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { detail = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
@@ -185,6 +197,10 @@ public class PlayersController : ControllerBase
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { detail = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { detail = ex.Message });
         }
         catch (InvalidOperationException ex)
         {

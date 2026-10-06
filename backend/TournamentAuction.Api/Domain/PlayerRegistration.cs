@@ -23,6 +23,7 @@ public class PlayerRegistration
     public string? Email { get; set; }
     public int? Age { get; set; }
     public string Position { get; set; } = "";
+    public string? CardPosition { get; set; }
     public string? PreferredFoot { get; set; }
     public int? JerseyNumber { get; set; }
     public string? PreviousTeam { get; set; }

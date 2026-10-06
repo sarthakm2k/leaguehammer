@@ -12,7 +12,9 @@ public record CreatePlayerRequest(
     string? PreferredFoot,
     [Range(1, 99)] int? JerseyNumber,
     string? PreviousTeam,
-    string? ShortBio
+    string? ShortBio,
+    [RegularExpression(CardRatings.PositionPattern)] string? CardPosition = null,
+    PlayerRatingsRequest? Ratings = null
 );
 
 public record UpdatePlayerRequest(
@@ -25,7 +27,9 @@ public record UpdatePlayerRequest(
     string? PreferredFoot,
     [Range(1, 99)] int? JerseyNumber,
     string? PreviousTeam,
-    string? ShortBio
+    string? ShortBio,
+    [RegularExpression(CardRatings.PositionPattern)] string? CardPosition = null,
+    PlayerRatingsRequest? Ratings = null
 );
 
 public record PlayerDto(
@@ -44,7 +48,9 @@ public record PlayerDto(
     string? ShortBio,
     string Status,
     DateTime CreatedAtUtc,
-    DateTime? UpdatedAtUtc
+    DateTime? UpdatedAtUtc,
+    string? CardPosition = null,
+    PlayerRatingsDto? Ratings = null
 );
 
 public record PlayerFilterRequest(

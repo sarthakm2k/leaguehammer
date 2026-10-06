@@ -1,10 +1,11 @@
+using TournamentAuction.Api.Features.Players;
 namespace TournamentAuction.Api.Features.Auction;
 
 // Public result contracts contain player outcomes, never persisted draw order or private audit data.
 public record ResultPlayerDto(Guid PlayerId, string PlayerName, string? PhotoUrl, string? Position,
     int? Age, string? PreferredFoot, int? JerseyNumber, Guid PlayerSetId, string PlayerSetName,
     long BasePrice, string Status, int AttemptCount, Guid? WinningTeamId, string? WinningTeamName,
-    long? FinalPrice, long? PricePremium, decimal? PriceMultiplier);
+    long? FinalPrice, long? PricePremium, decimal? PriceMultiplier, string? CardPosition = null, PlayerRatingsDto? Ratings = null);
 
 public record PositionStatisticsDto(string Position, int PlayerCount, long TotalSpent);
 public record TeamStatisticsDto(TeamAuctionStandingDto Standing, decimal AveragePlayerCost,
