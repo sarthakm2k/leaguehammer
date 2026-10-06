@@ -65,7 +65,7 @@ test('public portal, franchise links and Wrapped recalculate after a corrected s
     await franchise.goto(franchiseUrl);
     await expect(franchise.getByRole('heading', { name: 'Falcons FC', exact: true })).toBeVisible();
     await expect(franchise.getByRole('status')).toContainText('Live connection');
-    await expect(franchise.getByText('No players match this view.')).toBeVisible();
+    await expect(franchise.getByText('No signings yet. Every player bought by this team will appear here.')).toBeVisible();
     await portal.getByRole('link', { name: 'Overview', exact: true }).click();
     await api('post', `${root}/auction/start`);
     await api('post', `${root}/auction/start-set`, { setId: marquee.id });
@@ -78,8 +78,8 @@ test('public portal, franchise links and Wrapped recalculate after a corrected s
     await expect(upcoming.getByTestId(`upcoming-player-${firstLot.playerId}`)).toHaveCount(0);
     await expect(portal.getByTestId('portal-current-price')).toHaveText('₹1,000');
     await api('post', `${root}/auction/sell`, { lotId: firstLot.lotId, winningTeamId: first.id, finalPrice: 1000 });
-    await expect(franchise.locator('tbody tr')).toHaveCount(1);
-    await expect(franchise.locator('tbody')).toContainText(firstLot.playerName);
+    await expect(franchise.locator('.franchise-roster-grid article')).toHaveCount(1);
+    await expect(franchise.locator('.franchise-roster-grid')).toContainText(firstLot.playerName);
     const secondLot = (await api('post', `${root}/auction/reveal-next`)).currentLot;
     await api('post', `${root}/auction/sell`, { lotId: secondLot.lotId, winningTeamId: second.id, finalPrice: 2000 });
     await api('post', `${root}/auction/sets/${marquee.id}/complete`);
@@ -97,14 +97,14 @@ test('public portal, franchise links and Wrapped recalculate after a corrected s
     await expect(upcoming.getByTestId(`upcoming-set-${keepers.id}`)).toContainText('This unsold round');
     const retry = (await api('post', `${root}/auction/reveal-next`)).currentLot;
     await api('post', `${root}/auction/sell`, { lotId: retry.lotId, winningTeamId: first.id, finalPrice: 3000 });
-    await expect(franchise.locator('tbody tr')).toHaveCount(2);
+    await expect(franchise.locator('.franchise-roster-grid article')).toHaveCount(2);
     await publicContext.setOffline(true);
     await expect(portal.getByRole('status')).toContainText('Reconnecting');
     await api('post', `${root}/auction/correct-result`, { lotId: retry.lotId, newWinningTeamId: second.id, newFinalPrice: 4000, reason: 'Private Milestone 9 correction reason' });
     await publicContext.setOffline(false);
     await expect(franchise.getByRole('status')).toContainText('Live connection');
-    await expect(franchise.locator('tbody tr')).toHaveCount(1);
-    await expect(franchise.locator('tbody')).not.toContainText('Keeper Star');
+    await expect(franchise.locator('.franchise-roster-grid article')).toHaveCount(1);
+    await expect(franchise.locator('.franchise-roster-grid')).not.toContainText('Keeper Star');
     await expect(portal.locator('tbody tr')).toHaveCount(0); // Keeper is sold; the unsold filter clears.
     await portal.getByLabel('Player status').selectOption('SOLD');
     await expect(portal.locator('tbody tr')).toHaveCount(3);
@@ -136,7 +136,7 @@ test('public portal, franchise links and Wrapped recalculate after a corrected s
     await expect(portal.getByRole('heading', { name: 'Auction Wrapped', exact: true })).toBeVisible();
     await portal.screenshot({ path: testInfo.outputPath('auction-wrapped-desktop.png'), fullPage: true });
     await franchise.reload();
-    await expect(franchise.locator('tbody tr')).toHaveCount(1);
+    await expect(franchise.locator('.franchise-roster-grid article')).toHaveCount(1);
     await franchise.getByRole('button', { name: 'Copy Franchise Link', exact: true }).click();
     expect(await franchise.evaluate(() => navigator.clipboard.readText())).toBe(franchiseUrl);
     await franchise.screenshot({ path: testInfo.outputPath('public-franchise-desktop.png'), fullPage: true });
@@ -170,7 +170,7 @@ test('public portal, franchise links and Wrapped recalculate after a corrected s
     expect(privateStats.totalPlayers).toBe(0);
     await internal.goto(`${root}/teams/${second.id}/squad`);
     await expect(internal.getByRole('heading', { name: 'Warriors FC', exact: true })).toBeVisible();
-    await expect(internal.locator('tbody tr')).toHaveCount(2);
+    await expect(internal.locator('.franchise-roster-grid article')).toHaveCount(2);
     expect(errors).toEqual([]);
     console.log(`Verified results tournament: ${tournament.id}`);
   } finally { await Promise.all([owner.close(), publicContext.close()]); }

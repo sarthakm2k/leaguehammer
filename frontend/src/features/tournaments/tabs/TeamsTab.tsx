@@ -77,6 +77,8 @@ export function TeamsTab({ tournamentId, tournamentSlug, isOwner, status, defaul
   const [secondaryColor, setSecondaryColor] = useState('#047857');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState<string | null>(null);
+  const [logoNotice, setLogoNotice] = useState('');
 
   const fetchTeams = useCallback(async () => {
     if (!token) return;
@@ -149,7 +151,8 @@ export function TeamsTab({ tournamentId, tournamentSlug, isOwner, status, defaul
           ownerName: ownerName.trim() || null,
           initialPurse,
           primaryColor,
-          secondaryColor
+          secondaryColor,
+          logoUrl: editingTeam?.logoUrl ?? null
         })
       });
 
@@ -185,8 +188,28 @@ export function TeamsTab({ tournamentId, tournamentSlug, isOwner, status, defaul
 
   const isLocked = status !== 'DRAFT';
 
+  const uploadLogo = async (team: Team, file: File) => {
+    setError(null); setLogoNotice('');
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 3 * 1024 * 1024 || !file.size) {
+      setError('Choose a JPEG, PNG or WebP logo up to 3 MB.'); return;
+    }
+    setUploadingLogo(team.id);
+    try {
+      const body = new FormData(); body.append('logo', file);
+      const response = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/teams/${team.id}/logo`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }, body,
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Could not upload the logo.');
+      setTeams(current => current.map(item => item.id === team.id ? { ...item, logoUrl: data.logoUrl } : item));
+      setLogoNotice(`${team.name} logo updated.`);
+    } catch (err) { setError(err instanceof Error ? err.message : 'Could not upload the logo. Please retry.'); }
+    finally { setUploadingLogo(null); }
+  };
+
   return (
     <div className="space-y-6">
+      {logoNotice && <p role="status" className="text-sm text-emerald-300">{logoNotice}</p>}
       {error && (
         <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 flex items-center space-x-3 text-rose-400 text-xs">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
@@ -251,7 +274,7 @@ export function TeamsTab({ tournamentId, tournamentSlug, isOwner, status, defaul
                       className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm text-white shadow-md"
                       style={{ backgroundColor: t.primaryColor }}
                     >
-                      {t.shortName}
+                      {t.logoUrl ? <img src={t.logoUrl} alt={`${t.name} logo`} className="h-full w-full object-contain rounded-xl" /> : t.shortName}
                     </div>
                     <div>
                       <h4 className="text-base font-bold text-white">{t.name}</h4>
@@ -275,6 +298,13 @@ export function TeamsTab({ tournamentId, tournamentSlug, isOwner, status, defaul
               </div>
 
               <TeamShareLink slug={tournamentSlug} team={t} />
+              {isOwner && <label className="block text-xs text-slate-300">
+                {uploadingLogo === t.id ? 'Uploading logo…' : t.logoUrl ? 'Replace team logo' : 'Upload team logo'}
+                <input type="file" aria-label={`Upload ${t.name} logo`} accept="image/jpeg,image/png,image/webp"
+                  disabled={uploadingLogo !== null} className="mt-2 block w-full min-w-0 text-xs"
+                  onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void uploadLogo(t, file); }} />
+                <small className="mt-1 block text-slate-500">JPEG, PNG or WebP · Up to 3 MB. Transparent PNG recommended.</small>
+              </label>}
 
               <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
                 <div className="flex items-center space-x-1.5">

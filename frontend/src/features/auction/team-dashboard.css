@@ -1,0 +1,50 @@
+.franchise-dashboard { --franchise-accent: #c4f143; --franchise-panel: #191d28; --franchise-border: #ffffff16; --franchise-muted: #a5a8b6; }
+.franchise-identity { display: flex; gap: 24px; align-items: center; border: 1px solid var(--franchise-border); border-top: 3px solid var(--franchise-accent); border-radius: 24px; padding: clamp(22px,4vw,42px); background: radial-gradient(ellipse at 0 0,#ffffff08,transparent 65%),var(--franchise-panel); }
+.franchise-crest { display: grid; place-items: center; flex-shrink: 0; width: 100px; height: 100px; padding: 12px; border: 1px solid var(--franchise-border); border-radius: 24px; background: #ffffff06; }
+.franchise-crest img,.franchise-crest svg { width: 100%; height: 100%; object-fit: contain; }
+.franchise-identity-copy { flex: 1; min-width: 0; }
+.franchise-identity-copy h2 { margin: 8px 0; font-size: clamp(30px,4vw,56px); font-weight: 900; letter-spacing: -.05em; line-height: 1.1; overflow-wrap: anywhere; }
+.franchise-identity-copy>p:last-child { color: var(--franchise-muted); font-size: 13px; }
+.franchise-summary-grid,.franchise-detail-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; }
+.franchise-budget,.franchise-capacity,.franchise-podium,.franchise-record { min-width: 0; padding: clamp(22px,3vw,34px); border: 1px solid var(--franchise-border); border-radius: 22px; background: var(--franchise-panel); }
+.franchise-budget>strong { display: block; margin: 14px 0 22px; font-size: clamp(34px,5vw,66px); line-height: 1.1; letter-spacing: -.05em; font-weight: 900; overflow-wrap: anywhere; }
+.franchise-bar { height: 7px; border-radius: 8px; background: #ffffff12; overflow: hidden; }
+.franchise-bar span { display: block; height: 100%; background: var(--franchise-accent); transition: width .3s; }
+.franchise-budget-details { display: flex; justify-content: space-between; gap: 16px; margin-top: 22px; }
+.franchise-budget-details span { display: grid; gap: 5px; min-width: 0; }
+.franchise-budget-details small,.franchise-auction-context small { font-size: 11px; color: var(--franchise-muted); }
+.franchise-budget-details b { font-size: 18px; overflow-wrap: anywhere; }
+.franchise-budget>p:last-child,.franchise-capacity>p:last-child,.franchise-auction-context p,.franchise-podium p:not(.result-eyebrow),.franchise-record p:not(.result-eyebrow) { color: var(--franchise-muted); font-size: 12px; line-height: 1.6; margin-top: 14px; }
+.franchise-squad-number { display: flex; align-items: center; gap: 18px; margin: 10px 0 16px; }
+.franchise-squad-number strong { font-size: 64px; line-height: 1; font-weight: 900; letter-spacing: -.05em; }
+.franchise-squad-number span { color: var(--franchise-muted); font-size: 13px; }
+.franchise-capacity progress { display: block; width: 100%; height: 7px; accent-color: var(--franchise-accent); }
+.franchise-slot-counts { display: flex; gap: 32px; margin-top: 20px; }
+.franchise-slot-counts span { display: grid; gap: 3px; font-size: 11px; color: var(--franchise-muted); }
+.franchise-slot-counts b { color: var(--league-paper); font-size: 26px; font-weight: 900; }
+.franchise-auction-context { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; padding: 24px 30px; border: 1px solid var(--franchise-border); border-radius: 20px; }
+.franchise-auction-context h3 { font-size: 20px; font-weight: 750; margin-top: 6px; }
+.franchise-auction-context>div:last-child { padding-left: 24px; border-left: 1px solid var(--franchise-border); }
+.franchise-auction-context strong { display: block; font-size: 30px; font-weight: 850; }
+.franchise-podium-player { display: flex; align-items: center; gap: 16px; margin: 20px 0; min-width: 0; }
+.franchise-podium-player .result-portrait { width: 76px; height: 86px; flex-shrink: 0; }
+.franchise-podium-player h3 { font-size: 24px; font-weight: 800; letter-spacing: -.03em; overflow-wrap: anywhere; }
+.franchise-podium-player>div:last-child { min-width: 0; }
+.franchise-podium-player p { margin-top: 3px!important; }
+.franchise-live-price { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; padding: 16px 0; border-block: 1px solid var(--franchise-border); }
+.franchise-live-price span { font-size: 12px; color: var(--franchise-muted); }
+.franchise-live-price strong,.franchise-record>strong { font-size: 32px; font-weight: 850; overflow-wrap: anywhere; }
+.franchise-podium p.franchise-leading { color: var(--league-paper); font-weight: 750; }
+.franchise-record>h3,.franchise-podium>h3 { font-size: 26px; font-weight: 800; margin-top: 24px; }
+.franchise-section-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 24px; }
+.franchise-roster-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.franchise-roster-grid article { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px solid var(--franchise-border); border-radius: 16px; }
+.franchise-roster-grid .result-portrait { width: 54px; height: 64px; flex-shrink: 0; }
+.franchise-roster-grid article>div:last-of-type { min-width: 0; flex: 1; }
+.franchise-roster-grid h3 { font-size: 16px; font-weight: 750; overflow-wrap: anywhere; }
+.franchise-roster-grid p,.franchise-roster-grid small { font-size: 11px; color: var(--franchise-muted); }
+.franchise-roster-grid article>strong { font-size: 17px; }
+:root[data-theme="light"] .franchise-dashboard { --franchise-panel: #fff; --franchise-border: #dce1e8; --franchise-muted: #657084; }
+:root[data-theme="light"] .franchise-bar { background: #e1e7ef; }
+@media(max-width:900px) { .franchise-identity { flex-wrap: wrap; } .franchise-identity-share { width: 100%; } .franchise-roster-grid { grid-template-columns: 1fr; } }
+@media(max-width:600px) { .franchise-summary-grid,.franchise-detail-grid,.franchise-auction-context { grid-template-columns: 1fr; gap: 16px; } .franchise-identity { gap: 16px; padding: 20px; } .franchise-crest { width: 70px; height: 70px; border-radius: 18px; } .franchise-identity-copy { flex-basis: calc(100% - 86px); } .franchise-identity-copy h2 { font-size: 30px; } .franchise-identity .result-eyebrow { font-size: 9px; } .franchise-auction-context>div:last-child { border-left: 0; border-top: 1px solid var(--franchise-border); padding: 18px 0 0; } .franchise-roster-grid article { flex-wrap: wrap; } .franchise-roster-grid article>div:last-of-type { flex: 1 1 calc(100% - 68px); } .franchise-roster-grid article>strong { flex: 0 0 calc(100% - 68px); margin-left: 68px; } }

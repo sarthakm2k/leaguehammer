@@ -38,6 +38,8 @@ builder.Services.AddScoped<IPlayerService, PlayerService>();
 builder.Services.AddScoped<RegistrationService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHttpClient<IRegistrationPhotoStorage, RegistrationPhotoStorage>(client => client.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddHttpClient<ITeamLogoStorage, RegistrationPhotoStorage>(client => client.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddScoped<TeamLogoService>();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;

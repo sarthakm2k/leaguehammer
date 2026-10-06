@@ -113,7 +113,7 @@ export function ProjectorPage() {
       <aside className="stage-teams" aria-label="Live team purses and squads">
         <div className="stage-section-title"><div><p className="stage-eyebrow">The franchises</p><h2>Team tracker</h2></div><UsersCount count={state.teamStandings.length} /></div>
         <div className="stage-team-list">{state.teamStandings.map(team => <button key={team.teamId} className={`stage-team ${rosterTeam?.teamId === team.teamId ? 'stage-team-selected' : ''}`} style={{ '--club-color': team.primaryColor } as CSSProperties} onClick={() => setSelectedTeamId(team.teamId)} aria-pressed={rosterTeam?.teamId === team.teamId}>
-          <div className="stage-team-name"><span className="stage-club-code">{team.shortName}</span><strong>{team.teamName}</strong><ArrowUpRight size={18} /></div>
+          <div className="stage-team-name">{team.logoUrl && <img className="stage-team-logo" src={team.logoUrl} alt="" />}<span className="stage-club-code">{team.shortName}</span><strong>{team.teamName}</strong><ArrowUpRight size={18} /></div>
           <div className="stage-team-finance"><div><span>Purse remaining</span><b data-testid={`purse-${team.shortName}`}>{money(team.remainingPurse)}</b></div><div><span>Squad</span><b>{team.currentSquadSize}<small> / {team.maximumSquadSize}</small></b></div></div>
           <div className="stage-squad-progress"><span style={{ width: `${Math.min(100, team.currentSquadSize / Math.max(1, team.minimumSquadSize) * 100)}%` }} /></div>
         </button>)}</div>

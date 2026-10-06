@@ -44,6 +44,8 @@ Uploads pass through the API after it wakes. The frontend never receives a stora
 
 The LeagueHammer account signing secret is separate from all Supabase credentials.
 
+Team logos reuse the **public `player-photos` bucket**, under `team-logos/<tournament-id>/<team-id>/<version>.<extension>`. No additional bucket or environment variable is needed. In **Participating Teams**, create the team first, then select **Upload team logo** on its card. Only the tournament owner can upload or replace logos (JPEG, PNG or WebP, up to 3 MB). Branding can be updated during a live or completed auction without changing purse or squad rules. Logo updates notify connected team pages and projector screens.
+
 ## 4. Render backend
 
 Create **New → Web Service**, connect the repository, and configure:

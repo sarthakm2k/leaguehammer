@@ -75,6 +75,7 @@ export function useAuctionSocket(
       if (!disposed) callbacks.current.onEvent?.(event, args);
     }));
     connection.on('AuctionStateChanged', () => { void sync(); });
+    connection.on('TeamUpdated', () => { void sync(); });
     connection.onreconnecting(() => { joined = false; if (!disposed) setStatus('reconnecting'); });
     connection.onreconnected(() => {
       void joinAndSync().catch(() => { joined = false; void connection.stop(); });

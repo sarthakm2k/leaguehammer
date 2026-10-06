@@ -9,6 +9,7 @@ import { useAuctionSocket } from './useAuctionSocket';
 import { ConnectionIndicator } from './ConnectionIndicator';
 import type { AuctionResults, ResultPlayer, TeamStatistics } from './resultsTypes';
 import './results.css';
+import './team-dashboard.css';
 import { AuctionRecapLinks } from './AuctionRecapLinks';
 
 const API = import.meta.env.VITE_API_BASE_URL || '';
@@ -125,17 +126,33 @@ function UpcomingPlayers({ data, money }: { data: AuctionResults; money: (value:
 function TeamSquad({ team, data, publicView, money }: { team: TeamStatistics; data: AuctionResults; publicView: boolean; money: (value: number) => string }) {
   const standing = team.standing;
   const roster = data.players.filter(player => player.status === 'SOLD' && player.winningTeamId === standing.teamId);
-  return <div className="result-stack">
-    <section className="result-team-hero" style={{ borderColor: standing.primaryColor || '#b7f76b' }}>
-      <div className="result-team-title"><TeamMark key={standing.logoUrl} name={standing.teamName} logo={standing.logoUrl} color={standing.primaryColor} /><div><p className="result-eyebrow">Franchise squad · {standing.shortName}</p><h2>{standing.teamName}</h2></div></div>
-      <div className="result-metrics"><Metric label="Squad" value={`${standing.currentSquadSize} / ${standing.minimumSquadSize}`} detail={`Maximum ${standing.maximumSquadSize}`} /><Metric label="Spent" value={money(standing.totalSpent)} /><Metric label="Remaining purse" value={money(standing.remainingPurse)} /><Metric label="Average signing" value={money(team.averagePlayerCost)} /></div>
-      <p className="result-muted">{standing.currentSquadSize >= standing.minimumSquadSize ? 'Minimum squad reached' : `${standing.minimumSquadSize - standing.currentSquadSize} more players needed for minimum squad`} · Maximum allowed next purchase: {money(standing.maximumAllowedBid)}</p>
-      {team.mostExpensiveSigning && <p>Record signing: <strong>{team.mostExpensiveSigning.playerName}</strong> · {money(team.mostExpensiveSigning.finalPrice ?? 0)}</p>}
-      {data.publicLiveViewEnabled && <CopyLink label="Copy Franchise Link" path={`/live/${data.state.slug}/teams/${standing.teamId}`} />}
-      {!publicView && !data.publicLiveViewEnabled && <p className="result-muted">Public sharing is disabled in tournament settings.</p>}
+  const { state, statistics } = data;
+  const minimumNeeded = Math.max(0, standing.minimumSquadSize - standing.currentSquadSize);
+  const openSlots = Math.max(0, standing.maximumSquadSize - standing.currentSquadSize);
+  const pursePercent = standing.initialPurse > 0 ? Math.max(0, Math.min(100, standing.remainingPurse / standing.initialPurse * 100)) : 0;
+  const remaining = state.sessionStatus === 'COMPLETED' ? [] : data.players.filter(player => ['AVAILABLE', 'ON_AUCTION', 'UNSOLD'].includes(player.status));
+  const lot = state.currentLot || state.lastResult;
+  const leader = state.teamStandings.find(item => item.teamId === (state.currentLot ? lot?.leadingTeamId : lot?.winningTeamId));
+  const accent = /^#[0-9a-f]{6}$/i.test(standing.primaryColor) ? standing.primaryColor : '#c4f143';
+  return <div className="result-stack franchise-dashboard" style={{ '--franchise-accent': accent } as React.CSSProperties}>
+    <section className="franchise-identity">
+      <div className="franchise-crest"><TeamMark key={standing.logoUrl} name={standing.teamName} logo={standing.logoUrl} color={accent} /></div>
+      <div className="franchise-identity-copy"><p className="result-eyebrow">{state.tournamentName} / Franchise headquarters</p><h2>{standing.teamName}</h2><p>{standing.shortName} · {state.currentSetName || 'Tournament auction'} · <span className="result-badge">{state.sessionStatus}</span></p></div>
+      <div className="franchise-identity-share">{data.publicLiveViewEnabled && <CopyLink label="Copy Franchise Link" path={`/live/${encodeURIComponent(state.slug)}/teams/${standing.teamId}`} />}</div>
     </section>
-    <div className="result-position-strip">{team.positions.map(position => <span key={position.position}>{position.position} · {position.playerCount} players · {money(position.totalSpent)}</span>)}</div>
-    <PlayersTable key={standing.teamId} players={roster} money={money} title="Current squad" />
+    <div className="franchise-summary-grid">
+      <section className="franchise-budget"><p className="result-eyebrow">Your remaining purse</p><strong data-testid="franchise-purse">{money(standing.remainingPurse)}</strong><div className="franchise-bar"><span style={{ width: `${pursePercent}%` }} /></div><div className="franchise-budget-details"><span><small>Starting purse</small><b>{money(standing.initialPurse)}</b></span><span><small>Total invested</small><b>{money(standing.totalSpent)}</b></span></div><p>{pursePercent.toFixed(1)}% of the starting purse remains.</p></section>
+      <section className="franchise-capacity"><p className="result-eyebrow">Building the squad</p><div className="franchise-squad-number"><strong>{standing.currentSquadSize}</strong><span>signed players<br />of {standing.maximumSquadSize} maximum</span></div><progress max={Math.max(1, standing.maximumSquadSize)} value={standing.currentSquadSize} aria-label="Team squad capacity" /><div className="franchise-slot-counts"><span><b data-testid="franchise-minimum-slots">{minimumNeeded}</b>needed for minimum</span><span><b data-testid="franchise-open-slots">{openSlots}</b>open squad slots</span></div><p>{!openSlots ? 'Squad full. No further signings available.' : !minimumNeeded ? 'Minimum squad reached. You can strengthen your squad.' : `Sign ${minimumNeeded} more ${minimumNeeded === 1 ? 'player' : 'players'} to reach the minimum of ${standing.minimumSquadSize}.`}</p></section>
+    </div>
+    <section className="franchise-auction-context"><div><p className="result-eyebrow">Across the auction</p><h3>{statistics.soldPlayers} signed · {statistics.totalPlayers} registered</h3><p>{state.sessionStatus === 'COMPLETED' ? 'Final outcomes are recorded below.' : `${remaining.length} players remain in the pool, including the active lot and players awaiting another attempt.`}</p></div><div><small>Maximum allowed bid</small><strong>{money(standing.maximumAllowedBid)}</strong><p>{standing.canBid ? 'The auctioneer validates each purchase against purse and squad rules.' : 'This team cannot bid on the current lot.'}</p></div></section>
+    <div className="franchise-detail-grid">
+      <section className="franchise-podium"><p className="result-eyebrow">{state.currentLot ? 'Live on the podium' : lot ? 'Latest auction result' : 'The auction floor'}</p>{lot ? <><div className="franchise-podium-player"><Portrait key={`${lot.playerId}:${lot.photoUrl}`} name={lot.playerName} photo={lot.photoUrl} /><div><h3>{lot.playerName}</h3><p>{lot.position || 'Player'} · {lot.playerSetName}</p></div></div><div className="franchise-live-price"><span>{state.currentLot ? lot.currentBid == null ? 'Bidding opens at' : 'Leading bid' : lot.status === 'SOLD' ? 'Sold for' : 'Unsold · Base price'}</span><strong>{money(state.currentLot ? lot.currentBid ?? lot.basePrice : lot.finalPrice ?? lot.basePrice)}</strong></div><p className={leader?.teamId === standing.teamId ? 'franchise-leading' : ''}>{leader ? `${leader.teamName}${leader.teamId === standing.teamId ? ' · Your franchise' : ''}` : state.currentLot ? 'Waiting for the opening bid' : 'No winning team'}</p></> : <><h3>{state.sessionStatus === 'COMPLETED' ? 'Auction complete.' : 'Ready for the next reveal.'}</h3><p>The player and leading bid appear here as the auction unfolds.</p></>}</section>
+      <section className="franchise-record"><p className="result-eyebrow">Your marquee signing</p>{team.mostExpensiveSigning ? <><div className="franchise-podium-player"><Portrait key={team.mostExpensiveSigning.photoUrl} name={team.mostExpensiveSigning.playerName} photo={team.mostExpensiveSigning.photoUrl} /><div><h3>{team.mostExpensiveSigning.playerName}</h3><p>{team.mostExpensiveSigning.position || 'Player'}</p></div></div><strong>{money(team.mostExpensiveSigning.finalPrice ?? 0)}</strong><p>Average signing cost: {money(team.averagePlayerCost)}</p></> : <><h3>Your first star awaits.</h3><p>Your highest-value signing will take this spot.</p></>}</section>
+    </div>
+    <section className="result-panel franchise-signings"><div className="franchise-section-heading"><div><p className="result-eyebrow">The players wearing your colours</p><h2>Your signed squad</h2></div><span className="result-badge">{roster.length} signed</span></div><div className="franchise-roster-grid">{roster.map(player => <article key={player.playerId} data-testid={`franchise-signing-${player.playerId}`}><Portrait key={player.photoUrl} name={player.playerName} photo={player.photoUrl} /><div><h3>{player.playerName}</h3><p>{player.position || 'Player'} · {player.playerSetName}</p><small>Base {money(player.basePrice)}</small></div><strong>{money(player.finalPrice ?? 0)}</strong></article>)}</div>{!roster.length && <p className="result-muted">No signings yet. Every player bought by this team will appear here.</p>}</section>
+    {team.positions.length > 0 && <div className="result-position-strip">{team.positions.map(position => <span key={position.position}>{position.position} · {position.playerCount} players · {money(position.totalSpent)}</span>)}</div>}
+    {state.sessionStatus !== 'COMPLETED' ? <><UpcomingPlayers data={data} money={money} /><PlayersTable players={remaining} money={money} title="Remaining player pool" /><p className="result-muted">Base prices are starting prices. A visible purse balance does not guarantee a player can be bought; the auctioneer checks all reserve and squad rules.</p></> : <section className="result-panel"><h2>The auction is complete</h2><p className="result-muted">{statistics.unsoldPlayers} players finished unsold. Your squad and purse above reflect the final recorded results.</p><Link to={publicView ? `/live/${encodeURIComponent(state.slug)}/recap` : `/tournaments/${state.tournamentId}/recap`}>Explore the auction recap <ArrowUpRight size={16} /></Link></section>}
+    {!publicView && !data.publicLiveViewEnabled && <p className="result-muted">Public sharing is disabled in tournament settings.</p>}
   </div>;
 }
 

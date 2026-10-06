@@ -59,4 +59,22 @@ public class RegistrationStorageTests
         Assert.False(storage.Available);
         await Assert.ThrowsAsync<InvalidOperationException>(() => storage.UploadAsync(Guid.NewGuid(), Guid.NewGuid(), Photo()));
     }
+    [Fact]
+    public async Task LogosUsePublicBucketAndVersionedNamesWithServerCredentials()
+    {
+        var handler = new StorageHandler(); var storage = Storage(handler); var tournament = Guid.NewGuid(); var team = Guid.NewGuid();
+        var first = await storage.UploadLogoAsync(tournament, team, Photo());
+        var second = await storage.UploadLogoAsync(tournament, team, Photo());
+        Assert.StartsWith($"https://project.supabase.co/storage/v1/object/public/player-photos/team-logos/{tournament}/{team}/", first);
+        Assert.NotEqual(first, second);
+        Assert.All(handler.Calls, call => Assert.StartsWith("POST /storage/v1/object/player-photos/team-logos/", call));
+    }
+    [Fact]
+    public async Task InvalidLogoBytesNeverReachStorage()
+    {
+        var handler = new StorageHandler(); var storage = Storage(handler);
+        var file = new FormFile(new MemoryStream([1,2,3]), 0, 3, "logo", "logo.png") { Headers = new HeaderDictionary(), ContentType = "image/png" };
+        await Assert.ThrowsAsync<ArgumentException>(() => storage.UploadLogoAsync(Guid.NewGuid(), Guid.NewGuid(), file));
+        Assert.Empty(handler.Calls);
+    }
 }

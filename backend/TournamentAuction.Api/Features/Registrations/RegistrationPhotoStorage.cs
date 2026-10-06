@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using TournamentAuction.Api.Features.Teams;
 
 namespace TournamentAuction.Api.Features.Registrations;
 
@@ -13,7 +14,7 @@ public interface IRegistrationPhotoStorage
 }
 
 // Keys never reach the browser. Pending photos live in a private bucket; only approved photos are public.
-public class RegistrationPhotoStorage(HttpClient http, IConfiguration config) : IRegistrationPhotoStorage
+public class RegistrationPhotoStorage(HttpClient http, IConfiguration config) : IRegistrationPhotoStorage, ITeamLogoStorage
 {
     private string Url => (config["Supabase:Url"] ?? "").TrimEnd('/');
     private string Key => config["Supabase:ServiceRoleKey"] ?? "";
@@ -70,6 +71,22 @@ public class RegistrationPhotoStorage(HttpClient http, IConfiguration config) : 
         using var content = new ByteArrayContent(await download.Content.ReadAsByteArrayAsync());
         content.Headers.ContentType = download.Content.Headers.ContentType;
         using var uploaded = await Send(HttpMethod.Post, $"object/{PublicBucket}/{path}", content, true);
+        return $"{Url}/storage/v1/object/public/{PublicBucket}/{path}";
+    }
+
+    public async Task<string> UploadLogoAsync(Guid tournamentId, Guid teamId, IFormFile logo)
+    {
+        if (!Available) throw new InvalidOperationException("Team logo storage is not configured. Contact the organiser.");
+        if (logo.Length > 3 * 1024 * 1024) throw new ArgumentException("Choose a JPEG, PNG or WebP logo up to 3 MB.");
+        using var buffer = new MemoryStream();
+        await logo.CopyToAsync(buffer);
+        var bytes = buffer.ToArray();
+        var extension = ValidatePhoto(bytes, logo.ContentType);
+        // Versioned names keep replacement logos fresh in browser and CDN caches.
+        var path = $"team-logos/{tournamentId}/{teamId}/{Guid.NewGuid():N}.{extension}";
+        using var content = new ByteArrayContent(bytes);
+        content.Headers.ContentType = new MediaTypeHeaderValue(logo.ContentType);
+        using var response = await Send(HttpMethod.Post, $"object/{PublicBucket}/{path}", content, true);
         return $"{Url}/storage/v1/object/public/{PublicBucket}/{path}";
     }
 }
