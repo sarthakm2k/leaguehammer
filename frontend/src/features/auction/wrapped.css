@@ -48,7 +48,7 @@
 .wrapped-portrait>span { position:absolute; bottom:3px; font-size:9px; font-weight:800; }
 .wrapped-crest img { object-fit:contain; padding:4px; }
 .wrapped-star { position:relative; text-align:center; display:grid; justify-items:center; gap:8px; }
-.wrapped-star .wrapped-portrait { width:130px; height:150px; border:1px solid #ffffff30; border-radius:22px; }
+.wrapped-star .wrapped-portrait { width:190px; height:220px; border:1px solid #ffffff30; border-radius:22px; }
 .wrapped-star>svg { position:absolute; width:44px; height:44px; color:var(--wrapped-accent); top:-8px; right:calc(50% - 85px); transform:rotate(15deg); }
 .wrapped-star h3 { font-size:28px; line-height:1.1; font-weight:850; letter-spacing:-.04em; margin:6px 0 0; overflow-wrap:anywhere; }
 .wrapped-star p { font-size:12px; color:var(--wrapped-muted); margin:0; }
@@ -121,3 +121,109 @@
 @media(max-height:650px) { .wrapped-feature-player { gap:6px; } .wrapped-feature-player .wrapped-portrait { width:52px; height:60px; } .wrapped-number-feature { margin:4px 0; } .wrapped-mini-stats { padding-top:12px; } }
 @keyframes wrapped-arrive { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 @media(prefers-reduced-motion:reduce) { .wrapped-slide { animation:none; } }
+.wrapped-podium { display:flex; align-items:flex-end; gap:10px; margin:16px 0; }
+.wrapped-podium>div { flex:1; text-align:center; padding:16px 6px; border:1px solid #ffffff25; border-radius:18px; background:#ffffff08; }
+.wrapped-podium>div[data-rank="1"] { padding-top:35px; background:#ffffff16; }
+.wrapped-podium>div>span { display:block; color:var(--wrapped-accent); font-size:24px; font-weight:900; margin-bottom:10px; }
+.wrapped-podium .wrapped-portrait { width:100%; height:110px; margin:auto; }
+.wrapped-podium h3 { font-size:14px; line-height:1.2; overflow-wrap:anywhere; margin:12px 0 5px; }
+.wrapped-podium p { font-size:10px; color:var(--wrapped-muted); margin:0 0 10px; }
+.wrapped-podium b { font-size:14px; color:var(--wrapped-accent); overflow-wrap:anywhere; }
+.wrapped-growth { display:grid; gap:16px; }
+.wrapped-growth>div { display:flex; gap:14px; align-items:center; padding:10px 0; border-bottom:1px solid #ffffff25; }
+.wrapped-growth .wrapped-portrait { width:70px; height:80px; }
+.wrapped-growth h3 { font-size:20px; margin:0; overflow-wrap:anywhere; }
+.wrapped-growth p { font-size:12px; color:var(--wrapped-muted); margin:7px 0; }
+.wrapped-growth b { font-size:18px; color:var(--wrapped-accent); }
+.wrapped-growth small { font-size:11px; white-space:nowrap; }
+.wrapped-position-stars { display:flex; gap:18px; justify-content:center; text-align:center; }
+.wrapped-position-stars>div { flex:1; min-width:0; }
+.wrapped-position-stars .wrapped-portrait { width:min(100%,220px); height:230px; margin:auto; }
+.wrapped-position-stars h3 { font-size:26px; line-height:1.1; margin:14px 0 8px; overflow-wrap:anywhere; }
+.wrapped-position-stars p { font-size:12px; color:var(--wrapped-muted); }
+.wrapped-position-stars b { font-size:30px; color:var(--wrapped-accent); }
+.wrapped-explore-actions { display:flex; flex-wrap:wrap; justify-content:center; gap:12px; padding:0 18px 10px; }
+.wrapped-explore-actions button { display:flex; align-items:center; gap:6px; border:0; background:transparent; color:var(--wrapped-text); font-size:11px; text-decoration:underline; text-underline-offset:4px; }
+.wrapped-signing { display:grid; justify-items:center; text-align:center; gap:10px; }
+.wrapped-signing h2 { font-size:38px; font-weight:900; line-height:1; letter-spacing:-.04em; margin:0; }
+.wrapped-signing h2 em { color:var(--wrapped-accent); }
+.wrapped-signing>.wrapped-portrait { width:min(100%,240px); height:260px; border:1px solid #ffffff30; border-radius:22px; }
+.wrapped-signing>.wrapped-portrait img,.wrapped-star .wrapped-portrait img,.wrapped-position-stars img { object-fit:contain; }
+.wrapped-signing h3 { font-size:32px; font-weight:900; line-height:1.05; margin:0; overflow-wrap:anywhere; }
+.wrapped-signing-team { display:flex; align-items:center; justify-content:center; gap:10px; }
+.wrapped-signing-team .wrapped-portrait { width:38px; height:38px; }
+.wrapped-signing-team strong { font-size:16px; }
+.wrapped-signing-price { display:grid; gap:4px; }
+.wrapped-signing-price small { text-transform:uppercase; letter-spacing:.12em; font-size:9px; color:var(--wrapped-muted); }
+.wrapped-signing-price b { font-size:38px; color:var(--wrapped-accent); font-weight:900; }
+.wrapped-download { align-self:center; display:flex; align-items:center; justify-content:center; gap:8px; border:1px solid #ffffff30; border-radius:20px; padding:10px 16px; background:#ffffff0b; color:var(--wrapped-text); font-size:12px; }
+.wrapped-download:disabled { opacity:.6; }
+.wrapped-explorer { --wrapped-accent:#c4f143; max-width:460px; width:calc(100% - 28px); max-height:85dvh; margin:auto; padding:24px; border:1px solid #ffffff30; border-radius:24px; background:#17212a; color:#f7f3eb; box-shadow:0 20px 80px #0008; }
+.wrapped-explorer::backdrop { background:#050a12bb; backdrop-filter:blur(8px); }
+.wrapped-explorer-title { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.wrapped-explorer-title h2 { font-size:22px; font-weight:850; }
+.wrapped-explorer-title button { border:0; background:transparent; color:inherit; cursor:pointer; }
+.wrapped-explorer>p { font-size:12px; margin:12px 0; }
+.wrapped-explorer>input { width:100%; background:#ffffff0b; border:1px solid #ffffff30; border-radius:12px; padding:12px; color:inherit; font-size:14px; margin-bottom:14px; }
+.wrapped-explorer-list { display:grid; gap:6px; }
+.wrapped-explorer-list>button { display:flex; align-items:center; gap:12px; width:100%; text-align:left; border:0; border-radius:12px; padding:10px; background:#ffffff08; color:inherit; cursor:pointer; }
+.wrapped-explorer-list>button>span { flex:1; min-width:0; }
+.wrapped-explorer-list strong { display:block; font-size:15px; overflow-wrap:anywhere; }
+.wrapped-explorer-list small { display:block; font-size:11px; margin-top:4px; opacity:.7; }
+:root[data-theme="light"] .wrapped-explorer { --wrapped-accent:#476719; background:#edf1ef; color:#172323; border-color:#17232330; }
+:root[data-theme="light"] .wrapped-explorer>input,:root[data-theme="light"] .wrapped-explorer-list>button { background:#17232308; border-color:#17232330; }
+@media(max-height:700px) {
+ .wrapped-star .wrapped-portrait { width:155px; height:175px; }
+ .wrapped-podium .wrapped-portrait { height:80px; }
+ .wrapped-podium>div { padding-block:10px; }
+ .wrapped-growth { gap:6px; } .wrapped-growth>div { padding:8px 0; } .wrapped-growth .wrapped-portrait { width:55px; height:60px; }
+ .wrapped-position-stars .wrapped-portrait { height:170px; } .wrapped-position-stars h3 { font-size:22px; }
+ .wrapped-signing { gap:7px; } .wrapped-signing h2 { font-size:30px; } .wrapped-signing>.wrapped-portrait { width:170px; height:180px; } .wrapped-signing h3 { font-size:25px; } .wrapped-signing-price b { font-size:30px; }
+}
+@media(max-height:600px) {
+ .wrapped-star .wrapped-portrait { width:140px; height:155px; } .wrapped-star { gap:5px; } .wrapped-mini-stats { padding-top:8px; }
+ .wrapped-podium { margin:4px 0; gap:6px; } .wrapped-podium .wrapped-portrait { height:65px; } .wrapped-podium h3 { font-size:12px; } .wrapped-podium b { font-size:12px; }
+ .wrapped-growth h3 { font-size:16px; } .wrapped-growth b { font-size:15px; } .wrapped-growth p { font-size:10px; }
+ .wrapped-position-stars .wrapped-portrait { height:140px; } .wrapped-position-stars b { font-size:24px; }
+ .wrapped-signing { gap:5px; } .wrapped-signing>.wrapped-portrait { width:145px; height:150px; } .wrapped-signing h2 { font-size:25px; } .wrapped-signing h3 { font-size:22px; } .wrapped-signing-price b { font-size:26px; } .wrapped-signing-team .wrapped-portrait { width:28px; height:28px; } .wrapped-signing-team strong { font-size:13px; }
+ .wrapped-download { padding:7px 12px; font-size:11px; }
+}
+:root[data-theme="light"] .wrapped-frame[data-tone="club"] { --wrapped-accent:color-mix(in srgb,var(--wrapped-club) 40%,#172323); }
+@media(max-height:600px) {
+ .wrapped-star .wrapped-portrait { width:130px; height:145px; }
+ .wrapped-star h3 { font-size:21px; } .wrapped-star>strong { font-size:27px; }
+ .wrapped-signing>.wrapped-portrait { width:110px; height:115px; }
+ .wrapped-signing { gap:4px; } .wrapped-signing h2 { font-size:23px; }
+ .wrapped-message { margin-top:3px; font-size:9px; }
+}
+.wrapped-podium>div[data-rank="1"] { order:2; }
+.wrapped-podium>div[data-rank="2"] { order:1; }
+.wrapped-podium>div[data-rank="3"] { order:3; }
+.wrapped-growth h3 { line-height:1.15; }
+.wrapped-growth p { line-height:1.25; }
+.wrapped-growth b { display:block; line-height:1.2; }
+.wrapped-growth small { display:block; margin-top:3px; }
+@media(min-width:601px) and (max-height:850px) {
+ .wrapped-slide { gap:14px; padding-block:20px; }
+ .wrapped-star .wrapped-portrait { width:175px; height:200px; }
+}
+@media(max-height:600px) {
+ .wrapped-mini-stats b { font-size:16px; line-height:1.1; }
+ .wrapped-mini-stats span { font-size:9px; line-height:1.2; gap:3px; }
+ .wrapped-mini-stats { padding-top:6px; }
+ .wrapped-podium>div[data-rank="1"] { padding-top:18px; }
+ .wrapped-signing>.wrapped-portrait { width:100px; height:100px; }
+ .wrapped-signing { gap:3px; } .wrapped-signing-price b { font-size:24px; }
+ .wrapped-growth>div { padding-block:6px; } .wrapped-growth h3 { font-size:15px; } .wrapped-growth small { font-size:10px; }
+}
+@media(max-height:600px) {
+ .wrapped-growth { gap:4px; } .wrapped-growth p { margin-block:4px; }
+ .wrapped-growth small { display:inline; font-size:9px; white-space:normal; }
+ .wrapped-growth b { font-size:14px; }
+}
+.wrapped-growth { gap:14px; } .wrapped-growth p { margin-block:5px; }
+.wrapped-podium img { object-fit:contain; }
+.wrapped-star>svg { right:calc(50% - 110px); }
+@media(min-width:601px) and (max-height:850px) { .wrapped-star .wrapped-portrait { height:190px; } }
+@media(max-height:600px) { .wrapped-star .wrapped-portrait { height:135px; } .wrapped-star>svg { right:calc(50% - 85px); } .wrapped-growth { gap:4px; } .wrapped-growth p { margin-block:4px; } }
+@media(max-height:600px) { .wrapped-slide:has(.wrapped-star) { gap:6px; } }

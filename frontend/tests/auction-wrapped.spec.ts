@@ -72,3 +72,66 @@ test('Wrapped links appear after completion; public access and empty auctions ar
   await page.route('**/api/public/tournaments/demo/results',route=>route.fulfill({status:404,json:{detail:'Public live view is disabled.'}}));
   await page.reload(); await expect(page.getByRole('heading',{name:'Wrapped unavailable'})).toBeVisible();
 });
+
+test('player spotlights, individual sharing and portrait PNG downloads work outside the main story', async ({ page, context }) => {
+  const data = storyData();
+  // Ties must share podium places and position spotlights.
+  data.players[1].finalPrice = data.players[0].finalPrice;
+  data.players[2].finalPrice = data.players[0].finalPrice;
+  await mock(page,data); await context.grantPermissions(['clipboard-read','clipboard-write']);
+  await page.setViewportSize({ width:390,height:844 }); await page.goto('/live/demo/wrapped');
+  const main = page.getByRole('combobox',{ name:'Jump to story slide' });
+  await main.selectOption('podium');
+  await expect(page.locator('.wrapped-podium [data-rank="1"]')).toHaveCount(3);
+  await main.selectOption('base-to-big-time'); await expect(page.getByTestId('wrapped-slide')).toContainText('Base price.');
+  await main.selectOption('position-star-defender-1'); await expect(page.locator('.wrapped-position-stars h3')).toHaveCount(2);
+  expect(await main.locator('option[value^="signing-"]').count()).toBe(0);
+  await page.getByRole('button',{name:'Explore every player',exact:true}).click();
+  const dialog = page.getByRole('dialog'); await expect(dialog).toBeVisible();
+  await dialog.getByRole('button',{name:'Close player explorer'}).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page).toHaveURL(/slide=position-star-defender-1/);
+  await expect(dialog.locator('.wrapped-explorer-list>button')).toHaveCount(13);
+  await page.getByRole('searchbox',{name:'Search signed players'}).fill('Player 12');
+  await dialog.getByRole('button',{name:/Player 12/}).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page).toHaveURL(/slide=signing-p-11/);
+  await expect(page.getByTestId('wrapped-slide')).toContainText('Meet your');
+  await expect(page.getByTestId('wrapped-slide')).toContainText('Player 12');
+  await expect(main.locator('option')).toHaveCount(13);
+  await page.getByRole('button',{name:'Copy this slide'}).click();
+  expect(await page.evaluate(()=>navigator.clipboard.readText())).toBe(new URL('/live/demo/wrapped?slide=signing-p-11',page.url()).href);
+  await page.reload(); await expect(page.getByTestId('wrapped-slide')).toContainText('Player 12');
+  const downloadEvent = page.waitForEvent('download');
+  await page.getByRole('button',{name:'Download signing image'}).click();
+  const download = await downloadEvent;
+  expect(download.suggestedFilename()).toMatch(/Player-12-signing\.png$/);
+  expect(await download.failure()).toBeNull();
+  await download.saveAs('../.cache/wrapped-signing-player.png');
+  // Inspect the actual generated artifact, not just the download click.
+  const stream = await download.createReadStream(); const parts: Buffer[] = [];
+  for await (const part of stream!) parts.push(Buffer.from(part));
+  const png = Buffer.concat(parts);
+  expect(png.subarray(1,4).toString()).toBe('PNG'); expect(png.readUInt32BE(16)).toBe(1080); expect(png.readUInt32BE(20)).toBe(1920);
+  await page.setViewportSize({width:320,height:568});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  expect(await page.getByTestId('wrapped-slide').evaluate(node=>node.scrollHeight<=node.clientHeight+1)).toBe(true);
+  await page.getByRole('button',{name:'Back to the story'}).click();
+  await expect(main.locator('option[value="podium"]')).toHaveCount(1);
+  await expect(main.locator('option[value^="signing-"]')).toHaveCount(0);
+});
+
+test('a missing player photo still produces a signing image and native sharing targets that player', async ({ page }) => {
+  const data = storyData(); data.players[0].photoUrl = 'https://photos.example.test/missing.jpg';
+  await mock(page,data); await page.route('https://photos.example.test/**',route=>route.abort());
+  await page.addInitScript(() => Object.defineProperty(navigator,'share',{ configurable:true, value:async (value:ShareData) => { (window as unknown as { shared: ShareData }).shared = value; } }));
+  await page.goto('/live/demo/wrapped?slide=signing-p-0');
+  await page.getByRole('button',{name:'Share Auction Wrapped'}).click();
+  const shared = await page.evaluate(() => (window as unknown as { shared: ShareData }).shared);
+  expect(shared.url).toBe(new URL('/live/demo/wrapped?slide=signing-p-0',page.url()).href);
+  expect(shared.text).toContain('Player 01 joins Falcons FC');
+  const downloadEvent = page.waitForEvent('download');
+  await page.getByRole('button',{name:'Download signing image'}).click();
+  expect(await (await downloadEvent).failure()).toBeNull();
+  await expect(page.getByRole('status')).toContainText('Image downloaded with initials');
+});
