@@ -40,7 +40,7 @@ export function FootballPlayerCard({ player }: { player: CardPlayer }) {
   const goalkeeper = isGoalkeeper(player.cardPosition,player.position);
   const shortPosition = player.cardPosition || ({Goalkeeper:'GK',Defender:'DEF',Midfielder:'MID',Forward:'FWD'}[player.position || ''] ?? '');
   return <article className="football-player-card" aria-label={`${player.playerName} player card`}>
-    <CardArtwork /><div className="football-card-crest" aria-hidden="true"><Gavel /></div><p className="football-card-edition">PLAYER EDITION</p>
+    <CardArtwork /><div className="football-card-crest" aria-hidden="true"><Gavel /></div>
     <div className="football-card-overall"><strong aria-label={player.ratings?.overall == null ? 'Overall not rated' : `Overall ${player.ratings.overall}`}>{player.ratings?.overall ?? ''}</strong><span>{shortPosition}</span></div>
     <div className="football-card-photo">{player.photoUrl && player.photoUrl !== failedPhoto ? <img src={player.photoUrl} alt={player.playerName} onError={() => setFailedPhoto(player.photoUrl || null)} /> : <img className="football-card-avatar" src="/brand/player-avatar.svg" alt={`${player.playerName} avatar`} aria-label="Player photo unavailable" />}</div>
     {player.jerseyNumber != null && <span className="football-card-jersey">#{player.jerseyNumber}</span>}

@@ -74,11 +74,11 @@ export async function downloadSigningImage(data: AuctionResults, player: ResultP
   const position=player.cardPosition || ({Goalkeeper:'GK',Defender:'DEF',Midfielder:'MID',Forward:'FWD'}[player.position || ''] ?? '');
   cardText(String(player.ratings?.overall ?? ''),.25,.23,cardWidth*.22,cardWidth*.24);
   cardText(position,.25,.335,cardWidth*.1,cardWidth*.24);
-  cardText('PLAYER EDITION',.655,.18,cardWidth*.024,cardWidth*.48,'center',false);
   ctx.strokeStyle=gold; ctx.lineWidth=2;
   ctx.beginPath(); ctx.moveTo(cardX+cardWidth*.45,cardY+cardHeight*.08); ctx.lineTo(cardX+cardWidth*.55,cardY+cardHeight*.08); ctx.lineTo(cardX+cardWidth*.54,cardY+cardHeight*.135); ctx.lineTo(cardX+cardWidth*.5,cardY+cardHeight*.16); ctx.lineTo(cardX+cardWidth*.46,cardY+cardHeight*.135); ctx.closePath();ctx.stroke();
   cardText('LH',.5,.115,cardWidth*.045,cardWidth*.09,'center',false);
-  if(photo || avatar) image((photo || avatar)!,cardX+cardWidth*.32,cardY+cardHeight*.19,cardWidth*.59,cardHeight*.43);
+  if(photo) image(photo,cardX+cardWidth*.32,cardY+cardHeight*.19,cardWidth*.59,cardHeight*.43);
+  else if(avatar) image(avatar,cardX+cardWidth*.3554,cardY+cardHeight*.1771,cardWidth*.5192,cardHeight*.3784);
   else {
     // Even if the bundled avatar cannot load, the export retains a silhouette.
     ctx.fillStyle=gold; ctx.beginPath();ctx.arc(cardX+cardWidth*.615,cardY+cardHeight*.32,cardWidth*.075,0,Math.PI*2);ctx.fill();
