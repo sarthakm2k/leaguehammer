@@ -12,7 +12,8 @@ function fixture() {
     position: 'Forward', age: 21, preferredFoot: 'Right', jerseyNumber: null, playerSetId: i < 4 ? 'set-a' : 'set-b', playerSetName: i < 4 ? 'First Set' : 'Second Set', basePrice: 500,
     status, attemptCount: status === 'SOLD' || status === 'ON_AUCTION' || status === 'UNSOLD' ? 1 : 0,
     winningTeamId: status === 'SOLD' ? teamId : null, winningTeamName: status === 'SOLD' ? standing.teamName : null, finalPrice: status === 'SOLD' ? 2000 : null, pricePremium: null, priceMultiplier: null }));
-  const lot = { ...players[1], lotId: 'lot-active', status: 'ON_AUCTION', attemptNumber: 1, currentBid: 700, leadingTeamId: teamId };
+  const lot = { ...players[1], lotId: 'lot-active', status: 'ON_AUCTION', attemptNumber: 1, currentBid: 700, leadingTeamId: teamId,
+    cardPosition:'ST', ratings:{overall:91,isGoalkeeper:false,attributes:{pace:96,shooting:96,passing:80,dribbling:88,defending:60,physical:94}} };
   const state = { tournamentId, tournamentName: 'Champions Trophy 2026', slug: 'demo', currencyCode: 'INR', currencySymbol: '₹', sessionStatus: 'LIVE', version: 1,
     sellAllPlayers: true, currentAttemptNumber: 1, isUnsoldRound: false, currentSetName: 'First Set', currentLot: lot as typeof lot | null, lastResult: null as typeof lot | null,
     currentSetSummary: { setId: 'set-a', setName: 'First Set', totalPlayersInSet: 4, soldCount: 1, unsoldCount: 1, remainingCount: 1, totalSpentInSet: 2000 },
@@ -88,6 +89,8 @@ test('projector fits laptop viewports with the player, progress and ticker visib
       expect(box!.y + box!.height).toBeLessThanOrEqual(size.height + 1);
     }
     await expect(page.locator('.stage-portrait .football-card-photo img')).toHaveCSS('object-fit', 'contain');
+    await expect(page.getByLabel('Overall 91')).toHaveText('91');
+    await expect(page.getByLabel('Physical 94')).toBeVisible();
     expect(await page.locator('.stage-team-list').evaluate(node => node.scrollHeight <= node.clientHeight + 1)).toBe(true);
     for (const card of await page.locator('.stage-team').all()) {
       const box = await card.boundingBox();
@@ -121,4 +124,5 @@ test('projector fits laptop viewports with the player, progress and ticker visib
   expect(sold!.y + sold!.height).toBeLessThanOrEqual(progress!.y);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({path:'../.cache/projector-card-mobile.png',fullPage:true});
 });
