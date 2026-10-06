@@ -87,6 +87,18 @@ export function buildWrappedSlides(data: AuctionResults): Slide[] {
       {players.length ? <PlayerRows players={players} money={money} start={index * 3} /> : <div className="wrapped-empty-squad"><Shield size={48} /><h3>A chapter still to write.</h3><p>No players were signed by this franchise.</p></div>}
       <p className="wrapped-caption">{t.currentSquadSize} / {t.maximumSquadSize} squad capacity · {Math.max(0,t.minimumSquadSize - t.currentSquadSize)} below minimum · Average signing {money(team.averagePlayerCost)}</p>
     </> });
+    const cardPages = roster.length ? chunks(roster,4) : [[]];
+    for (const [index, players] of cardPages.entries()) slides.push({
+      id:`team-cards-${t.teamId}-${index + 1}`, label:`${t.teamName} · Player cards ${index + 1}/${cardPages.length}`,
+      tone:'club', accent:signingAccent(t.primaryColor), content:<section className="wrapped-team-cards" aria-label={`${t.teamName} squad cards`}>
+        <div className="wrapped-card-team-header"><StoryPortrait name={t.teamName} url={t.logoUrl} crest /><div><p className="wrapped-kicker">The squad collection / {index + 1} of {cardPages.length}</p><h2>{t.teamName}</h2><p>{roster.length} signings · {money(t.totalSpent)} invested</p></div></div>
+        {players.length ? <div className="wrapped-squad-card-grid" data-card-count={players.length}>{players.map(player =>
+          <Link className="wrapped-squad-card" key={player.playerId} to={`?slide=signing-${player.playerId}`} aria-label={`View ${player.playerName} signing card`} data-testid={`wrapped-squad-card-${player.playerId}`}>
+            <FootballPlayerCard player={player} /><span className="wrapped-squad-card-price">{money(player.finalPrice ?? 0)}</span>
+          </Link>)}</div> : <div className="wrapped-empty-squad"><Shield size={48} /><h3>The collection starts here.</h3><p>No players were signed by this franchise.</p></div>}
+        <p className="wrapped-card-team-caption">{players.length ? `Signings ${index * 4 + 1}–${index * 4 + players.length} of ${roster.length}. Tap a card for the player’s signing story.` : 'Every team has a place in the auction story.'}</p>
+      </section>
+    });
   }
   const unsold = data.players.filter(p => p.status !== 'SOLD').sort((a,b) => a.playerName.localeCompare(b.playerName));
   for (const [index, players] of chunks(unsold,4).entries()) slides.push({ id: `unsold-${index + 1}`, label: `Final unsold players ${index + 1}`, tone: 'blue', content: <><StoryHeading kicker="Every outcome matters">Still part<br />of the <em>story.</em></StoryHeading><PlayerRows players={players} money={money} start={index * 4} /><p className="wrapped-caption">Players without a final signing. Their auction journey remains part of the record.</p></> });

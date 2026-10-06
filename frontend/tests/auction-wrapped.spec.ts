@@ -40,6 +40,10 @@ test('mobile Wrapped covers all squads, stories, swipe, keyboard, deep links and
   await expect(page.getByTestId('wrapped-slide')).toContainText('The record signing');
   const options=await page.getByRole('combobox',{name:'Jump to story slide'}).locator('option').evaluateAll(nodes=>nodes.map(n=>(n as HTMLOptionElement).value));
   const teamSlides=options.filter(id=>id.startsWith(`team-${teamId}-`)); expect(teamSlides).toHaveLength(5);
+  const teamCardSlides=options.filter(id=>id.startsWith(`team-cards-${teamId}-`)); expect(teamCardSlides).toHaveLength(4);
+  const cardPlayers:string[]=[];
+  for(const id of teamCardSlides) { await page.getByRole('combobox').selectOption(id); cardPlayers.push(...await page.locator('[data-testid^="wrapped-squad-card-"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('data-testid')!))); }
+  expect(cardPlayers).toEqual(data.players.filter(p=>p.status==='SOLD').map(p=>`wrapped-squad-card-${p.playerId}`));
   const signed:string[]=[];
   for(const id of teamSlides) { await page.getByRole('combobox').selectOption(id); signed.push(...await page.locator('[data-testid^="wrapped-player-"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('data-testid')!))); }
   expect(signed).toEqual(data.players.filter(p=>p.status==='SOLD').map(p=>`wrapped-player-${p.playerId}`));
@@ -148,6 +152,43 @@ test('a missing player photo still produces a signing image and native sharing t
   await page.getByRole('button',{name:'Download signing image'}).click();
   expect(await (await downloadEvent).failure()).toBeNull();
   await expect(page.getByRole('status')).toContainText('Image downloaded with initials');
+});
+
+test('team card collections keep every signing, share deep links and open individual player stories',async({page,context})=>{
+  const data=storyData(); data.players[0].cardPosition='ST';
+  data.players[0].ratings={overall:87,isGoalkeeper:false,attributes:{pace:99,shooting:80}};
+  await mock(page,data); await context.grantPermissions(['clipboard-read','clipboard-write']);
+  await page.setViewportSize({width:390,height:844});
+  const first=`team-cards-${teamId}-1`;
+  await page.goto(`/live/demo/wrapped?slide=${first}`);
+  await expect(page.getByRole('heading',{name:'Falcons FC',exact:true})).toBeVisible();
+  await expect(page.locator('.wrapped-squad-card')).toHaveCount(4);
+  const card=page.getByRole('article',{name:'Player 01 player card'});
+  await expect(card.getByLabel('Overall 87')).toHaveText('87');
+  await expect(card.getByLabel('Passing not rated')).toBeEmpty();
+  for(const size of [{width:390,height:844},{width:320,height:568},{width:1280,height:800}]) {
+    await page.setViewportSize(size);
+    for(const item of await page.locator('.wrapped-squad-card').all()) {
+      const tile=await item.boundingBox(); const player=await item.locator('.football-player-card').boundingBox();
+      expect(player!.height).toBeGreaterThan(100);
+      expect(player!.y+player!.height).toBeLessThanOrEqual(tile!.y+tile!.height);
+      expect(player!.width/player!.height).toBeCloseTo(2/3,2);
+    }
+    expect(await page.getByTestId('wrapped-slide').evaluate(node=>node.scrollHeight<=node.clientHeight+1)).toBe(true);
+  }
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:'../.cache/wrapped-team-cards-mobile.png',animations:'disabled'});
+  await page.getByRole('button',{name:'Copy this slide'}).click();
+  expect(await page.evaluate(()=>navigator.clipboard.readText())).toBe(new URL(`/live/demo/wrapped?slide=${first}`,page.url()).href);
+  await page.reload(); await expect(page.locator('.wrapped-squad-card')).toHaveCount(4);
+  await page.getByRole('link',{name:'View Player 01 signing card'}).click();
+  await expect(page).toHaveURL(/slide=signing-p-0/);
+  await expect(page.getByRole('button',{name:'Download signing image'})).toBeVisible();
+  await page.goto('/live/demo/wrapped?slide=team-cards-empty-1');
+  await expect(page.getByText('No players were signed by this franchise.')).toBeVisible();
+  await page.getByRole('combobox').selectOption(`team-${teamId}-1`);
+  await expect(page.locator('.wrapped-team-totals')).toBeVisible();
+  await expect(page.locator('.wrapped-player-list li')).toHaveCount(3);
 });
 
 test('podium and position spotlights preserve tall and wide photos at phone sizes', async ({ page }) => {
