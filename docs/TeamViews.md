@@ -21,12 +21,12 @@ Owners upload logos from the Participating Teams cards. This works for existing 
 
 ## Laptop projector
 
-For viewports at least 900 px wide and 500 px high, the broadcast occupies the browser viewport, keeping stage progress and the signing ticker in view. Team and roster lists scroll within their panels. Compact spacing supports short laptop windows; exceptional long player text can scroll within the spotlight rather than pushing the ticker below the screen. Phones retain the stacked scrollable layout. Player photos retain their proportions with `object-fit: contain`.
+For viewports at least 900 px wide and 500 px high, the broadcast occupies the browser viewport, keeping stage progress and the signing ticker in view. All teams appear together in a grid, with one to four columns selected by team count. Team lists do not scroll. Larger counts use compact purse/squad cards and a legend. For more than two teams, the selected squad opens in a separate panel so the grid retains its space. Compact spacing supports short laptop windows; exceptional long player text can scroll within the spotlight rather than pushing the ticker below the screen. Phones retain the stacked page layout. Player photos retain their proportions with `object-fit: contain`.
 
 ## Verification
 
 - Release .NET build: zero warnings/errors; 114 tests passed.
 - Frontend production build passed; lint has existing React warnings and no errors.
 - `tests/team-dashboard.spec.ts` covers team metrics, roster, upcoming sets, unsold pool, SignalR refresh, final outcomes, light theme and 320/390 px mobile layouts.
-- Projector checks cover 1366×650, 1280×600, 1024×600 and 1920×1080 with ten teams, plus mobile width, contained photos and SOLD banner placement.
+- Projector checks cover 1366×650, 1280×600, 1024×600 and 1920×1080 with ten teams, plus 4/24/32-team grids at 1024×600. Checks verify that all team cards are inside the grid, the team grid does not scroll, and photos and SOLD banners fit.
 - Storage tests use an HTTP handler; no production Supabase writes were performed during automated verification.

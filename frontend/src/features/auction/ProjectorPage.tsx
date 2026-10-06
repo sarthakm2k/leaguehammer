@@ -79,7 +79,8 @@ export function ProjectorPage() {
   const roster = state.soldPlayers.filter(p => p.winningTeamId === rosterTeam?.teamId);
   const progress = state.totalPlayersCount ? Math.round((state.totalSoldPlayersCount + state.totalUnsoldPlayersCount) / state.totalPlayersCount * 100) : 0;
 
-  return <div className={`projector ${celebration ? 'stage-celebrating' : ''}`} style={{ '--team-color': leadingTeam?.primaryColor || '#b7f76b' } as CSSProperties}>
+  const teamColumns = state.teamStandings.length <= 4 ? 1 : state.teamStandings.length <= 12 ? 2 : state.teamStandings.length <= 24 ? 3 : 4;
+  return <div className={`projector ${celebration ? 'stage-celebrating' : ''}`} data-team-columns={teamColumns} data-team-density={state.teamStandings.length > 2 ? 'compact' : 'regular'} style={{ '--team-color': leadingTeam?.primaryColor || '#b7f76b', '--team-cols': teamColumns, '--team-rows': Math.max(1, Math.ceil(state.teamStandings.length / teamColumns)) } as CSSProperties}>
     <header className="stage-header">
       <div className="stage-brand"><LeagueHammerBrand compact /><div><p className="stage-eyebrow">LeagueHammer / Live broadcast</p><h1>{state.tournamentName}</h1></div></div>
       <div className="stage-header-actions"><span data-theme-slot /><ConnectionIndicator status={connection} /><button aria-label={fullscreen ? 'Exit full screen' : 'Enter full screen'} onClick={() => { void toggleFullscreen(); }} title="Full screen · F11">{fullscreen ? <Minimize /> : <Maximize />}</button></div>
@@ -112,12 +113,13 @@ export function ProjectorPage() {
 
       <aside className="stage-teams" aria-label="Live team purses and squads">
         <div className="stage-section-title"><div><p className="stage-eyebrow">The franchises</p><h2>Team tracker</h2></div><UsersCount count={state.teamStandings.length} /></div>
+        <p className="stage-grid-legend">Remaining purse · Squad / maximum</p>
         <div className="stage-team-list">{state.teamStandings.map(team => <button key={team.teamId} className={`stage-team ${rosterTeam?.teamId === team.teamId ? 'stage-team-selected' : ''}`} style={{ '--club-color': team.primaryColor } as CSSProperties} onClick={() => setSelectedTeamId(team.teamId)} aria-pressed={rosterTeam?.teamId === team.teamId}>
-          <div className="stage-team-name">{team.logoUrl && <img className="stage-team-logo" src={team.logoUrl} alt="" />}<span className="stage-club-code">{team.shortName}</span><strong>{team.teamName}</strong><ArrowUpRight size={18} /></div>
+          <div className="stage-team-name">{team.logoUrl && <img className="stage-team-logo" src={team.logoUrl} alt="" />}<span className="stage-club-code">{team.shortName}</span><strong title={team.teamName}>{team.teamName}</strong><ArrowUpRight size={18} /></div>
           <div className="stage-team-finance"><div><span>Purse remaining</span><b data-testid={`purse-${team.shortName}`}>{money(team.remainingPurse)}</b></div><div><span>Squad</span><b>{team.currentSquadSize}<small> / {team.maximumSquadSize}</small></b></div></div>
           <div className="stage-squad-progress"><span style={{ width: `${Math.min(100, team.currentSquadSize / Math.max(1, team.minimumSquadSize) * 100)}%` }} /></div>
         </button>)}</div>
-        <section className="stage-roster" aria-label="Selected team roster"><div className="stage-roster-heading"><h3>{rosterTeam?.shortName || 'Team'} / Current squad</h3><span>{roster.length} signed</span></div><div className="stage-roster-list">{roster.length ? roster.map(player => <div key={player.lotId}><span><b>{player.playerName}</b><small>{player.position || 'Player'}</small></span><strong>{money(player.finalPrice ?? 0)}</strong></div>) : <p>The first signing is still to come.</p>}</div></section>
+        <details className="stage-roster" open={state.teamStandings.length <= 2} aria-label="Selected team roster"><summary className="stage-roster-heading"><h3>{rosterTeam?.shortName || 'Team'} / Current squad</h3><span>{roster.length} signed · View</span></summary><div className="stage-roster-list">{roster.length ? roster.map(player => <div key={player.lotId}><span><b>{player.playerName}</b><small>{player.position || 'Player'}</small></span><strong>{money(player.finalPrice ?? 0)}</strong></div>) : <p>The first signing is still to come.</p>}</div></details>
       </aside>
     </main>
 

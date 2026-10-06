@@ -77,6 +77,7 @@ export function AuctionRecapPage({ publicView = false }: { publicView?: boolean 
         <p className="recap-tournament">{state.tournamentName}</p>
         <p className="recap-intro">Every name called. Every squad built. Your auction, all wrapped up.</p>
         <div className="recap-hero-actions"><a href="#recap-signings">Explore the signings <ArrowDown size={17} /></a>
+          <Link to={publicView ? `/live/${encodeURIComponent(state.slug)}/wrapped` : `/tournaments/${state.tournamentId}/wrapped`}>Watch Auction Wrapped <Sparkles size={17} /></Link>
           {data.publicLiveViewEnabled && <button onClick={copy}><Copy size={16} />Copy Recap Link</button>}</div>
         {message && <p role="status" className="recap-share-message"><Check size={15} />{message}</p>}
         {fallback && <input aria-label="Shareable recap link" className="recap-copy-input" readOnly value={shareUrl} onFocus={event => event.target.select()} />}

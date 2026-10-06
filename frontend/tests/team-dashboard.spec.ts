@@ -88,10 +88,30 @@ test('projector fits laptop viewports with the player, progress and ticker visib
       expect(box!.y + box!.height).toBeLessThanOrEqual(size.height + 1);
     }
     await expect(page.locator('.stage-portrait>img')).toHaveCSS('object-fit', 'contain');
+    expect(await page.locator('.stage-team-list').evaluate(node => node.scrollHeight <= node.clientHeight + 1)).toBe(true);
+    for (const card of await page.locator('.stage-team').all()) {
+      const box = await card.boundingBox();
+      const list = await page.locator('.stage-team-list').boundingBox();
+      expect(box!.y).toBeGreaterThanOrEqual(list!.y - 1);
+      expect(box!.y + box!.height).toBeLessThanOrEqual(list!.y + list!.height + 1);
+    }
   }
   await page.setViewportSize({ width: 1366, height: 650 });
   await page.screenshot({ path: '../.cache/projector-laptop.png' });
   await expect(page.getByText('Live connection', { exact: true })).toBeVisible();
+  for (const count of [4,24,32]) {
+    data.state.teamStandings = Array.from({ length: count }, (_, i) => ({ ...data.state.teamStandings[0], teamId: `team-${i}`, teamName: `Franchise ${i}`, shortName: `T${i}`, remainingPurse: 98000 }));
+    await page.setViewportSize({ width: 1024, height: 600 }); notify();
+    await expect(page.locator('.stage-team')).toHaveCount(count);
+    expect(await page.locator('.stage-team-list').evaluate(node => node.scrollHeight <= node.clientHeight + 1)).toBe(true);
+    for (const card of await page.locator('.stage-team').all()) {
+      const box = await card.boundingBox(); const list = await page.locator('.stage-team-list').boundingBox();
+      expect(box!.y + box!.height).toBeLessThanOrEqual(list!.y + list!.height + 1);
+    }
+  }
+  data.state.teamStandings = data.state.teamStandings.slice(0,10); notify();
+  await expect(page.locator('.stage-team')).toHaveCount(10);
+  await page.setViewportSize({ width: 1366, height: 650 });
   data.state.lastResult = { ...data.state.currentLot!, status: 'SOLD', winningTeamId: 'team-0', winningTeamName: 'Franchise 0', finalPrice: 2000 };
   data.state.currentLot = null;
   notify();

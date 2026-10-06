@@ -13,6 +13,7 @@ import { AuctionHistoryPage } from './features/auction/AuctionHistoryPage';
 
 const AuctionResultsPage = lazy(() => import('./features/auction/AuctionResultsPage').then(module => ({ default: module.AuctionResultsPage })));
 const AuctionRecapPage = lazy(() => import('./features/auction/AuctionRecapPage').then(module => ({ default: module.AuctionRecapPage })));
+const AuctionWrappedPage = lazy(() => import('./features/auction/AuctionWrappedPage').then(module => ({ default: module.AuctionWrappedPage })));
 const PlayerRegistrationPage = lazy(() => import('./features/registrations/PlayerRegistrationPage').then(module => ({ default: module.PlayerRegistrationPage })));
 
 function RootRedirect() {
@@ -37,9 +38,11 @@ export function App() {
           <Route path="/live/:slug" element={<AuctionResultsPage publicView />} />
           <Route path="/live/:slug/projector" element={<ProjectorPage />} />
           <Route path="/live/:slug/recap" element={<AuctionRecapPage publicView />} />
+          <Route path="/live/:slug/wrapped" element={<AuctionWrappedPage publicView />} />
           <Route path="/live/:slug/teams/:teamId" element={<AuctionResultsPage publicView />} />
           <Route path="/tournaments/:id/results" element={<ProtectedRoute><AuctionResultsPage /></ProtectedRoute>} />
           <Route path="/tournaments/:id/recap" element={<ProtectedRoute><AuctionRecapPage /></ProtectedRoute>} />
+          <Route path="/tournaments/:id/wrapped" element={<ProtectedRoute><AuctionWrappedPage /></ProtectedRoute>} />
           <Route path="/tournaments/:id/teams/:teamId/squad" element={<ProtectedRoute><AuctionResultsPage /></ProtectedRoute>} />
           <Route path="/tournaments/:id/auction/history" element={<ProtectedRoute><AuctionHistoryPage /></ProtectedRoute>} />
           <Route

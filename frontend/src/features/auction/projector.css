@@ -238,3 +238,39 @@
   .stage-result-sold>span:last-child { display: none; }
 }
 .stage-team-logo { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; }
+
+.stage-roster summary { cursor: pointer; list-style: none; }
+.stage-roster summary::-webkit-details-marker { display: none; }
+.stage-roster:not([open]) { min-height: 0; flex: 0 0 auto; }
+.stage-roster:not([open]) .stage-roster-heading { margin-bottom: 0; }
+.stage-team-list { max-height: none; overflow: visible; }
+.stage-grid-legend { display: none; }
+@media(min-width:900px) and (min-height:500px) {
+  .stage-team-list { display: grid; grid-template-columns: repeat(var(--team-cols),minmax(0,1fr)); grid-template-rows: repeat(var(--team-rows),minmax(0,1fr)); gap: 8px; overflow: visible; }
+  .stage-team { min-height: 0; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+  .stage-team-name>strong { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .projector[data-team-density="compact"] .stage-layout { grid-template-columns: minmax(0,1fr) clamp(330px,38vw,680px); }
+  .projector[data-team-density="compact"] .stage-teams { position: relative; padding-bottom: 44px; }
+  .projector[data-team-density="compact"] .stage-team { padding: 5px 8px; border-radius: 8px; border-left-width: 2px; }
+  .projector[data-team-density="compact"] .stage-team-name { gap: 5px; }
+  .projector[data-team-density="compact"] .stage-team-name>strong { font-size: clamp(10px,1vw,15px); }
+  .projector[data-team-density="compact"] .stage-team-name>svg { display: none; }
+  .projector[data-team-density="compact"] .stage-club-code { font-size: 9px; padding: 2px 3px; }
+  .projector[data-team-density="compact"] .stage-team-logo { width: 20px; height: 20px; }
+  .projector[data-team-density="compact"] .stage-team-finance { margin-top: 4px; gap: 4px; }
+  .projector[data-team-density="compact"] .stage-team-finance b { font-size: clamp(12px,1.3vw,23px); line-height: 1.1; }
+  .projector[data-team-density="compact"] .stage-team-finance span { font-size: 9px; }
+  .projector[data-team-density="compact"] .stage-team-finance small { font-size: 9px; }
+  .projector[data-team-density="compact"] .stage-squad-progress { margin-top: 4px; height: 2px; }
+  .projector[data-team-density="compact"] .stage-roster { position: absolute; bottom: 0; inset-inline: 0; z-index: 2; min-height: 0; max-height: 60%; padding: 10px 12px; display: block; box-shadow: 0 8px 24px #0005; }
+  .projector[data-team-density="compact"] .stage-roster-heading { margin-bottom: 0; }
+  .projector[data-team-density="compact"] .stage-roster[open] .stage-roster-heading { margin-bottom: 10px; }
+  .projector[data-team-density="compact"] .stage-roster-list { max-height: 22dvh; }
+  .projector:is([data-team-columns="3"],[data-team-columns="4"]) .stage-grid-legend { display: block; font-size: 9px; color: #9fb5ab; margin-top: -7px; }
+  .projector:is([data-team-columns="3"],[data-team-columns="4"]) .stage-team { padding: 3px 5px; }
+  .projector:is([data-team-columns="3"],[data-team-columns="4"]) .stage-team-logo { width: 16px; height: 16px; }
+  .projector:is([data-team-columns="3"],[data-team-columns="4"]) .stage-team-finance { margin-top: 2px; }
+  .projector:is([data-team-columns="3"],[data-team-columns="4"]) .stage-team-finance span { display: none; }
+  .projector:is([data-team-columns="3"],[data-team-columns="4"]) .stage-team-finance b { font-size: clamp(10px,1.1vw,17px); }
+  .projector:is([data-team-columns="3"],[data-team-columns="4"]) .stage-squad-progress { display: none; }
+}
