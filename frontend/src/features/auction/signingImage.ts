@@ -1,5 +1,6 @@
 import type { AuctionResults, ResultPlayer } from './resultsTypes';
 import { formatCurrency } from '../../utils/formatters';
+import { GOALKEEPER_ATTRIBUTES, OUTFIELD_ATTRIBUTES, isGoalkeeper } from '../players/playerCardTypes';
 
 export function signingAccent(color?: string | null): string {
   if (!/^#[0-9a-f]{6}$/i.test(color ?? '')) return '#c4f143';
@@ -23,9 +24,10 @@ async function loadImage(url?: string | null): Promise<HTMLImageElement | null> 
 }
 
 /** A standalone portrait PNG; remote images must permit anonymous CORS. */
-export async function downloadSigningImage(data: AuctionResults, player: ResultPlayer): Promise<boolean> {
+export async function downloadSigningImage(data: AuctionResults, player: ResultPlayer, artworkSvg: string): Promise<boolean> {
   const team = data.state.teamStandings.find(t => t.teamId === player.winningTeamId);
-  const [photo, crest, brand] = await Promise.all([loadImage(player.photoUrl), loadImage(team?.logoUrl), loadImage('/brand/leaguehammer.png')]);
+  const [photo, crest, brand, artwork] = await Promise.all([loadImage(player.photoUrl), loadImage(team?.logoUrl), loadImage('/brand/leaguehammer.png'),loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(artworkSvg)}`)]);
+  if (!artwork) throw new Error('Unable to render the player card artwork.');
   const canvas = document.createElement('canvas'); canvas.width = 1080; canvas.height = 1920;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Image export is unavailable in this browser.');
@@ -55,27 +57,42 @@ export async function downloadSigningImage(data: AuctionResults, player: ResultP
   ctx.fillStyle=accent; ctx.beginPath(); ctx.arc(820,115,7,0,Math.PI*2); ctx.fill();
   text(data.state.tournamentName,76,208,31,'#b8c1c8');
   text('MEET YOUR NEW SIGNING',76,288,24,'#b8c1c8');
-  text('SIGNED.',66,435,200,'#f8f5ef',948,'left',true);
-  // The photograph is never cropped or overlaid with player details.
-  ctx.fillStyle='#ffffff05'; ctx.beginPath(); ctx.roundRect(76,484,928,800,[8,48,8,48]); ctx.fill();
-  ctx.strokeStyle='#ffffff22'; ctx.lineWidth=2; ctx.stroke();
-  if (photo) image(photo,102,510,876,748);
-  else text(player.playerName.split(' ').map(p=>p[0]).slice(0,2).join(''),540,930,190,accent,800,'center');
-  ctx.strokeStyle=accent; ctx.lineWidth=5;
-  ctx.beginPath(); ctx.moveTo(76,552); ctx.lineTo(76,484); ctx.lineTo(144,484); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(936,1284); ctx.lineTo(1004,1284); ctx.lineTo(1004,1216); ctx.stroke();
-  text((player.position || 'PLAYER').toUpperCase(),76,1348,25,accent);
-  const words=player.playerName.trim().split(/\s+/); ctx.font='900 110px Arial';
-  if (words.length>1 && ctx.measureText(player.playerName).width>928) {
-    // Choose the word break that gives the two lines the most even widths.
-    let middle=1; let difference=Infinity;
-    for (let index=1;index<words.length;index++) {
-      const gap=Math.abs(ctx.measureText(words.slice(0,index).join(' ')).width-ctx.measureText(words.slice(index).join(' ')).width);
-      if (gap<difference) { middle=index; difference=gap; }
-    }
-    text(words.slice(0,middle).join(' '),76,1452,98);
-    text(words.slice(middle).join(' '),76,1558,98);
-  } else text(player.playerName,76,1490,110);
+  text('SIGNED.',66,415,150,'#f8f5ef',948,'left',true);
+  // Reuse the on-screen SVG frame; draw safe CORS photos and editable card details
+  // natively so the download needs no screenshot library or server rendering.
+  const cardX=180, cardY=460, cardWidth=720, cardHeight=1080, gold='#f4d982';
+  image(artwork,cardX,cardY,cardWidth,cardHeight);
+  const cardText=(value:string,x:number,y:number,size:number,maxWidth:number,align:CanvasTextAlign='center',condensed=true) => {
+    ctx.fillStyle=gold; ctx.textAlign=align; ctx.textBaseline='middle';
+    let fontSize=size;
+    const font=()=>`${condensed ? '' : '700 '}${fontSize}px ${condensed ? 'Impact,"Arial Narrow",Arial' : 'Arial'}`;
+    ctx.font=font();
+    while(ctx.measureText(value).width>maxWidth && fontSize>12) {fontSize--;ctx.font=font();}
+    ctx.fillText(value,cardX+x*cardWidth,cardY+y*cardHeight,maxWidth);
+    ctx.textBaseline='alphabetic';
+  };
+  const position=player.cardPosition || ({Goalkeeper:'GK',Defender:'DEF',Midfielder:'MID',Forward:'FWD'}[player.position || ''] ?? '');
+  cardText(String(player.ratings?.overall ?? ''),.25,.23,cardWidth*.22,cardWidth*.24);
+  cardText(position,.25,.335,cardWidth*.1,cardWidth*.24);
+  cardText('PLAYER EDITION',.655,.18,cardWidth*.024,cardWidth*.48,'center',false);
+  ctx.strokeStyle=gold; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(cardX+cardWidth*.45,cardY+cardHeight*.08); ctx.lineTo(cardX+cardWidth*.55,cardY+cardHeight*.08); ctx.lineTo(cardX+cardWidth*.54,cardY+cardHeight*.135); ctx.lineTo(cardX+cardWidth*.5,cardY+cardHeight*.16); ctx.lineTo(cardX+cardWidth*.46,cardY+cardHeight*.135); ctx.closePath();ctx.stroke();
+  cardText('LH',.5,.115,cardWidth*.045,cardWidth*.09,'center',false);
+  if(photo) image(photo,cardX+cardWidth*.32,cardY+cardHeight*.19,cardWidth*.59,cardHeight*.43);
+  else cardText(player.playerName.split(' ').map(p=>p[0]).slice(0,2).join(''),.615,.415,cardWidth*.17,cardWidth*.5,'center',false);
+  if(player.jerseyNumber!=null) cardText(`#${player.jerseyNumber}`,.23,.45,cardWidth*.06,cardWidth*.2,'center',false);
+  cardText(player.playerName.toUpperCase(),.5,.63,cardWidth*.1,cardWidth*.8);
+  ctx.strokeStyle='#dabd7070'; ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cardX+cardWidth*.18,cardY+cardHeight*.69);ctx.lineTo(cardX+cardWidth*.82,cardY+cardHeight*.69);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cardX+cardWidth*.5,cardY+cardHeight*.723);ctx.lineTo(cardX+cardWidth*.5,cardY+cardHeight*.87);ctx.stroke();
+  const attributes=isGoalkeeper(player.cardPosition,player.position) ? GOALKEEPER_ATTRIBUTES : OUTFIELD_ATTRIBUTES;
+  attributes.forEach(([key,code],index)=>{
+    const left=index<3; const row=index%3; const x=left ? .245 : .57;
+    cardText(String(player.ratings?.attributes[key] ?? ''),x,.725+row*.055,cardWidth*.068,cardWidth*.075);
+    cardText(code,x+.045,.725+row*.055,cardWidth*.064,cardWidth*.135,'left');
+  });
+  ctx.beginPath();ctx.moveTo(cardX+cardWidth*.26,cardY+cardHeight*.89);ctx.lineTo(cardX+cardWidth*.74,cardY+cardHeight*.89);ctx.stroke();
+  cardText('LEAGUEHAMMER',.5,.91,cardWidth*.026,cardWidth*.48,'center',false);
   ctx.strokeStyle='#ffffff35'; ctx.lineWidth=2;
   for (const y of [1608,1810]) { ctx.beginPath(); ctx.moveTo(76,y); ctx.lineTo(1004,y); ctx.stroke(); }
   ctx.fillStyle='#ffffff08'; ctx.beginPath(); ctx.roundRect(76,1650,104,104,22); ctx.fill();

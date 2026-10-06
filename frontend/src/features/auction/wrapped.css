@@ -250,6 +250,8 @@
 .signing-photo .wrapped-portrait>svg { width:60px; height:60px; opacity:.6; }
 .signing-photo .wrapped-portrait>span { position:static; font-size:32px; }
 .signing-photo-line { position:absolute; width:220%; height:1px; background:#ffffff0a; top:45%; left:-60%; transform:rotate(-40deg); }
+.signing-player-card { container-type:size; flex:1; min-height:0; position:relative; display:flex; align-items:center; justify-content:center; }
+.signing-player-card .football-player-card { width:min(92cqw,64cqh,300px); height:auto; aspect-ratio:2/3; }
 .signing-identity>span { display:inline-block; margin-bottom:5px; font-size:8px; letter-spacing:.16em; text-transform:uppercase; color:var(--poster-accent); font-weight:800; }
 .signing-identity h3 { font-size:clamp(24px,4.8dvh,40px); font-weight:900; letter-spacing:-.045em; line-height:1; margin:0; overflow-wrap:anywhere; }
 .signing-contract { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:13px 0; border-block:1px solid #ffffff22; }

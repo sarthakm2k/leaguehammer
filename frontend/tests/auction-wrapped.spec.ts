@@ -75,6 +75,8 @@ test('Wrapped links appear after completion; public access and empty auctions ar
 
 test('player spotlights, individual sharing and portrait PNG downloads work outside the main story', async ({ page, context }) => {
   const data = storyData();
+  data.players[11].cardPosition='ST';
+  data.players[11].ratings={overall:91,isGoalkeeper:false,attributes:{pace:96,shooting:96,passing:80,dribbling:88,defending:60,physical:94}};
   // Ties must share podium places and position spotlights.
   data.players[1].finalPrice = data.players[0].finalPrice;
   data.players[2].finalPrice = data.players[0].finalPrice;
@@ -102,6 +104,11 @@ test('player spotlights, individual sharing and portrait PNG downloads work outs
   await page.getByRole('button',{name:'Copy this slide'}).click();
   expect(await page.evaluate(()=>navigator.clipboard.readText())).toBe(new URL('/live/demo/wrapped?slide=signing-p-11',page.url()).href);
   await page.reload(); await expect(page.getByTestId('wrapped-slide')).toContainText('Player 12');
+  const card=page.getByRole('article',{name:'Player 12 player card'});
+  await expect(card.getByLabel('Overall 91')).toHaveText('91');
+  await expect(card.getByLabel('Physical 94')).toHaveText('94');
+  await expect(card.locator('.football-card-photo img')).toHaveCSS('object-fit','contain');
+  await page.screenshot({path:'../.cache/wrapped-player-card-mobile.png',animations:'disabled'});
   const downloadEvent = page.waitForEvent('download');
   await page.getByRole('button',{name:'Download signing image'}).click();
   const download = await downloadEvent;
@@ -113,6 +120,13 @@ test('player spotlights, individual sharing and portrait PNG downloads work outs
   for await (const part of stream!) parts.push(Buffer.from(part));
   const png = Buffer.concat(parts);
   expect(png.subarray(1,4).toString()).toBe('PNG'); expect(png.readUInt32BE(16)).toBe(1080); expect(png.readUInt32BE(20)).toBe(1920);
+  const bluePixel=await page.evaluate(async base64=>{
+    const image=new Image(); image.src=`data:image/png;base64,${base64}`; await image.decode();
+    const canvas=document.createElement('canvas'); canvas.width=1080; canvas.height=1920;
+    const context=canvas.getContext('2d')!; context.drawImage(image,0,0);
+    return Array.from(context.getImageData(290,1000,1,1).data);
+  },png.toString('base64'));
+  expect(bluePixel[2]).toBeGreaterThan(bluePixel[0]+30);
   await page.setViewportSize({width:320,height:568});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   expect(await page.getByTestId('wrapped-slide').evaluate(node=>node.scrollHeight<=node.clientHeight+1)).toBe(true);
