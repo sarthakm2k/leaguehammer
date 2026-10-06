@@ -135,3 +135,25 @@ test('a missing player photo still produces a signing image and native sharing t
   expect(await (await downloadEvent).failure()).toBeNull();
   await expect(page.getByRole('status')).toContainText('Image downloaded with initials');
 });
+
+test('podium and position spotlights preserve tall and wide photos at phone sizes', async ({ page }) => {
+  const data = storyData();
+  data.players[0].photoUrl = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="400"><rect width="80" height="400" fill="white"/><rect width="80" height="30" fill="red"/><rect y="370" width="80" height="30" fill="blue"/></svg>');
+  data.players[1].photoUrl = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="80"><rect width="400" height="80" fill="white"/><rect width="30" height="80" fill="red"/><rect x="370" width="30" height="80" fill="blue"/></svg>');
+  await mock(page,data);
+  for (const size of [{width:390,height:844},{width:320,height:568}]) {
+    await page.setViewportSize(size); await page.goto('/live/demo/wrapped?slide=podium');
+    for (const slide of ['podium','position-star-defender-1','position-star-forward-1']) {
+      await page.getByRole('combobox').selectOption(slide);
+      const images = page.locator('.wrapped-podium img,.wrapped-position-stars img');
+      expect(await images.count()).toBeGreaterThan(0);
+      for (const image of await images.all()) {
+        await expect(image).toHaveCSS('object-fit','contain');
+        expect(await image.evaluate(img => {
+          const photo=img.getBoundingClientRect(); const box=img.parentElement!.getBoundingClientRect();
+          return photo.top>=box.top-1 && photo.bottom<=box.bottom+1 && photo.left>=box.left-1 && photo.right<=box.right+1;
+        })).toBe(true);
+      }
+    }
+  }
+});

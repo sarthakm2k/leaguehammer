@@ -227,3 +227,39 @@
 @media(min-width:601px) and (max-height:850px) { .wrapped-star .wrapped-portrait { height:190px; } }
 @media(max-height:600px) { .wrapped-star .wrapped-portrait { height:135px; } .wrapped-star>svg { right:calc(50% - 85px); } .wrapped-growth { gap:4px; } .wrapped-growth p { margin-block:4px; } }
 @media(max-height:600px) { .wrapped-slide:has(.wrapped-star) { gap:6px; } }
+/* Photos occupy a fixed box without imposing their intrinsic size on the grid. */
+.wrapped-podium .wrapped-portrait img,.wrapped-position-stars .wrapped-portrait img {
+ position:absolute; inset:0; display:block; width:100%; height:100%; min-height:0; object-fit:contain; object-position:center; border-radius:0;
+}
+.wrapped-signing-slide { gap:10px; padding:14px 18px; }
+.signing-poster { --poster-accent:var(--wrapped-club); position:relative; isolation:isolate; flex:1; min-height:0; display:flex; flex-direction:column; gap:10px; padding:18px; border:1px solid #ffffff20; border-radius:18px; overflow:hidden; background:radial-gradient(ellipse at 100% 35%,color-mix(in srgb,var(--poster-accent) 13%,transparent),transparent 65%),#10161e; color:#f8f5ef; box-shadow:0 15px 45px #0004; }
+.signing-poster::before { content:''; z-index:-1; position:absolute; width:360px; height:700px; top:-160px; right:-250px; border-left:70px solid var(--poster-accent); transform:rotate(30deg); opacity:.08; }
+.signing-edition { display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:8px; font-weight:700; letter-spacing:.06em; line-height:1.4; }
+.signing-edition>span:first-child { max-width:65%; }
+.signing-edition>span:last-child { display:flex; align-items:center; gap:4px; white-space:nowrap; text-transform:uppercase; color:var(--poster-accent); }
+.signing-edition i { width:5px; height:5px; border-radius:50%; background:currentColor; }
+.signing-announcement p { margin:0 0 4px; font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:#b8c1c8; }
+.signing-announcement h2 { margin:0; font-size:clamp(46px,9dvh,76px); font-weight:950; font-style:italic; letter-spacing:-.07em; line-height:.88; }
+.signing-announcement h2 span { color:var(--poster-accent); }
+.signing-photo { flex:1; min-height:100px; position:relative; display:grid; background:linear-gradient(145deg,#ffffff07,#ffffff02); border:1px solid #ffffff14; border-radius:4px 20px 4px 20px; overflow:hidden; }
+.signing-photo::before,.signing-photo::after { content:''; position:absolute; z-index:1; width:22px; height:22px; pointer-events:none; border-color:var(--poster-accent); border-style:solid; }
+.signing-photo::before { left:0; top:0; border-width:2px 0 0 2px; }
+.signing-photo::after { right:0; bottom:0; border-width:0 2px 2px 0; }
+.signing-photo .wrapped-portrait { position:absolute; inset:10px; width:auto; height:auto; border-radius:0; background:transparent; }
+.signing-photo .wrapped-portrait img { position:absolute; inset:0; display:block; width:100%; height:100%; min-height:0; object-fit:contain; }
+.signing-photo .wrapped-portrait>svg { width:60px; height:60px; opacity:.6; }
+.signing-photo .wrapped-portrait>span { position:static; font-size:32px; }
+.signing-photo-line { position:absolute; width:220%; height:1px; background:#ffffff0a; top:45%; left:-60%; transform:rotate(-40deg); }
+.signing-identity>span { display:inline-block; margin-bottom:5px; font-size:8px; letter-spacing:.16em; text-transform:uppercase; color:var(--poster-accent); font-weight:800; }
+.signing-identity h3 { font-size:clamp(24px,4.8dvh,40px); font-weight:900; letter-spacing:-.045em; line-height:1; margin:0; overflow-wrap:anywhere; }
+.signing-contract { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:13px 0; border-block:1px solid #ffffff22; }
+.signing-club { flex:1; display:flex; gap:8px; align-items:center; min-width:0; }
+.signing-club .wrapped-portrait { width:40px; height:40px; border:1px solid #ffffff18; background:#ffffff08; border-radius:10px; }
+.signing-club>div:last-child { min-width:0; }
+.signing-contract small { display:block; font-size:7px; text-transform:uppercase; letter-spacing:.1em; color:#b8c1c8; margin-bottom:4px; }
+.signing-club strong { display:block; font-size:13px; font-weight:800; line-height:1.15; overflow-wrap:anywhere; }
+.signing-value { max-width:48%; text-align:right; }
+.signing-value b { font-size:25px; font-weight:900; letter-spacing:-.04em; line-height:1; color:var(--poster-accent); overflow-wrap:anywhere; }
+.signing-footer { display:flex; justify-content:space-between; gap:10px; font-size:6px; text-transform:uppercase; letter-spacing:.12em; color:#94a0ab; }
+@media(max-height:700px) { .wrapped-signing-slide { padding:8px 14px; gap:8px; } .signing-poster { gap:8px; padding:14px; } .signing-announcement h2 { font-size:49px; } .signing-contract { padding:9px 0; } .signing-identity h3 { font-size:26px; } }
+@media(max-height:600px) { .signing-poster { gap:6px; padding:10px 12px; } .signing-announcement h2 { font-size:43px; } .signing-announcement p { font-size:7px; } .signing-photo { min-height:75px; } .signing-club .wrapped-portrait { width:28px; height:28px; } .signing-club strong { font-size:11px; } .signing-contract { padding:7px 0; } .signing-value b { font-size:22px; } .signing-identity h3 { font-size:23px; } .signing-footer { font-size:5px; } }

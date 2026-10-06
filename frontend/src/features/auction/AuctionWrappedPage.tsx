@@ -6,7 +6,7 @@ import { LeagueHammerBrand } from '../../components/LeagueHammerBrand';
 import { useAuth } from '../auth/AuthContext';
 import type { AuctionResults, ResultPlayer } from './resultsTypes';
 import { formatCurrency } from '../../utils/formatters';
-import { downloadSigningImage } from './signingImage';
+import { downloadSigningImage, signingAccent } from './signingImage';
 import './wrapped.css';
 
 const API = import.meta.env.VITE_API_BASE_URL || '';
@@ -96,12 +96,13 @@ export function buildWrappedSlides(data: AuctionResults): Slide[] {
 function buildSigningSlides(data: AuctionResults): Slide[] {
   return data.players.filter(p => p.status === 'SOLD').sort((a,b) => a.playerName.localeCompare(b.playerName)).map(player => {
     const team = data.state.teamStandings.find(t => t.teamId === player.winningTeamId);
-    return { id: `signing-${player.playerId}`, label: `${player.playerName} · New signing`, tone: 'club', accent: /^#[0-9a-f]{6}$/i.test(team?.primaryColor ?? '') ? team!.primaryColor : '#c4f143', player, content: <div className="wrapped-signing">
-      <p className="wrapped-kicker">{data.state.tournamentName}</p><h2>Meet your<br /><em>new signing.</em></h2>
-      <StoryPortrait name={player.playerName} url={player.photoUrl} />
-      <span className="wrapped-kicker">{player.position || 'Player'}</span><h3>{player.playerName}</h3>
-      <div className="wrapped-signing-team"><StoryPortrait name={player.winningTeamName || 'Team'} url={team?.logoUrl} crest /><strong>{player.winningTeamName}</strong></div>
-      <div className="wrapped-signing-price"><small>Signed for</small><b>{formatCurrency(player.finalPrice ?? 0,data.state.currencyCode)}</b></div>
+    return { id: `signing-${player.playerId}`, label: `${player.playerName} · New signing`, tone: 'club', accent: signingAccent(team?.primaryColor), player, content: <div className="signing-poster">
+      <div className="signing-edition"><span>{data.state.tournamentName}</span><span><i />Confirmed</span></div>
+      <div className="signing-announcement"><p>Meet your new signing</p><h2>SIGNED<span>.</span></h2></div>
+      <div className="signing-photo"><span className="signing-photo-line" aria-hidden="true" /><StoryPortrait name={player.playerName} url={player.photoUrl} /></div>
+      <div className="signing-identity"><span>{player.position || 'Player'}</span><h3>{player.playerName}</h3></div>
+      <div className="signing-contract"><div className="signing-club"><StoryPortrait name={player.winningTeamName || 'Team'} url={team?.logoUrl} crest /><div><small>New colours</small><strong>{player.winningTeamName}</strong></div></div><div className="signing-value"><small>Signed for</small><b>{formatCurrency(player.finalPrice ?? 0,data.state.currencyCode)}</b></div></div>
+      <div className="signing-footer"><span>Auction Wrapped</span><span>New club. New chapter.</span></div>
     </div> };
   });
 }
@@ -172,7 +173,7 @@ function WrappedStory({ data, publicView }: { data: AuctionResults; publicView: 
   return <main className="auction-wrapped"><div className="wrapped-frame" data-tone={slide.tone} style={{ '--wrapped-club': slide.accent || '#c4f143' } as CSSProperties}>
     <div className="wrapped-art" aria-hidden="true"><i /><i /><i /></div>
     <header className="wrapped-top"><div className="wrapped-progress" role="progressbar" aria-label="Auction Wrapped story progress" aria-valuemin={1} aria-valuemax={slides.length} aria-valuenow={index + 1}>{slides.map((item,i) => <span key={item.id} data-complete={i <= index} />)}</div><div className="wrapped-toolbar"><LeagueHammerBrand compact /><span data-theme-slot />{data.publicLiveViewEnabled && <button type="button" aria-label="Share Auction Wrapped" onClick={() => void share()}><Share2 size={18} /></button>}<Link to={recapUrl} aria-label="Close Wrapped and open recap"><X size={20} /></Link></div></header>
-    <article className="wrapped-slide" key={slide.id} aria-label={slide.label} data-testid="wrapped-slide"
+    <article className={`wrapped-slide${slide.player ? ' wrapped-signing-slide' : ''}`} key={slide.id} aria-label={slide.label} data-testid="wrapped-slide"
       onTouchStart={event => { const point = event.touches[0]; touch.current = { x: point.clientX, y: point.clientY }; }}
       onTouchEnd={event => { const point = event.changedTouches[0]; if (touch.current) { const dx = point.clientX - touch.current.x; const dy = point.clientY - touch.current.y; if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) move(index + (dx < 0 ? 1 : -1)); } touch.current = null; }}>
       {slide.content}
