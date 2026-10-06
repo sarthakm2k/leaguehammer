@@ -8,13 +8,15 @@ import { ArrowUpRight, Gavel, Maximize, Minimize, Shield, Trophy } from 'lucide-
 import type { PublicAuctionLotDto, PublicAuctionStateDto } from './auctionTypes';
 import { useAuctionSocket } from './useAuctionSocket';
 import { ConnectionIndicator } from './ConnectionIndicator';
+import { usePlayerReveal } from './usePlayerReveal';
+import { PlayerCardReveal, PlayerRevealMessage } from './PlayerCardReveal';
 import { formatCurrency } from '../../utils/formatters';
 import './projector.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
-function PlayerPortrait({ lot }: { lot: PublicAuctionLotDto }) {
-  return <div className="stage-portrait stage-card-wrap"><FootballPlayerCard key={`${lot.playerId}:${lot.photoUrl}`} player={lot} /></div>;
+function PlayerPortrait({ lot, revealing }: { lot: PublicAuctionLotDto; revealing: boolean }) {
+  return <div className="stage-portrait stage-card-wrap">{revealing ? <PlayerCardReveal key={lot.lotId} lotId={lot.lotId} /> : <FootballPlayerCard key={`${lot.playerId}:${lot.photoUrl}`} player={lot} />}</div>;
 }
 
 export function ProjectorPage() {
@@ -35,7 +37,9 @@ export function ProjectorPage() {
   });
   const { refetch } = query;
   const sync = useCallback(async () => { await refetch({ throwOnError: true }); }, [refetch]);
+  const reveal = usePlayerReveal(query.data?.currentLot,query.data?.sessionStatus);
   const connection = useAuctionSocket(query.data?.tournamentId, null, sync, (event, args) => {
+    reveal.onEvent(event,args);
     if (event === 'PlayerSold') setCelebration(args[0] as PublicAuctionLotDto);
     if (event === 'PlayerRevealed' || event === 'ResultCorrected') setCelebration(null);
   });
@@ -86,8 +90,9 @@ export function ProjectorPage() {
         <div className="stage-setline"><span><span className="stage-dot" />{state.isUnsoldRound ? state.currentSetName || 'Unsold round' : state.currentSetName || 'Auction stage'}</span><strong data-testid="stage-status">{state.sessionStatus === 'PAUSED' ? 'Auction paused' : state.sessionStatus === 'COMPLETED' ? 'Auction complete' : state.sessionStatus === 'READY' ? 'Starting soon' : 'Live from the floor'}</strong></div>
 
         {lot ? <article className="stage-spotlight" key={lot.lotId}>
-          <PlayerPortrait key={lot.playerId} lot={lot} />
+          <PlayerPortrait key={lot.lotId} lot={lot} revealing={reveal.revealing} />
           <div className="stage-player-info">
+            {reveal.revealing ? <PlayerRevealMessage /> : <>
             <div className="stage-player-meta"><span className="stage-position">{lot.position || 'Player'}</span><span>{lot.age != null ? `${lot.age} years` : ''}{lot.age != null && lot.preferredFoot ? ' / ' : ''}{lot.preferredFoot ? `${lot.preferredFoot} foot` : ''}</span></div>
             <p className="stage-eyebrow">{state.currentLot ? 'Now on the podium' : 'Latest result'}</p>
             <h2 data-testid="stage-player">{lot.playerName}</h2>
@@ -99,6 +104,7 @@ export function ProjectorPage() {
             </div>
             {sold && <div className="stage-result stage-result-sold" data-testid="stage-result"><Gavel /><span>SOLD</span><span>Welcome to {lot.winningTeamName}</span></div>}
             {unsold && <div className="stage-result stage-result-unsold" data-testid="stage-result">{lot.attemptNumber >= 2 ? 'FINAL UNSOLD' : 'UNSOLD'}</div>}
+            </>}
           </div>
         </article> : <div className="stage-waiting"><div className="stage-pitch" /><Trophy size={90} /><p className="stage-eyebrow">The next chapter begins here</p><h2>{state.sessionStatus === 'COMPLETED' ? 'Squads assembled.' : 'The stage is set.'}</h2><p>{state.sessionStatus === 'READY' ? 'The auction will begin shortly.' : 'Waiting for the auctioneer to reveal the next player.'}</p></div>}
 
