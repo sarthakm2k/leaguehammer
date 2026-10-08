@@ -37,6 +37,6 @@ Upcoming-players follow-up verification: production build and lint pass (existin
 
 ## Auction screen sizing
 
-At desktop widths of at least 1024px and heights of at least 600px, the auctioneer console uses the viewport height. The player card and credentials sit beside the team selector, bid input and sale controls, with the purse tracker in a separate column. Long operator team lists scroll inside their panels so bid and sale controls stay visible. Smaller viewports retain the mobile page flow.
+At desktop widths of at least 1024px and heights of at least 500px, the auctioneer console uses the viewport height. The player card and credentials sit beside the team selector, bid input and sale controls, with the purse tracker in a separate column. Long operator team lists scroll inside their panels so bid and sale controls stay visible. Heights up to 650px use smaller spacing and cards to accommodate browser chrome and display scaling. Smaller viewports retain the mobile page flow.
 
 The projector retains its laptop layout and scales cards, typography, spacing and ticker with both width and height on displays of at least 1600×900. Team tiles remain in an unscrolled grid. Browser checks cover 1280×650, 1366×768, 1536×864, 1920×1080, 2560×1440 and 3840×2160, including a 24-team sold result in light mode and a 390px mobile console. Preview images are stored locally in the Git-ignored `testscreenshots` folder.

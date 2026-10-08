@@ -38,7 +38,7 @@ async function fitsViewport(page: Page, selector: string) {
 
 test('auction controls fit laptop screens while long team lists stay inside their panels', async ({ page }) => {
   await setup(page, fixture(12), true);
-  for (const viewport of [{ width: 1366, height: 768 }, { width: 1280, height: 650 }, { width: 1536, height: 864 }]) {
+  for (const viewport of [{ width: 1366, height: 768 }, { width: 1280, height: 588 }, { width: 1024, height: 500 }, { width: 1280, height: 650 }, { width: 1536, height: 864 }]) {
     await page.setViewportSize(viewport);
     for (const selector of ['.football-player-card', '.console-sale-actions', '.console-bid-controls', '.console-purse-panel']) await fitsViewport(page, selector);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight + 1)).toBe(true);
@@ -46,6 +46,7 @@ test('auction controls fit laptop screens while long team lists stay inside thei
     await expect(page.getByRole('button', { name: /SOLD TO FC1/ })).toBeEnabled();
     expect(await page.locator('.console-team-options>button').first().evaluate(element => element.scrollHeight <= element.clientHeight + 1)).toBe(true);
     if (viewport.width === 1366) await page.screenshot({ path: '../testscreenshots/auctioneer-laptop.png' });
+    if (viewport.height === 588) await page.screenshot({ path: '../testscreenshots/auctioneer-laptop-scaled.png' });
   }
 });
 
