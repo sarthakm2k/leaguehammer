@@ -25,6 +25,7 @@ import { PlayersTab } from './tabs/PlayersTab';
 import { PreflightTab } from './tabs/PreflightTab';
 import { RegistrationsTab } from '../registrations/RegistrationsTab';
 import { TournamentLinks } from './TournamentLinks';
+import { DeleteTournament } from './DeleteTournament';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -592,6 +593,7 @@ export function TournamentOverviewPage() {
             </div>
           </div>
         )}
+        {activeTab === 'overview' && isOwner && <DeleteTournament id={tournament.id} name={tournament.name} status={statusStr} />}
       </main>
     </div>
   );

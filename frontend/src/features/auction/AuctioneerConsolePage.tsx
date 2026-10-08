@@ -33,6 +33,7 @@ import type {
 } from './auctionTypes';
 import { CorrectionModal } from './CorrectionModal';
 import { SetSummaryModal } from './SetSummaryModal';
+import './console.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -508,7 +509,7 @@ export function AuctioneerConsolePage() {
       
       {/* Top Bar Header */}
       <header className="border-b border-slate-800/80 bg-[#171a23]/90 backdrop-blur sticky top-0 z-40 px-4 sm:px-6 py-3">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
+        <div className="console-header-inner max-w-[1600px] mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center space-x-3 sm:space-x-4">
             <Link
               to={`/tournaments/${tournamentId}`}
@@ -580,7 +581,7 @@ export function AuctioneerConsolePage() {
           </div>
 
           {/* Right Progress Indicators */}
-          <div className="hidden lg:flex items-center space-x-6 text-xs text-slate-400">
+          <div className="console-totals hidden lg:flex items-center space-x-6 text-xs text-slate-400">
             <div className="text-right">
               <span className="text-[10px] uppercase font-mono tracking-wider text-slate-500">Tournament Progress</span>
               <p className="font-bold text-white font-mono">
@@ -601,14 +602,14 @@ export function AuctioneerConsolePage() {
 
       {/* Main Container */}
       <fieldset disabled={mutationBlocked || state.sessionStatus === 'PAUSED'} className="contents">
-      <main className="flex-1 max-w-[1600px] w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <main className="console-layout flex-1 max-w-[1600px] w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
         {/* Left Stage: Podium & Bidding Console (8 Cols) */}
-        <section className="lg:col-span-8 flex flex-col space-y-6">
+        <section className="console-stage lg:col-span-8 flex flex-col space-y-6">
 
           {/* Stage 1: Active Player on Podium */}
           {currentLot ? (
-            <div className="rounded-3xl border border-slate-800 bg-[#171a23] p-6 sm:p-8 shadow-2xl relative overflow-hidden flex flex-col justify-between flex-1">
+            <div className="console-active-lot rounded-3xl border border-slate-800 bg-[#171a23] p-6 sm:p-8 shadow-2xl relative overflow-hidden flex flex-col justify-between flex-1">
               
               {/* Top Meta */}
               <div className="console-lot-meta flex items-center justify-between border-b border-slate-800/80 pb-4">
@@ -685,10 +686,10 @@ export function AuctioneerConsolePage() {
               </div>
 
               {/* Bidding Control Panel */}
-              <div className="space-y-5 pt-4 border-t border-slate-800/80">
+              <div className="console-bidding space-y-5 pt-4 border-t border-slate-800/80">
                 
                 {/* 1. Team Selector Grid */}
-                <div className="space-y-2">
+                <div className="console-team-selector space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <label className="font-bold text-slate-300 flex items-center space-x-1.5">
                       <Shield className="w-4 h-4 text-emerald-400" />
@@ -702,7 +703,7 @@ export function AuctioneerConsolePage() {
                   </div>
 
                   {state.sellAllPlayers && <p className="text-xs text-amber-300">Purchases must leave enough money and squad spaces for all remaining players at their base prices. The team purse limit alone does not guarantee a bid can be accepted.</p>}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div className="console-team-options grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     {teamStandings.map((t) => {
                       const isSelected = t.teamId === selectedTeamId;
                       const canAfford = t.canBid && t.maximumAllowedBid >= currentBidPrice;
@@ -747,7 +748,7 @@ export function AuctioneerConsolePage() {
                 </div>
 
                 {/* 2. Final Price Input & Increments */}
-                <div className="space-y-3">
+                <div className="console-bid-controls space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <label className="text-xs font-bold text-slate-300 flex items-center space-x-1.5">
                       <DollarSign className="w-4 h-4 text-amber-400" />
@@ -806,7 +807,7 @@ export function AuctioneerConsolePage() {
                 </div>
 
                 {/* 3. Action Buttons (SOLD / UNSOLD) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div className="console-sale-actions grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   <button
                     type="button"
                     onClick={handleSellCurrent}
@@ -831,7 +832,7 @@ export function AuctioneerConsolePage() {
             </div>
           ) : (
             /* Stage 2: Empty Podium / Set Selection / Reveal Next */
-            <div className="rounded-3xl border border-slate-800 bg-[#171a23] p-8 sm:p-12 shadow-2xl flex flex-col items-center justify-center text-center space-y-6 flex-1 min-h-[500px]">
+            <div className="console-empty-stage rounded-3xl border border-slate-800 bg-[#171a23] p-8 sm:p-12 shadow-2xl flex flex-col items-center justify-center text-center space-y-6 flex-1 min-h-[500px]">
               
               {/* If a player was just sold, show confirmation banner */}
               {lastSoldEvent && (
@@ -946,8 +947,8 @@ export function AuctioneerConsolePage() {
         </section>
 
         {/* Right Stage: Team Standings & Financial Purse Tracker (4 Cols) */}
-        <aside className="lg:col-span-4 flex flex-col space-y-6">
-          <div className="rounded-3xl border border-slate-800 bg-[#171a23] p-5 shadow-2xl space-y-4 flex flex-col flex-1">
+        <aside className="console-purses lg:col-span-4 flex flex-col space-y-6">
+          <div className="console-purse-panel rounded-3xl border border-slate-800 bg-[#171a23] p-5 shadow-2xl space-y-4 flex flex-col flex-1">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2">
                 <Users className="w-4 h-4 text-blue-400" />
@@ -959,7 +960,7 @@ export function AuctioneerConsolePage() {
             </div>
 
             {/* Standings List */}
-            <div className="space-y-3 overflow-y-auto max-h-[600px] pr-1">
+            <div className="console-purse-list space-y-3 overflow-y-auto max-h-[600px] pr-1">
               {teamStandings.map((team) => {
                 const isSelected = team.teamId === selectedTeamId;
                 const squadPercent = Math.min(100, Math.round((team.currentSquadSize / team.minimumSquadSize) * 100));

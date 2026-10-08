@@ -186,8 +186,7 @@
 }
 @media(max-width:350px) { .stage-team-list { grid-template-columns: 1fr; } .stage-portrait { height: 170px; } }
 
-/* Laptop viewports keep the stage, progress and ticker visible.
-   Longer team and roster lists scroll inside their panels. */
+/* Laptop viewports keep the stage, progress and ticker visible. */
 @media(min-width:900px) and (min-height:500px) {
   .projector { height: 100dvh; min-height: 0; }
   .stage-header { flex: 0 0 auto; padding: 12px 24px; gap: 16px; }
@@ -279,3 +278,61 @@
 .stage-card-wrap .football-player-card { width:min(100cqw,66.666cqh,340px); height:auto; aspect-ratio:2/3; }
 @media(max-width:899px) { .stage-portrait.stage-card-wrap { min-height:0; height:420px; } }
 @media(max-width:430px) { .stage-portrait.stage-card-wrap { height:380px; } }
+
+/* Scale the broadcast with both display width and height, including 4K screens. */
+@media(min-width:1600px) and (min-height:900px) {
+  .projector { --broadcast-unit: min(1vw,1.7778dvh); }
+  .stage-header { padding: calc(var(--broadcast-unit)*.85) calc(var(--broadcast-unit)*1.6); gap: calc(var(--broadcast-unit)*1.2); }
+  .stage-header .league-brand { width: calc(var(--broadcast-unit)*10); height: calc(var(--broadcast-unit)*3.3); }
+  .stage-header .league-brand img { width: calc(var(--broadcast-unit)*12); height: calc(var(--broadcast-unit)*4); }
+  .stage-brand h1 { font-size: calc(var(--broadcast-unit)*1.8); }
+  .stage-brand .stage-eyebrow,.stage-eyebrow { font-size: calc(var(--broadcast-unit)*.65); }
+  .stage-header-actions { gap: calc(var(--broadcast-unit)*.8); }
+  .stage-header-actions button { width: calc(var(--broadcast-unit)*2.5); height: calc(var(--broadcast-unit)*2.5); }
+  .stage-header-actions button svg { width: calc(var(--broadcast-unit)*1.3); height: calc(var(--broadcast-unit)*1.3); }
+  .stage-header-actions [role="status"] { font-size: calc(var(--broadcast-unit)*.75); padding: calc(var(--broadcast-unit)*.45) calc(var(--broadcast-unit)*.9); }
+  .stage-layout { padding: calc(var(--broadcast-unit)*1.2) calc(var(--broadcast-unit)*1.6); gap: calc(var(--broadcast-unit)*1.2); grid-template-columns: minmax(0,1fr) 27%; }
+  .projector[data-team-density="compact"] .stage-layout { grid-template-columns: minmax(0,1fr) 38%; }
+  .stage-main { border-radius: calc(var(--broadcast-unit)*1.2); }
+  .stage-setline { padding: calc(var(--broadcast-unit)*.8) calc(var(--broadcast-unit)*1.2); font-size: calc(var(--broadcast-unit)*.75); }
+  .stage-spotlight { padding: calc(var(--broadcast-unit)*1.3); gap: calc(var(--broadcast-unit)*1.4); }
+  .stage-portrait.stage-card-wrap { height: min(60dvh,100%); }
+  .stage-card-wrap .football-player-card { width: min(100cqw,66.666cqh); }
+  .stage-player-meta { font-size: calc(var(--broadcast-unit)*.85); margin-bottom: calc(var(--broadcast-unit)*.9); gap: calc(var(--broadcast-unit)*.6); }
+  .stage-position { font-size: calc(var(--broadcast-unit)*.75); padding: calc(var(--broadcast-unit)*.35) calc(var(--broadcast-unit)*.65); }
+  .stage-player-info h2 { font-size: calc(var(--broadcast-unit)*3.4); margin: calc(var(--broadcast-unit)*.5) 0 calc(var(--broadcast-unit)*1); }
+  .auction-reveal-message>p { font-size: calc(var(--broadcast-unit)*.7); }
+  .auction-reveal-message h2 { font-size: calc(var(--broadcast-unit)*3); }
+  .auction-reveal-message>span { font-size: calc(var(--broadcast-unit)*.85); }
+  .stage-base { font-size: calc(var(--broadcast-unit)*1.3); margin-bottom: calc(var(--broadcast-unit)*.9); gap: calc(var(--broadcast-unit)*.8); }
+  .stage-bid { padding: calc(var(--broadcast-unit)*.9) calc(var(--broadcast-unit)*1.1); }
+  .stage-bid>p { font-size: calc(var(--broadcast-unit)*.7); }
+  .stage-bid>strong { font-size: calc(var(--broadcast-unit)*3.8); }
+  .stage-leading { font-size: calc(var(--broadcast-unit)*1); gap: calc(var(--broadcast-unit)*.6); margin-top: calc(var(--broadcast-unit)*.6); }
+  .stage-leading>b,.stage-result-sold>span:last-child { font-size: calc(var(--broadcast-unit)*.65); }
+  .stage-leading img { width: calc(var(--broadcast-unit)*1.8); height: calc(var(--broadcast-unit)*1.8); }
+  .stage-result { font-size: calc(var(--broadcast-unit)*1.5); padding: calc(var(--broadcast-unit)*.6) calc(var(--broadcast-unit)*.8); margin-top: calc(var(--broadcast-unit)*.8); }
+  .stage-progress { padding: calc(var(--broadcast-unit)*.8) calc(var(--broadcast-unit)*1.2); gap: calc(var(--broadcast-unit)*1.3); }
+  .stage-progress strong,.stage-count>b { font-size: calc(var(--broadcast-unit)*1.5); }
+  .stage-progress small,.stage-count>span { font-size: calc(var(--broadcast-unit)*.65); }
+  .stage-teams { gap: calc(var(--broadcast-unit)*.7); }
+  .stage-section-title h2 { font-size: calc(var(--broadcast-unit)*1.5); }
+  .stage-team-count { font-size: calc(var(--broadcast-unit)*.75); }
+  .stage-team-list { gap: calc(var(--broadcast-unit)*.5); }
+  .stage-team,.projector[data-team-density="compact"] .stage-team { padding: calc(var(--broadcast-unit)*.5) calc(var(--broadcast-unit)*.65); }
+  .stage-team-name>strong,.projector[data-team-density="compact"] .stage-team-name>strong { font-size: calc(var(--broadcast-unit)*.85); }
+  .stage-club-code,.projector[data-team-density="compact"] .stage-club-code { font-size: calc(var(--broadcast-unit)*.6); }
+  .stage-team-logo,.projector[data-team-density="compact"] .stage-team-logo { width: calc(var(--broadcast-unit)*1.5); height: calc(var(--broadcast-unit)*1.5); }
+  .stage-team-finance b,.projector[data-team-density="compact"] .stage-team-finance b { font-size: calc(var(--broadcast-unit)*1.3); }
+  .stage-team-finance span,.stage-team-finance small,.projector[data-team-density="compact"] .stage-team-finance span,.projector[data-team-density="compact"] .stage-team-finance small { font-size: calc(var(--broadcast-unit)*.6); }
+  .projector:is([data-team-columns="3"],[data-team-columns="4"]) .stage-team-finance b { font-size: calc(var(--broadcast-unit)*.95); }
+  .projector:is([data-team-columns="3"],[data-team-columns="4"]) .stage-grid-legend { font-size: calc(var(--broadcast-unit)*.6); }
+  .projector[data-team-density="compact"] .stage-teams { padding-bottom: calc(var(--broadcast-unit)*2.7); }
+  .stage-roster h3,.stage-roster-heading>span,.stage-roster-list>div { font-size: calc(var(--broadcast-unit)*.75); }
+  .stage-roster-list small { font-size: calc(var(--broadcast-unit)*.6); }
+  .projector[data-team-density="compact"] .stage-roster { padding: calc(var(--broadcast-unit)*.6) calc(var(--broadcast-unit)*.8); }
+  .stage-ticker { flex-basis: calc(var(--broadcast-unit)*3); min-height: calc(var(--broadcast-unit)*3); }
+  .stage-ticker-label { font-size: calc(var(--broadcast-unit)*.75); padding-inline: calc(var(--broadcast-unit)*1.5); }
+  .stage-ticker-copy>span,.stage-ticker-track>p { font-size: calc(var(--broadcast-unit)*.95); }
+  .stage-ticker-copy span>span { font-size: calc(var(--broadcast-unit)*.8); }
+}

@@ -34,3 +34,9 @@ The preflight summary has explicit light palettes for ready, eligible, and block
 The public Players view includes upcoming players grouped by the current active set and subsequent sets. The player on the podium is shown separately. Players returning after an unsold outcome are grouped by their source set; during continuous unsold rounds, players already attempted in the current round move into the next-round pool. Cards are alphabetical and do not expose the server's private random draw order. The section uses the existing live synchronization and adapts to 320px screens in both themes. Player registry filters remain available below it.
 
 Upcoming-players follow-up verification: production build and lint pass (existing warnings only); the public-results browser test and continuous-unsold-round browser test both pass. These checks cover live podium changes, pending counts, unsold retry grouping, round advancement, completion, mobile overflow, and transparent logo background in light mode. No backend files were changed.
+
+## Auction screen sizing
+
+At desktop widths of at least 1024px and heights of at least 600px, the auctioneer console uses the viewport height. The player card and credentials sit beside the team selector, bid input and sale controls, with the purse tracker in a separate column. Long operator team lists scroll inside their panels so bid and sale controls stay visible. Smaller viewports retain the mobile page flow.
+
+The projector retains its laptop layout and scales cards, typography, spacing and ticker with both width and height on displays of at least 1600×900. Team tiles remain in an unscrolled grid. Browser checks cover 1280×650, 1366×768, 1536×864, 1920×1080, 2560×1440 and 3840×2160, including a 24-team sold result in light mode and a 390px mobile console. Preview images are stored locally in the Git-ignored `testscreenshots` folder.

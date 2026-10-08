@@ -205,6 +205,8 @@ public class TournamentService : ITournamentService
 
     public async Task DeleteTournamentAsync(Guid tournamentId, Guid userId)
     {
+        await using var transaction = _db.Database.IsRelational()
+            ? await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable) : null;
         var member = await _db.TournamentMembers
             .FirstOrDefaultAsync(m => m.TournamentId == tournamentId && m.UserId == userId);
 
@@ -216,13 +218,37 @@ public class TournamentService : ITournamentService
         var tournament = await _db.Tournaments.FindAsync(tournamentId);
         if (tournament == null) return;
 
-        if (tournament.Status != TournamentStatus.DRAFT)
+        var sessions = await _db.AuctionSessions.Where(s => s.TournamentId == tournamentId).ToListAsync();
+        if (tournament.Status == TournamentStatus.LIVE ||
+            sessions.Any(s => s.Status == AuctionSessionStatus.LIVE || s.Status == AuctionSessionStatus.PAUSED))
         {
-            throw new InvalidOperationException("Only DRAFT tournaments can be deleted.");
+            throw new InvalidOperationException("A live or paused auction cannot be deleted. Complete the auction first.");
         }
 
+        // Break the session/current-lot cycle before removing auction history.
+        foreach (var session in sessions)
+        {
+            session.CurrentLotId = null;
+            session.CurrentLot = null;
+        }
+        await _db.SaveChangesAsync();
+
+        // Load every dependent so EF orders restricted foreign keys correctly,
+        // and the entire operation remains atomic on PostgreSQL.
+        _db.AuctionEvents.RemoveRange(await _db.AuctionEvents.Where(e => e.TournamentId == tournamentId).ToListAsync());
+        _db.AuctionLots.RemoveRange(await _db.AuctionLots.Where(l => l.TournamentId == tournamentId).ToListAsync());
+        _db.PlayerRegistrations.RemoveRange(await _db.PlayerRegistrations.Where(r => r.TournamentId == tournamentId).ToListAsync());
+        _db.RegistrationForms.RemoveRange(await _db.RegistrationForms.Where(f => f.TournamentId == tournamentId).ToListAsync());
+        _db.Players.RemoveRange(await _db.Players.Where(p => p.TournamentId == tournamentId).ToListAsync());
+        _db.PlayerSets.RemoveRange(await _db.PlayerSets.Where(s => s.TournamentId == tournamentId).ToListAsync());
+        _db.Teams.RemoveRange(await _db.Teams.Where(t => t.TournamentId == tournamentId).ToListAsync());
+        _db.BasePriceTiers.RemoveRange(await _db.BasePriceTiers.Where(t => t.TournamentId == tournamentId).ToListAsync());
+        _db.TournamentSettings.RemoveRange(await _db.TournamentSettings.Where(s => s.TournamentId == tournamentId).ToListAsync());
+        _db.TournamentMembers.RemoveRange(await _db.TournamentMembers.Where(m => m.TournamentId == tournamentId).ToListAsync());
+        _db.AuctionSessions.RemoveRange(sessions);
         _db.Tournaments.Remove(tournament);
         await _db.SaveChangesAsync();
+        if (transaction != null) await transaction.CommitAsync();
     }
 
     private static string GenerateSlug(string phrase)
