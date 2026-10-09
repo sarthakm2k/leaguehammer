@@ -3,6 +3,7 @@ import { X, AlertTriangle, Check, RotateCcw } from 'lucide-react';
 import type { TeamAuctionStandingDto, AuctionLotDto } from './auctionTypes';
 
 interface CorrectionModalProps {
+  blocked?: boolean;
   lot: AuctionLotDto;
   teams: TeamAuctionStandingDto[];
   currencySymbol: string;
@@ -12,6 +13,7 @@ interface CorrectionModalProps {
 }
 
 export function CorrectionModal({
+  blocked = false,
   lot,
   teams,
   currencySymbol,
@@ -34,6 +36,7 @@ export function CorrectionModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (blocked || submitting || !navigator.onLine) return;
     if (!selectedTeamId) {
       setError('Please select a winning team.');
       return;
@@ -82,6 +85,7 @@ export function CorrectionModal({
           </button>
         </div>
 
+        {blocked && <p role="alert" className="text-amber-300 text-xs">Wait for the auction to synchronize before correcting a result.</p>}
         {error && (
           <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start space-x-2">
             <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -108,7 +112,7 @@ export function CorrectionModal({
             <label htmlFor="correction-team" className="block font-medium text-slate-300 mb-1.5">Correct Winning Team</label>
             <select
               id="correction-team"
-              disabled={submitting}
+              disabled={submitting || blocked}
               value={selectedTeamId}
               onChange={(e) => setSelectedTeamId(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:ring-2 focus:ring-amber-500 text-xs"
@@ -130,7 +134,7 @@ export function CorrectionModal({
             <label htmlFor="correction-price" className="block font-medium text-slate-300 mb-1.5">Correct Final Price ({currencySymbol})</label>
             <input
               id="correction-price"
-              disabled={submitting}
+              disabled={submitting || blocked}
               type="number"
               min={minimum}
               max={Math.min(maximum, 10000000000)}
@@ -146,7 +150,7 @@ export function CorrectionModal({
             <label htmlFor="correction-reason" className="block font-medium text-slate-300 mb-1.5">Audit Reason (Required)</label>
             <textarea
               id="correction-reason"
-              disabled={submitting}
+              disabled={submitting || blocked}
               maxLength={500}
               required
               rows={2}
@@ -168,7 +172,7 @@ export function CorrectionModal({
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || blocked}
               className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold shadow-lg shadow-amber-500/20 inline-flex items-center space-x-1.5 transition"
             >
               <Check className="w-4 h-4" />

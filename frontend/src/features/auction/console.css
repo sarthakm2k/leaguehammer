@@ -76,3 +76,5 @@
   .console-sale-actions>button { padding-block: 7px; min-height: 40px; }
   .console-purse-panel { padding: 10px; }
 }
+
+.console-connection{display:flex;flex-direction:column;gap:3px;align-items:center}.console-connection small{font-size:9px;color:var(--league-muted);white-space:nowrap}.console-recovery{display:flex;align-items:flex-start;gap:9px;padding:9px 18px;background:#78350f40;border-bottom:1px solid #f59e0b60;color:#fbbf24;flex-shrink:0}.console-recovery>svg{flex-shrink:0;margin-top:2px}.console-recovery strong{font-size:12px}.console-recovery p{font-size:11px;line-height:1.4;margin-top:2px}[data-theme=light] .console-recovery{background:#fff7e6;color:#92400e}.league-console button:disabled{cursor:not-allowed}

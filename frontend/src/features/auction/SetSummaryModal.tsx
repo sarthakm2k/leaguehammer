@@ -2,6 +2,7 @@ import { Trophy, CheckCircle, ArrowRight, X, TrendingUp } from 'lucide-react';
 import type { SetSummaryDto, PlayerSetSummary } from './auctionTypes';
 
 interface SetSummaryModalProps {
+  blocked?: boolean;
   summary: SetSummaryDto;
   currencySymbol: string;
   allSets: PlayerSetSummary[];
@@ -13,6 +14,7 @@ export function SetSummaryModal({
   summary,
   currencySymbol,
   allSets,
+  blocked = false,
   onStartSet,
   onClose
 }: SetSummaryModalProps) {
@@ -100,7 +102,8 @@ export function SetSummaryModal({
 
           {nextSet ? (
             <button
-              onClick={() => onStartSet(nextSet.id)}
+              disabled={blocked}
+              onClick={() => !blocked && onStartSet(nextSet.id)}
               className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/25 inline-flex items-center justify-center space-x-2 transition cursor-pointer"
             >
               <span>Start Next Set: {nextSet.name}</span>

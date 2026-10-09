@@ -44,12 +44,18 @@ export function AuctioneerConsolePage() {
 
   // State
   const [allSets, setAllSets] = useState<PlayerSetSummary[]>([]);
+  const [lastSync, setLastSync] = useState<{ tournamentId?: string; time: number } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [bidDraft, setBidDraft] = useState<{ signature: string; price: number; teamId: string } | null>(null);
 
   // Modals
   const [correctingLot, setCorrectingLot] = useState<AuctionLotDto | null>(null);
   const [showSetSummary, setShowSetSummary] = useState<SetSummaryDto | null>(null);
+
+  const onSynchronized = useCallback((recovered: boolean) => {
+    setLastSync({ tournamentId, time: Date.now() });
+    if (recovered) { setBidDraft(null); setCorrectingLot(null); setShowSetSummary(null); }
+  }, [tournamentId]);
 
   const auctionQuery = useQuery({
     queryKey: ['auction', tournamentId, token],
@@ -88,13 +94,13 @@ export function AuctioneerConsolePage() {
   const error = auctionQuery.error?.message;
   const { refetch } = auctionQuery;
   const fetchState = useCallback(async () => {
-    await refetch({ throwOnError: true });
+    await refetch({ throwOnError: true, cancelRefetch: false });
   }, [refetch]);
   const connectionStatus = useAuctionSocket(tournamentId, token, fetchState, (event, args) => {
     if (event === 'SetCompleted') setShowSetSummary(args[0] as SetSummaryDto);
     if (event === 'PlayerRevealed') setShowSetSummary(null);
-  });
-  const mutationBlocked = actionLoading || auctionQuery.isError || connectionStatus !== 'connected';
+  }, onSynchronized);
+  const mutationBlocked = actionLoading || auctionQuery.isError || auctionQuery.isFetching || connectionStatus !== 'connected';
   const currencySymbol = state?.currencySymbol ?? '₹';
   const normalSetFinished = !!state?.currentSetId && !state.isUnsoldRound && state.currentSetSummary?.remainingCount === 0;
   const unsoldRoundFinished = !!state?.isUnsoldRound && state.unsoldRoundRemainingCount === 0;
@@ -123,7 +129,7 @@ export function AuctioneerConsolePage() {
 
   // Actions
   const handleStartAuction = async () => {
-    if (mutationBlocked || !token || !tournamentId) return;
+    if (mutationBlocked || !navigator.onLine || !token || !tournamentId) return;
     setActionLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/auction/start`, {
@@ -143,7 +149,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handlePauseResume = async () => {
-    if (mutationBlocked || !token || !tournamentId || !state) return;
+    if (mutationBlocked || !navigator.onLine || !token || !tournamentId || !state) return;
     setActionLoading(true);
     const endpoint = state.sessionStatus === 'LIVE' ? 'pause' : 'resume';
     try {
@@ -164,7 +170,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handleStartSet = async (setId: string) => {
-    if (mutationBlocked || !token || !tournamentId) return;
+    if (mutationBlocked || !navigator.onLine || !token || !tournamentId) return;
     setActionLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/auction/start-set`, {
@@ -189,7 +195,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handleRevealNext = async () => {
-    if (mutationBlocked || !token || !tournamentId) return;
+    if (mutationBlocked || !navigator.onLine || !token || !tournamentId) return;
     if (state?.isUnsoldRound && state.unsoldRoundRemainingCount === 0) return;
     if (!state?.isUnsoldRound && state?.currentSetSummary?.remainingCount === 0) return;
     setActionLoading(true);
@@ -211,7 +217,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handleSellCurrent = async () => {
-    if (mutationBlocked || !token || !tournamentId || !state?.currentLot || !selectedTeamId) {
+    if (mutationBlocked || !navigator.onLine || !token || !tournamentId || !state?.currentLot || !selectedTeamId) {
       alert('Please select a winning team before confirming sale.');
       return;
     }
@@ -248,7 +254,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handleMarkUnsold = async () => {
-    if (mutationBlocked || !token || !tournamentId || !state?.currentLot) return;
+    if (mutationBlocked || !navigator.onLine || !token || !tournamentId || !state?.currentLot) return;
     const confirmed = window.confirm(`Mark ${state.currentLot.playerName} as UNSOLD?`);
     if (!confirmed) return;
 
@@ -277,7 +283,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handleCompleteSet = async (setId: string, nextSetId?: string) => {
-    if (mutationBlocked || !token || !tournamentId) return;
+    if (mutationBlocked || !navigator.onLine || !token || !tournamentId) return;
     setActionLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/auction/sets/${setId}/complete`, {
@@ -312,7 +318,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handleStartUnsoldRound = async () => {
-    if (mutationBlocked || !token || !tournamentId) return;
+    if (mutationBlocked || !navigator.onLine || !token || !tournamentId) return;
     const confirmed = window.confirm(
       state?.sellAllPlayers
         ? 'Start unsold rounds? Remaining unsold players will continue into new rounds until everyone is sold.'
@@ -339,7 +345,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handleCommitCorrection = async (newTeamId: string, newPrice: number, reason: string) => {
-    if (mutationBlocked) throw new Error('Wait for the live connection to synchronize before correcting a result.');
+    if (mutationBlocked || !navigator.onLine) throw new Error('Wait for the live connection to synchronize before correcting a result.');
     if (!token || !tournamentId || !correctingLot) return;
     const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/auction/correct-result`, {
       method: 'POST',
@@ -365,7 +371,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handleCompleteAuction = async () => {
-    if (mutationBlocked || !token || !tournamentId) return;
+    if (mutationBlocked || !navigator.onLine || !token || !tournamentId) return;
     const confirmed = window.confirm('Are you sure you want to conclude and complete the entire tournament auction?');
     if (!confirmed) return;
 
@@ -414,7 +420,7 @@ export function AuctioneerConsolePage() {
   };
 
   const handleUpdateBid = async () => {
-    if (mutationBlocked || !token || !tournamentId || !state?.currentLot) return;
+    if (mutationBlocked || !navigator.onLine || !token || !tournamentId || !state?.currentLot) return;
     setActionLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/auction/bid`, {
@@ -431,7 +437,7 @@ export function AuctioneerConsolePage() {
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (mutationBlocked || correctingLot || visibleSetSummary || state?.sessionStatus !== 'LIVE') return;
+      if (mutationBlocked || !navigator.onLine || correctingLot || visibleSetSummary || state?.sessionStatus !== 'LIVE') return;
       // Don't trigger if user is typing in an input
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) {
         return;
@@ -536,7 +542,7 @@ export function AuctioneerConsolePage() {
 
           {/* Center Status Pill */}
           <div className="flex items-center gap-3">
-            <span data-theme-slot /><ConnectionIndicator status={connectionStatus} />
+            <span data-theme-slot /><div className="console-connection"><ConnectionIndicator status={connectionStatus} /><small data-testid="auction-last-sync">Last synchronized: {lastSync && lastSync.tournamentId === tournamentId ? <time dateTime={new Date(lastSync.time).toISOString()}>{new Date(lastSync.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</time> : 'Awaiting server confirmation'}</small></div>
             <Link to={`/tournaments/${tournamentId}/projector`} target="_blank" rel="noopener noreferrer" title="Open projector view" className="text-emerald-300 flex items-center gap-2 text-xs"><Monitor size={18} />Projector</Link>
             <ShareProjectorLink tournamentId={tournamentId!} />
           </div>
@@ -598,7 +604,7 @@ export function AuctioneerConsolePage() {
         </div>
       </header>
 
-      {error && <p role="alert" className="bg-amber-950/60 border-b border-amber-500/30 px-6 py-3 text-sm text-amber-200">Auction state could not be refreshed. Controls are paused while the connection recovers.</p>}
+      {(error || auctionQuery.isFetching || connectionStatus !== 'connected') && <div role="alert" className="console-recovery" data-testid="auction-recovery"><AlertTriangle size={16} /><div><strong>{connectionStatus === 'syncing' ? 'Checking the latest auction state' : connectionStatus === 'connecting' ? 'Connecting to the auction' : 'Live connection unavailable'}</strong><p>Controls are temporarily disabled. Displayed results may be out of date. {connectionStatus === 'syncing' ? 'Waiting for server confirmation.' : 'Reconnection is automatic.'} This does not pause the auction for other connected operators.</p></div></div>}
 
       {/* Main Container */}
       <fieldset disabled={mutationBlocked || state.sessionStatus === 'PAUSED'} className="contents">
@@ -1049,6 +1055,7 @@ export function AuctioneerConsolePage() {
       {/* Modals */}
       {correctingLot && (
         <CorrectionModal
+          blocked={mutationBlocked}
           lot={correctingLot}
           teams={teamStandings}
           currencySymbol={currencySymbol}
@@ -1060,6 +1067,7 @@ export function AuctioneerConsolePage() {
 
       {visibleSetSummary && (
         <SetSummaryModal
+          blocked={mutationBlocked}
           summary={visibleSetSummary}
           currencySymbol={currencySymbol}
           allSets={allSets}

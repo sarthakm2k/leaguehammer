@@ -10,10 +10,11 @@ export function useAuctionSocket(
   token: string | null,
   syncState: () => Promise<unknown>,
   onEvent?: (event: string, args: unknown[]) => void,
+  onSynchronized?: (recovered: boolean) => void,
 ) {
   const [status, setStatus] = useState<AuctionConnectionStatus>('connecting');
-  const callbacks = useRef({ syncState, onEvent });
-  useEffect(() => { callbacks.current = { syncState, onEvent }; }, [syncState, onEvent]);
+  const callbacks = useRef({ syncState, onEvent, onSynchronized });
+  useEffect(() => { callbacks.current = { syncState, onEvent, onSynchronized }; }, [syncState, onEvent, onSynchronized]);
 
   useEffect(() => {
     if (!tournamentId) return;
@@ -22,6 +23,8 @@ export function useAuctionSocket(
     let joined = false;
     let syncing = false;
     let dirty = false;
+    let generation = 0;
+    let recovering = true;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const connection = new HubConnectionBuilder()
       .withUrl(`${API_BASE}/hubs/auction`, { accessTokenFactory: () => token || '' })
@@ -34,24 +37,39 @@ export function useAuctionSocket(
       dirty = true;
       if (syncing || !joined || disposed) return;
       syncing = true;
+      const syncGeneration = generation;
+      clearTimeout(retryTimer);
+      setStatus('syncing');
       try {
         while (dirty && !disposed && joined) {
           dirty = false;
           await callbacks.current.syncState();
+          if (disposed || !joined || syncGeneration !== generation) return;
         }
-        if (!disposed && joined && navigator.onLine) setStatus('connected');
+        if (!disposed && joined && navigator.onLine && syncGeneration === generation) {
+          callbacks.current.onSynchronized?.(recovering);
+          recovering = false;
+          setStatus('connected');
+        }
       } catch {
-        if (!disposed) {
+        if (!disposed && syncGeneration === generation) {
+          recovering = true;
           setStatus(navigator.onLine ? 'syncing' : 'reconnecting');
           retryTimer = setTimeout(() => { void sync(); }, 2000);
         }
-      } finally { syncing = false; }
+      } finally {
+        syncing = false;
+        if (dirty && joined && !disposed) void sync();
+      }
     };
 
     const joinAndSync = async () => {
       if (disposed) return;
+      const joinGeneration = ++generation;
+      recovering = true;
       setStatus('syncing');
       await connection.invoke('JoinAuction', tournamentId);
+      if (disposed || joinGeneration !== generation || !navigator.onLine || connection.state !== HubConnectionState.Connected) return;
       joined = true;
       await sync();
     };
@@ -76,11 +94,12 @@ export function useAuctionSocket(
     }));
     connection.on('AuctionStateChanged', () => { void sync(); });
     connection.on('TeamUpdated', () => { void sync(); });
-    connection.onreconnecting(() => { joined = false; if (!disposed) setStatus('reconnecting'); });
+    connection.onreconnecting(() => { generation++; recovering = true; joined = false; if (!disposed) setStatus('reconnecting'); });
     connection.onreconnected(() => {
       void joinAndSync().catch(() => { joined = false; void connection.stop(); });
     });
     connection.onclose(() => {
+      generation++; recovering = true;
       joined = false;
       if (!disposed) {
         setStatus('reconnecting');
@@ -94,6 +113,7 @@ export function useAuctionSocket(
     };
     const onOffline = () => {
       if (disposed) return;
+      generation++; recovering = true;
       joined = false;
       setStatus('reconnecting');
       // Browsers can report offline while keeping a WebSocket open. Close it so recovery must rejoin and sync.
