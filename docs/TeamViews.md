@@ -30,3 +30,13 @@ For viewports at least 900 px wide and 500 px high, the broadcast occupies the b
 - `tests/team-dashboard.spec.ts` covers team metrics, roster, upcoming sets, unsold pool, SignalR refresh, final outcomes, light theme and 320/390 px mobile layouts.
 - Projector checks cover 1366×650, 1280×600, 1024×600 and 1920×1080 with ten teams, plus 4/24/32-team grids at 1024×600. Checks verify that all team cards are inside the grid, the team grid does not scroll, and photos and SOLD banners fit.
 - Storage tests use an HTTP handler; no production Supabase writes were performed during automated verification.
+
+## Compact team view and auction planning
+
+The shared team dashboard now separates Live auction, Plan & targets, and Squad into tabs. On phones, purse and squad summaries sit side by side, the current bid stays near the top, and the marquee signing and full player pool are expandable. All existing team information remains accessible.
+
+Plan & targets provides a player shortlist, optional spending ceilings, position coverage, search, set/position filters, and a base-price filter against the team's current maximum bid. Planned totals flag purse overspending and targets exceeding available squad slots. Live updates flag bids above a player's ceiling and preserve shortlisted players' final outcomes; sold targets no longer consume the planned budget.
+
+Plans are stored in browser localStorage separately for each tournament and team. They are private to that browser/device, do not synchronize between viewers, and do not reserve purse or place bids. Actual purchases remain subject to the auction engine's existing reserve and squad validation. No backend or database changes are required.
+
+Verification: production frontend build and lint passed (existing lint warnings only). Five team-dashboard browser tests passed, covering 320/390 px mobile widths, live updates, tab navigation, saved plans, filters, sold targets, team isolation, completed results and the existing projector layout.

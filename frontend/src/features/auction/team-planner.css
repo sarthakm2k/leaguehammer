@@ -1,0 +1,72 @@
+.franchise-tool-nav{display:flex;gap:6px;padding:5px;border:1px solid var(--franchise-border);border-radius:12px;background:var(--franchise-panel)}
+.franchise-tool-nav button{flex:1;min-height:44px;padding:8px;border-radius:8px;font-size:13px;font-weight:750;cursor:pointer;color:var(--franchise-muted)}
+.franchise-tool-nav button[aria-pressed=true]{background:var(--franchise-accent);color:#101219}
+.franchise-full-pool{border:1px solid var(--franchise-border);border-radius:14px;padding:14px}
+.franchise-full-pool>summary{cursor:pointer;min-height:44px;font-size:14px;font-weight:750}
+.team-plan-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.team-plan-metrics>div{border:1px solid var(--franchise-border);border-radius:10px;padding:12px;min-width:0}
+.team-plan-metrics small{display:block;color:var(--franchise-muted);font-size:10px}
+.team-plan-metrics strong{display:block;font-size:19px;overflow-wrap:anywhere;margin-top:5px}
+.team-plan-coverage{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.team-plan-coverage span{display:flex;gap:10px;align-items:center;font-size:11px;border:1px solid var(--franchise-border);border-radius:7px;padding:6px 8px;color:var(--franchise-muted)}
+.team-plan-coverage b{color:var(--league-paper)}
+.team-plan-note{font-size:11px;color:var(--franchise-muted);line-height:1.5;margin:12px 0}
+.team-plan-warning{font-size:11px;line-height:1.5;color:#fbbf24;margin:8px 0}
+.team-plan-filters{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:8px}
+.team-plan-filters label{display:flex;align-items:center;gap:6px;border:1px solid var(--franchise-border);padding:0 10px;border-radius:8px;min-width:0}
+.team-plan-filters input,.team-plan-filters select,.team-target-price input{min-width:0;width:100%;background:var(--franchise-panel);color:inherit;border:1px solid var(--franchise-border);padding:8px;border-radius:8px;font-size:13px;min-height:40px}
+.team-plan-filters label input{border:0;padding-inline:0}
+.team-plan-switches{display:flex;gap:8px;margin-top:10px}
+.team-plan-switches button{min-height:40px;padding:8px 12px;font-size:12px;border:1px solid var(--franchise-border);border-radius:8px;cursor:pointer}
+.team-plan-switches button[aria-pressed=true]{border-color:var(--franchise-accent);box-shadow:inset 0 0 0 1px var(--franchise-accent)}
+.team-plan-list{display:grid;gap:8px}
+.team-plan-list article{display:grid;grid-template-columns:36px minmax(0,1fr) 110px;gap:8px;align-items:center;border:1px solid var(--franchise-border);border-radius:10px;padding:12px}
+.team-plan-list .team-plan-live{border-color:var(--franchise-accent)}
+.team-target-star{min-height:44px;cursor:pointer;color:var(--franchise-muted);display:grid;place-items:center}
+.team-target-star[aria-pressed=true]{color:var(--franchise-accent)}
+.team-target-name{min-width:0}.team-target-name strong{display:block;font-size:14px;overflow-wrap:anywhere}
+.team-target-name small,.team-target-price small{font-size:10px;color:var(--franchise-muted);display:block}
+.team-target-name span{display:block;font-size:9px;margin-top:5px;color:var(--franchise-muted)}
+.team-target-price{text-align:right;min-width:0}.team-target-price b{font-size:14px;overflow-wrap:anywhere}
+.team-target-price label{display:block;font-size:10px;color:var(--franchise-muted);margin-top:6px}
+.team-target-price input{margin-top:3px;min-height:36px}
+.team-plan-list article>.team-plan-warning{grid-column:2/-1}
+:root[data-theme=light] .team-plan-warning{color:#895400}
+:root[data-theme=light] .team-target-star[aria-pressed=true]{color:#426600}
+@media(max-width:600px){
+  .team-auction-page{padding:12px}.team-auction-page .result-stack{gap:10px}
+  .team-auction-page .result-header{gap:8px;padding-bottom:10px}.team-auction-page .result-brand .league-brand{display:none}
+  .team-auction-page .result-brand h1{font-size:18px;margin-top:3px}.team-auction-page .result-header .result-eyebrow{font-size:8px}
+  .team-auction-page .result-header-actions{gap:6px}.team-auction-page .result-header-actions [role=status]{padding:5px 8px;font-size:10px}
+  .team-auction-page .result-header-actions a{font-size:10px}.team-auction-page .result-nav{padding:4px;gap:2px}
+  .team-auction-page .result-nav a{padding:7px 10px;font-size:11px;min-height:32px}.team-auction-page .result-shell>a{font-size:11px}
+  .franchise-identity{padding:12px;gap:10px;border-radius:14px}.franchise-crest{width:42px;height:42px;padding:5px;border-radius:10px}
+  .franchise-identity-copy{flex-basis:calc(100% - 52px)}.franchise-identity-copy>.result-eyebrow{display:none}
+  .franchise-identity-copy h2{font-size:21px;margin:0 0 4px}.franchise-identity-copy>p:last-child{font-size:10px}
+  .franchise-identity-share .result-copy button{font-size:10px;padding:5px 8px;min-height:32px}
+  .franchise-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .franchise-budget,.franchise-capacity,.franchise-podium{padding:12px;border-radius:14px}
+  .franchise-dashboard .result-eyebrow{font-size:8px;letter-spacing:.07em}.franchise-budget>strong{font-size:clamp(20px,6vw,28px);margin:9px 0 10px}
+  .franchise-budget-details{margin-top:10px;gap:5px}.franchise-budget-details small{font-size:8px}.franchise-budget-details b{font-size:10px}
+  .franchise-budget>p:last-child,.franchise-capacity>p:last-child{display:none}.franchise-squad-number{margin:8px 0 10px;gap:8px}
+  .franchise-squad-number strong{font-size:30px}.franchise-squad-number span{font-size:9px}.franchise-slot-counts{margin-top:8px;gap:10px}
+  .franchise-slot-counts span{font-size:8px}.franchise-slot-counts b{font-size:17px}
+  .franchise-auction-context{grid-template-columns:1.2fr 1fr;gap:10px;padding:10px 12px;border-radius:12px}
+  .franchise-auction-context h3{font-size:12px;margin-top:3px}.franchise-auction-context strong{font-size:18px}.franchise-auction-context small{font-size:9px}
+  .franchise-auction-context p{font-size:9px;line-height:1.4;margin-top:5px}.franchise-auction-context>div:last-child{border-top:0;border-left:1px solid var(--franchise-border);padding:0 0 0 10px}
+  .franchise-detail-grid{gap:8px}.franchise-podium-player{margin:10px 0;gap:10px}.franchise-podium-player .result-portrait{width:42px;height:48px}
+  .franchise-podium-player h3{font-size:19px}.franchise-podium p:not(.result-eyebrow){font-size:10px;margin-top:6px}
+  .franchise-live-price{padding:8px 0}.franchise-live-price strong{font-size:24px}.franchise-live-price span{font-size:10px}
+  .franchise-tool-nav button{font-size:11px;padding:6px;min-height:40px}
+  .franchise-dashboard .result-panel{padding:12px;border-radius:14px}.franchise-section-heading{margin-bottom:12px}.franchise-section-heading h2{font-size:19px}
+  .franchise-roster-grid{gap:6px}.franchise-roster-grid article{flex-wrap:nowrap;padding:9px;gap:8px}.franchise-roster-grid .result-portrait{width:36px;height:42px}
+  .franchise-roster-grid article>div:last-of-type{flex:1}.franchise-roster-grid article>strong{flex:0 0 auto;margin-left:0;font-size:13px}.franchise-roster-grid h3{font-size:13px}
+  .team-plan-metrics{gap:5px}.team-plan-metrics>div{padding:8px}.team-plan-metrics strong{font-size:14px}.team-plan-metrics small{font-size:8px}
+  .team-plan-filters{grid-template-columns:1fr 1fr}.team-plan-filters label{grid-column:1/-1}
+  .team-plan-filters input,.team-plan-filters select,.team-target-price input{font-size:16px}
+  .team-plan-list article{grid-template-columns:28px minmax(0,1fr) 86px;padding:8px;gap:6px}.team-target-name strong{font-size:13px}
+}
+
+.franchise-record>summary{cursor:pointer;font-size:14px;font-weight:750;min-height:44px}
+.franchise-record:not([open]){align-self:start;padding:12px 20px}
+@media(max-width:600px){.franchise-record:not([open]){padding:8px 12px;border-radius:12px}.franchise-record>summary{min-height:24px;font-size:11px}}

@@ -61,7 +61,10 @@ test('franchise dashboard explains finances, slots, signings, remaining sets and
   await expect(page.getByTestId('franchise-purse')).toHaveText('₹8,000');
   await expect(page.getByTestId('franchise-minimum-slots')).toHaveText('2');
   await expect(page.getByTestId('franchise-open-slots')).toHaveText('4');
+  await page.getByRole('button', { name: 'Squad (1)', exact: true }).click();
   await expect(page.getByTestId('franchise-signing-player-0')).toContainText('Signed Star');
+  await page.getByRole('button', { name: 'Plan & targets', exact: true }).click();
+  await page.getByText('Full player pool by set', { exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Remaining player pool' })).toBeVisible();
   await expect(page.getByTestId('upcoming-player-player-2')).toBeVisible();
   await expect(page.getByTestId('upcoming-player-player-4')).toBeVisible();
@@ -71,6 +74,7 @@ test('franchise dashboard explains finances, slots, signings, remaining sets and
   notify();
   await expect(page.getByTestId('franchise-purse')).toHaveText('₹6,000');
   await page.screenshot({ path: '../.cache/franchise-desktop.png', fullPage: true });
+  await page.getByRole('button', { name: 'Squad (1)', exact: true }).click();
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 844 });
     await expect(page.getByTestId('franchise-purse')).toBeVisible();
@@ -147,4 +151,57 @@ test('projector fits laptop viewports with the player, progress and ticker visib
     await page.locator('.football-player-card').evaluate((node,size)=>{const element=node as HTMLElement; element.style.width=`${size}px`;},width);
     await expectCardStatsToFit(page);
   }
+});
+
+test('mobile franchise live view keeps purse, slots and the live price together', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const data = fixture(); await mock(page, data);
+  await page.goto(`/live/demo/teams/${teamId}`);
+  await expect(page.getByText('Live connection', { exact: true })).toBeVisible();
+  for (const selector of ['.franchise-summary-grid', '.franchise-live-price']) {
+    const box = await page.locator(selector).boundingBox();
+    expect(box!.y + box!.height).toBeLessThanOrEqual(844);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expect(page.getByRole('heading', { name: 'Remaining player pool' })).toHaveCount(0);
+  await page.screenshot({ path: '../testscreenshots/team-mobile-live.png', fullPage: true });
+  await page.setViewportSize({ width: 320, height: 640 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('team plans persist per device and team and follow live player outcomes', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const data = fixture(); const notify = await mock(page, data);
+  await page.goto(`/live/demo/teams/${teamId}`);
+  await page.getByRole('button', { name: 'Plan & targets', exact: true }).click();
+  await page.getByRole('button', { name: 'Shortlist Active Forward', exact: true }).click();
+  await expect(page.getByText('The live bid is above your planned ceiling.')).toBeVisible();
+  await page.getByRole('spinbutton', { name: 'Target budget for Active Forward' }).fill('9000');
+  await expect(page.getByText(/Target budgets exceed your remaining purse/)).toBeVisible();
+  await page.getByLabel('Search target players').fill('Next');
+  await expect(page.getByTestId('team-target-player-2')).toBeVisible();
+  await expect(page.getByTestId('team-target-player-1')).toHaveCount(0);
+  await page.getByLabel('Search target players').fill('');
+  await page.getByLabel('Filter targets by set').selectOption('set-b');
+  await expect(page.getByTestId('team-target-player-4')).toBeVisible();
+  await expect(page.getByTestId('team-target-player-1')).toHaveCount(0);
+  await page.getByLabel('Filter targets by set').selectOption('');
+  await page.reload();
+  await page.getByRole('button', { name: 'Plan & targets', exact: true }).click();
+  await expect(page.getByLabel('Target budget for Active Forward')).toHaveValue('9000');
+  await page.getByRole('button', { name: 'My shortlist (1)', exact: true }).click();
+  await expect(page.locator('.team-plan-list article')).toHaveCount(1);
+  data.players[1].status = 'SOLD'; data.players[1].winningTeamName = 'Rivals';
+  data.state.currentLot = null;
+  notify();
+  await expect(page.getByTestId('team-target-player-1')).toContainText('Signed by Rivals');
+  await expect(page.getByLabel('Target budget for Active Forward')).toHaveCount(0);
+  await expect(page.getByText('0 active targets')).toBeVisible();
+  await page.evaluate(() => document.documentElement.dataset.theme = 'light');
+  await page.screenshot({ path: '../testscreenshots/team-mobile-planner.png', fullPage: true });
+  const otherId = 'another-team';
+  data.statistics.teams.push({ ...data.statistics.teams[0], standing: { ...data.statistics.teams[0].standing, teamId: otherId, teamName: 'Other Team' } });
+  await page.goto(`/live/demo/teams/${otherId}`);
+  await page.getByRole('button', { name: 'Plan & targets', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'My shortlist (0)', exact: true })).toBeVisible();
 });
