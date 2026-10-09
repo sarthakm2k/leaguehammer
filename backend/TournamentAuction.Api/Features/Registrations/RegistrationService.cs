@@ -120,6 +120,24 @@ public class RegistrationService(TournamentAuctionDbContext db, IPlayerService p
             ?? throw new KeyNotFoundException("Registration not found.");
         return new { photoUrl = r.PhotoPath == null ? null : await photos.ReviewUrlAsync(r.PhotoPath) };
     }
+    public async Task<object> UpdatePhotoAsync(Guid id, Guid submissionId, Guid user, IFormFile? photo)
+    {
+        await Tournament(id, user);
+        await using var tx = await Lock(id);
+        var t = await db.Tournaments.AsNoTracking().SingleAsync(t => t.Id == id);
+        var f = await db.RegistrationForms.FindAsync(id);
+        if (t.Status != TournamentStatus.DRAFT || f?.FinalizedAtUtc != null) throw new InvalidOperationException("Registration review is locked.");
+        var r = await db.PlayerRegistrations.SingleOrDefaultAsync(r => r.Id == submissionId && r.TournamentId == id)
+            ?? throw new KeyNotFoundException("Registration not found.");
+        if (r.Status != "PENDING") throw new InvalidOperationException("Only pending registration photos can change here. Manage approved player photos in Player Registry.");
+        // Unique private paths preserve the old photo if replacement fails midway.
+        var path = photo == null ? null : await photos.UploadAsync(id, Guid.NewGuid(), photo);
+        var url = path == null ? null : await photos.ReviewUrlAsync(path);
+        r.PhotoPath = path;
+        await db.SaveChangesAsync();
+        if (tx != null) await tx.CommitAsync();
+        return new { photoUrl = url, hasPhoto = path != null };
+    }
     public async Task<RegistrationReceipt> ReviewAsync(Guid id, Guid submissionId, Guid user, RegistrationReviewRequest request)
     {
         await Tournament(id, user);

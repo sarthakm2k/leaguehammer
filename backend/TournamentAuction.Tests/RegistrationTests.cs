@@ -19,7 +19,8 @@ public class RegistrationTests
     {
         public bool Available => true;
         public int Uploads, Publications;
-        public Task<string> UploadAsync(Guid t, Guid r, IFormFile photo) { Uploads++; return Task.FromResult($"{t}/{r}.png"); }
+        public bool Fail;
+        public Task<string> UploadAsync(Guid t, Guid r, IFormFile photo) { Uploads++; if (Fail) throw new HttpRequestException("Storage unavailable"); return Task.FromResult($"{t}/{r}.png"); }
         public Task<string> ReviewUrlAsync(string path) => Task.FromResult($"https://storage.test/private-signed/{path}");
         public Task<string> PublishAsync(string path) { Publications++; return Task.FromResult($"https://storage.test/public/{path}"); }
     }
@@ -163,4 +164,53 @@ public class RegistrationTests
     [InlineData("image/png", "not really an image")]
     public void PhotoUploadRejectsUnsupportedOrMismatchedContent(string type, string content)
         => Assert.Throws<ArgumentException>(() => RegistrationPhotoStorage.ValidatePhoto(System.Text.Encoding.UTF8.GetBytes(content), type));
+
+    [Fact]
+    public async Task ReviewerCanAddAndReplacePrivatePhotoBeforeApproval()
+    {
+        var (db, service, _, photos, t, set) = await Fixture(); var request = Submission();
+        await service.SubmitAsync(t.Slug, request);
+        var file = new FormFile(new MemoryStream([1]), 0, 1, "photo", "photo.png");
+        await service.UpdatePhotoAsync(t.Id, request.SubmissionId, t.OwnerUserId, file);
+        var first = db.PlayerRegistrations.Single().PhotoPath;
+        await service.UpdatePhotoAsync(t.Id, request.SubmissionId, t.OwnerUserId, file);
+        Assert.NotEqual(first, db.PlayerRegistrations.Single().PhotoPath);
+        Assert.Equal(0, photos.Publications); Assert.Empty(db.Players);
+        await service.ReviewAsync(t.Id, request.SubmissionId, t.OwnerUserId, Review(set));
+        Assert.Contains(db.PlayerRegistrations.Single().PhotoPath!, db.Players.Single().PhotoUrl!);
+        Assert.Equal(1, photos.Publications);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdatePhotoAsync(t.Id, request.SubmissionId, t.OwnerUserId, null));
+    }
+    [Fact]
+    public async Task RemovingPendingPhotoPreventsPublicationAndFailedReplacementPreservesIt()
+    {
+        var (db, service, _, photos, t, set) = await Fixture(); var request = Submission();
+        var file = new FormFile(new MemoryStream([1]), 0, 1, "photo", "photo.png"); request.Photo = file;
+        await service.SubmitAsync(t.Slug, request); var original = db.PlayerRegistrations.Single().PhotoPath; photos.Fail = true;
+        await Assert.ThrowsAsync<HttpRequestException>(() => service.UpdatePhotoAsync(t.Id, request.SubmissionId, t.OwnerUserId, file));
+        Assert.Equal(original, db.PlayerRegistrations.Single().PhotoPath);
+        await service.UpdatePhotoAsync(t.Id, request.SubmissionId, t.OwnerUserId, null);
+        Assert.False((await service.ListAsync(t.Id, t.OwnerUserId)).Single().HasPhoto);
+        await service.ReviewAsync(t.Id, request.SubmissionId, t.OwnerUserId, Review(set));
+        Assert.Null(db.Players.Single().PhotoUrl); Assert.Equal(0, photos.Publications);
+    }
+    [Fact]
+    public async Task PhotoUpdatesEnforcePermissionsAndReviewLocksBeforeStorage()
+    {
+        var (_, service, _, photos, t, set) = await Fixture(); var request = Submission(); await service.SubmitAsync(t.Slug, request);
+        var file = new FormFile(new MemoryStream([1]), 0, 1, "photo", "photo.png");
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.UpdatePhotoAsync(t.Id, request.SubmissionId, Guid.NewGuid(), file));
+        await service.ReviewAsync(t.Id, request.SubmissionId, t.OwnerUserId, Review(set, false));
+        await service.FinalizeAsync(t.Id, t.OwnerUserId);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdatePhotoAsync(t.Id, request.SubmissionId, t.OwnerUserId, file));
+        Assert.Equal(0, photos.Uploads);
+    }
+    [Fact]
+    public async Task CrossTournamentPhotoUpdateCannotTouchAnotherSubmission()
+    {
+        var (db, service, _, photos, t, _) = await Fixture();var request=Submission();await service.SubmitAsync(t.Slug,request);
+        var other=new Tournament { OwnerUserId=t.OwnerUserId };db.Tournaments.Add(other);await db.SaveChangesAsync();
+        await Assert.ThrowsAsync<KeyNotFoundException>(()=>service.UpdatePhotoAsync(other.Id,request.SubmissionId,t.OwnerUserId,new FormFile(new MemoryStream([1]),0,1,"photo","photo.png")));
+        Assert.Equal(0,photos.Uploads);
+    }
 }

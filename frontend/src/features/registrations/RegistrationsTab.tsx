@@ -1,7 +1,7 @@
 import { PlayerRatingsEditor } from '../players/PlayerRatingsEditor';
 import type { RatingValues } from '../players/playerCardTypes';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Copy, ExternalLink, RefreshCw, UserRoundCheck } from 'lucide-react';
+import { Copy, ExternalLink, RefreshCw, UserRoundCheck, Upload, Trash2 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { PlayerFields } from './PlayerFields';
 import { registrationRequest } from './registrationApi';
@@ -28,6 +28,9 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
   const [error, setError] = useState(''); const [notice, setNotice] = useState(''); const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState('PENDING'); const [search, setSearch] = useState('');
   const [review, setReview] = useState<RegistrationEntry | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoInputKey, setPhotoInputKey] = useState(0);
+  const photoVersion = useRef(0);
   const reviewPanel = useRef<HTMLElement>(null);
   const [ratings, setRatings] = useState<RatingValues>({});
   const [details, setDetails] = useState<PlayerDetails | null>(null);
@@ -63,13 +66,30 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
     });
   };
   const startReview = (r: RegistrationEntry) => {
+    const version = ++photoVersion.current; setPhotoFile(null); setPhotoInputKey(key => key + 1);
     setReview(r); setDetails({ name: r.name, phone: r.phone, email: r.email || '', age: r.age?.toString() || '', position: r.position,
       preferredFoot: r.preferredFoot || '', cardPosition: r.cardPosition || '' });
     setRatings({});
     setSetId(''); setPrice(''); setReason(''); setDuplicateConfirmed(false); setError('');
     if (r.hasPhoto) void request<{ photoUrl: string }>(`/registrations/${r.id}/photo`).then(value => {
+      if (photoVersion.current !== version) return;
       setReview(current => current?.id === r.id ? { ...current, photoUrl: value.photoUrl } : current);
-    }).catch(e => setError((e as Error).message));
+    }).catch(e => { if (photoVersion.current === version) setError((e as Error).message); });
+  };
+  const changePhoto = (remove = false) => {
+    if (!review || busy || locked || (!remove && !photoFile)) return;
+    if (remove && !window.confirm(`Remove the photo from ${review.name}'s registration?`)) return;
+    const submissionId = review.id; ++photoVersion.current;
+    void action(async () => {
+      const body = new FormData(); if (photoFile) body.append('photo', photoFile);
+      const result = await registrationRequest<{ photoUrl: string | null; hasPhoto: boolean }>(`${root}/registrations/${submissionId}/photo`, {
+        method: remove ? 'DELETE' : 'POST', headers: { Authorization: `Bearer ${token}` }, body: remove ? undefined : body,
+      }, 60000);
+      setReview(current => current?.id === submissionId ? { ...current, ...result } : current);
+      setEntries(current => current.map(entry => entry.id === submissionId ? { ...entry, ...result } : entry));
+      setPhotoFile(null); setPhotoInputKey(key => key + 1);
+      setNotice(remove ? 'Registration photo removed.' : 'Registration photo updated. It will be published when you approve this player.');
+    });
   };
   const decide = (approve: boolean) => void action(async () => {
     if (!review || !details) return;
@@ -117,6 +137,13 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
     </section>
     {review && details && <section ref={reviewPanel} className="registration-card registration-review" aria-label="Review player submission"><div className="registration-admin-heading"><h3>Review {review.name}</h3><button disabled={busy} onClick={() => setReview(null)}>Close review</button></div>
       {review.photoUrl && <img className="registration-review-photo" src={review.photoUrl} alt={`${review.name} submitted photo`} />}
+      <div className="registration-review-photo-controls"><h4>Player photo</h4><p className="registration-muted">Add a missing photo, replace the submitted image, or remove it before approval. Photos stay private until the player is approved.</p>
+        <label>Choose registration photo<input key={photoInputKey} type="file" aria-label="Choose registration photo" accept="image/jpeg,image/png,image/webp" disabled={busy || locked || !form?.photoUploadAvailable} onChange={event => {
+          const file = event.target.files?.[0] || null; setPhotoFile(null); setError('');
+          if (file && (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 3 * 1024 * 1024)) { setError('Choose a JPEG, PNG or WebP photo up to 3 MB.'); event.target.value = ''; return; }
+          setPhotoFile(file);
+        }} /></label><p className="registration-muted">JPEG, PNG or WebP, up to 3 MB.</p><div className="registration-actions"><button type="button" disabled={busy || locked || !photoFile || !form?.photoUploadAvailable} onClick={() => changePhoto()}><Upload size={16} />{review.hasPhoto ? 'Replace registration photo' : 'Upload registration photo'}</button>{review.hasPhoto && <button type="button" disabled={busy || locked} onClick={() => changePhoto(true)}><Trash2 size={16} />Remove registration photo</button>}</div>
+      </div>
       <form onSubmit={e => { e.preventDefault(); decide(true); }}><PlayerFields value={details} onChange={setDetails} disabled={busy || locked} /><PlayerRatingsEditor value={ratings} onChange={setRatings} name={details.name} position={details.position} cardPosition={details.cardPosition} photoUrl={review.photoUrl || undefined} disabled={busy || locked} />
         <div className="registration-fields"><label>Auction player set<select value={setId} onChange={e => setSetId(e.target.value)} required><option value="">Select a set</option>{sets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label><label>Base price<input aria-label="Base price" type="number" min={10} max={1000000000} value={price} onChange={e => setPrice(e.target.value)} list="registration-tiers" required /><datalist id="registration-tiers">{tiers.map(t => <option value={t.amount} key={t.id}>{t.label}</option>)}</datalist></label><label className="registration-wide">Review note / rejection reason<textarea rows={2} maxLength={1000} value={reason} onChange={e => setReason(e.target.value)} /></label></div>
         {(review.possibleDuplicate || error.startsWith('Possible duplicate')) && <label className="registration-consent registration-duplicate"><input type="checkbox" checked={duplicateConfirmed} onChange={e => setDuplicateConfirmed(e.target.checked)} /><span>I checked the possible duplicate and want to approve this player.</span></label>}

@@ -16,6 +16,7 @@ public class RegistrationsController(RegistrationService service) : ControllerBa
         catch (KeyNotFoundException ex) { return NotFound(new { detail = ex.Message }); }
         catch (ArgumentException ex) { return BadRequest(new { detail = ex.Message }); }
         catch (InvalidOperationException ex) { return Conflict(new { detail = ex.Message }); }
+        catch (TaskCanceledException) { return StatusCode(503, new { detail = "Photo storage timed out. Please retry." }); }
         catch (HttpRequestException) { return StatusCode(503, new { detail = "Photo storage is temporarily unavailable. Please retry; your details are preserved." }); }
     }
     [HttpGet("api/registration/{slug}")]
@@ -42,6 +43,17 @@ public class RegistrationsController(RegistrationService service) : ControllerBa
     [Authorize]
     [HttpGet("api/tournaments/{id:guid}/registrations/{submissionId:guid}/photo")]
     public Task<IActionResult> Photo(Guid id, Guid submissionId) => Run(async () => await service.GetPhotoAsync(id, submissionId, UserId));
+    [Authorize]
+    [RequestSizeLimit(4 * 1024 * 1024)]
+    [HttpPost("api/tournaments/{id:guid}/registrations/{submissionId:guid}/photo")]
+    public Task<IActionResult> UploadPhoto(Guid id, Guid submissionId, [FromForm] IFormFile photo) => Run(async () =>
+    {
+        if (photo == null) throw new ArgumentException("Choose a photo to upload.");
+        return await service.UpdatePhotoAsync(id, submissionId, UserId, photo);
+    });
+    [Authorize]
+    [HttpDelete("api/tournaments/{id:guid}/registrations/{submissionId:guid}/photo")]
+    public Task<IActionResult> RemovePhoto(Guid id, Guid submissionId) => Run(async () => await service.UpdatePhotoAsync(id, submissionId, UserId, null));
     [Authorize]
     [HttpPost("api/tournaments/{id:guid}/registrations/{submissionId:guid}/review")]
     public Task<IActionResult> Review(Guid id, Guid submissionId, RegistrationReviewRequest request) => Run(async () => await service.ReviewAsync(id, submissionId, UserId, request));

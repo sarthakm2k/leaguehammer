@@ -11,3 +11,13 @@ Removal unlinks the image from the selected player profile and restores its avat
 Changes emit the existing TeamUpdated signal to both public and authenticated tournament groups, refreshing connected auction screens. Wrapped/results pages loaded without a socket receive the updated image on their next fetch.
 
 Verification: isolated backend build passed with zero warnings/errors; all 162 backend tests passed using --no-build. Frontend production build and lint passed (existing lint warnings only). Three browser tests passed covering upload/replace/remove in a completed tournament, canceled removal, mobile width, invalid file validation, storage failures and owner-only controls. Backend tests cover non-owner/cross-tournament access, storage validation, failure preservation and clone-safe removal.
+
+## Photos during registration review
+
+Player Registrations -> Review submission now includes Upload registration photo, Replace registration photo and Remove registration photo controls. Existing registration reviewers (owners and auctioneers) can manage photos on pending submissions while review is unlocked. Other review fields remain unchanged when photos are saved.
+
+POST/DELETE `/api/tournaments/:tournamentId/registrations/:submissionId/photo` use the same private registration bucket and validate the tournament relationship, permissions, pending status, draft status and finalization lock. Replacement uses a fresh private storage path and leaves the old reference intact if uploading or obtaining its signed review URL fails. Approval publishes the current private photo through the existing approval flow; removing it prevents publication and gives the player an avatar. Existing uploaded blobs are retained.
+
+Late preview responses are ignored after a photo change or switching submissions. Approved player photos remain manageable in Player Registry. No database migrations or new storage buckets are required.
+
+Verification for review controls: zero-warning backend build; all 166 backend tests passed with --no-build. Frontend build and lint passed (existing warnings only), and five registration/photo browser checks passed.
