@@ -77,4 +77,17 @@ public class RegistrationStorageTests
         await Assert.ThrowsAsync<ArgumentException>(() => storage.UploadLogoAsync(Guid.NewGuid(), Guid.NewGuid(), file));
         Assert.Empty(handler.Calls);
     }
+
+    [Fact]
+    public async Task OrganizerPlayerPhotosUseVersionedPublicPathsAndRejectInvalidBytes()
+    {
+        var handler = new StorageHandler(); var storage = Storage(handler); var tournament = Guid.NewGuid(); var player = Guid.NewGuid();
+        var first = await storage.UploadPlayerPhotoAsync(tournament, player, Photo());
+        var second = await storage.UploadPlayerPhotoAsync(tournament, player, Photo());
+        Assert.StartsWith($"https://project.supabase.co/storage/v1/object/public/player-photos/player-profiles/{tournament}/{player}/", first);
+        Assert.NotEqual(first, second);
+        var invalid = new FormFile(new MemoryStream([1,2,3]), 0, 3, "photo", "photo.png") { Headers = new HeaderDictionary(), ContentType = "image/png" };
+        await Assert.ThrowsAsync<ArgumentException>(() => storage.UploadPlayerPhotoAsync(tournament, player, invalid));
+        Assert.Equal(2, handler.Calls.Count);
+    }
 }

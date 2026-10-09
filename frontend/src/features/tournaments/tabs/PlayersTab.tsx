@@ -1,3 +1,4 @@
+import { PlayerPhotoManager } from '../../players/PlayerPhotoManager';
 import { PlayerRatingsEditor } from '../../players/PlayerRatingsEditor';
 import type { RatingValues, PlayerRatings } from '../../players/playerCardTypes';
 import React, { useState, useEffect, useCallback } from 'react';
@@ -90,6 +91,8 @@ export function PlayersTab({ tournamentId, isOwner, status, currencySymbol = 'â‚
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const [photoPlayer, setPhotoPlayer] = useState<Player | null>(null);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -607,6 +610,7 @@ export function PlayersTab({ tournamentId, isOwner, status, currencySymbol = 'â‚
                 </div>
               </div>
 
+              {isOwner && <button type="button" onClick={() => setPhotoPlayer(p)} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold" aria-label={`Manage photo for ${p.name}`}><Upload size={14}/>{p.photoUrl ? 'Manage photo' : 'Add photo'}</button>}
               {/* Action Buttons */}
               {isOwner && isDraft && (
                 <div className="flex items-center justify-end space-x-2 mt-4 pt-3 border-t border-slate-800/50">
@@ -633,6 +637,7 @@ export function PlayersTab({ tournamentId, isOwner, status, currencySymbol = 'â‚
         </div>
       )}
 
+      {photoPlayer && <PlayerPhotoManager tournamentId={tournamentId} player={photoPlayer} token={token} onClose={() => setPhotoPlayer(null)} onSaved={url => { setPlayers(current => current.map(player => player.id === photoPlayer.id ? { ...player, photoUrl: url } : player)); setSuccess(url ? 'Player photo updated.' : 'Player photo removed.'); }} />}
       {/* Add / Edit Player Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">

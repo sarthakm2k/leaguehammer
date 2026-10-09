@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using TournamentAuction.Api.Features.Teams;
+using TournamentAuction.Api.Features.Players;
 
 namespace TournamentAuction.Api.Features.Registrations;
 
@@ -14,7 +15,7 @@ public interface IRegistrationPhotoStorage
 }
 
 // Keys never reach the browser. Pending photos live in a private bucket; only approved photos are public.
-public class RegistrationPhotoStorage(HttpClient http, IConfiguration config) : IRegistrationPhotoStorage, ITeamLogoStorage
+public class RegistrationPhotoStorage(HttpClient http, IConfiguration config) : IRegistrationPhotoStorage, ITeamLogoStorage, IPlayerPhotoStorage
 {
     private string Url => (config["Supabase:Url"] ?? "").TrimEnd('/');
     private string Key => config["Supabase:ServiceRoleKey"] ?? "";
@@ -89,4 +90,16 @@ public class RegistrationPhotoStorage(HttpClient http, IConfiguration config) : 
         using var response = await Send(HttpMethod.Post, $"object/{PublicBucket}/{path}", content, true);
         return $"{Url}/storage/v1/object/public/{PublicBucket}/{path}";
     }
+    public async Task<string> UploadPlayerPhotoAsync(Guid tournamentId, Guid playerId, IFormFile photo)
+    {
+        if (!Available) throw new InvalidOperationException("Player photo storage is not configured. Contact the organiser.");
+        if (photo.Length > 3 * 1024 * 1024) throw new ArgumentException("Choose a JPEG, PNG or WebP photo up to 3 MB.");
+        using var buffer = new MemoryStream(); await photo.CopyToAsync(buffer);
+        var bytes = buffer.ToArray(); var extension = ValidatePhoto(bytes, photo.ContentType);
+        var path = $"player-profiles/{tournamentId}/{playerId}/{Guid.NewGuid():N}.{extension}";
+        using var content = new ByteArrayContent(bytes); content.Headers.ContentType = new MediaTypeHeaderValue(photo.ContentType);
+        using var response = await Send(HttpMethod.Post, $"object/{PublicBucket}/{path}", content, true);
+        return $"{Url}/storage/v1/object/public/{PublicBucket}/{path}";
+    }
+
 }
