@@ -22,6 +22,8 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
   const [closed, setClosed] = useState(false);
   const [opens, setOpens] = useState(''); const [closes, setCloses] = useState(''); const [instructions, setInstructions] = useState('');
   const [entries, setEntries] = useState<RegistrationEntry[]>([]);
+  const [copying, setCopying] = useState(false);
+  const [copyFallback, setCopyFallback] = useState<string | null>(null);
   const [sets, setSets] = useState<SetOption[]>([]); const [tiers, setTiers] = useState<TierOption[]>([]);
   const [error, setError] = useState(''); const [notice, setNotice] = useState(''); const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState('PENDING'); const [search, setSearch] = useState('');
@@ -42,7 +44,7 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
       const [f, list, options, prices] = await Promise.all([
         request<RegistrationForm>('/registrations/settings'), request<RegistrationEntry[]>('/registrations'), request<SetOption[]>('/player-sets'), request<TierOption[]>('/base-price-tiers'),
       ]);
-      applyForm(f); setEntries(list); setSets(options); setTiers(prices);
+      applyForm(f); setEntries(list); setCopyFallback(null); setSets(options); setTiers(prices);
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }, [request]);
   useEffect(() => { void load(); }, [load]);
@@ -79,6 +81,17 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
     setReview(null); setDetails(null); await load(); setNotice(approve ? 'Player approved and added to the registry.' : 'Submission rejected.');
   });
   const visible = entries.filter(r => (!filter || r.status === filter) && `${r.name} ${r.phone} ${r.email || ''}`.toLowerCase().includes(search.toLowerCase()));
+  const copyPlayerDetails = async () => {
+    setCopying(true); setCopyFallback(null); setNotice('');
+    const text = entries.map(player => `Name: ${player.name}\nPosition: ${player.position}\nPhone: ${player.phone}`).join('\n\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      setNotice(`Copied details for ${entries.length} registered ${entries.length === 1 ? 'player' : 'players'}.`);
+    } catch {
+      setCopyFallback(text);
+      setNotice('Clipboard access is unavailable. Select and copy the player details below.');
+    } finally { setCopying(false); }
+  };
   const link = form ? `${window.location.origin}/register/${form.slug}` : '';
   return <div className="registration-admin">
     <div className="registration-admin-heading"><div><span className="registration-eyebrow"><UserRoundCheck size={16} />PLAYER INTAKE</span><h2>Player registrations</h2><p>Collect applications, verify the details, and choose who enters the auction.</p></div><button type="button" onClick={() => void load()} disabled={busy}><RefreshCw size={16} />Refresh</button></div>
@@ -97,6 +110,8 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
     <section className="registration-card"><div className="registration-admin-heading"><div><h3>Review queue</h3><p>{entries.filter(r => r.status === 'PENDING').length} pending · {entries.filter(r => r.status === 'APPROVED').length} approved · {entries.filter(r => r.status === 'REJECTED').length} rejected</p></div><button type="button" disabled={busy || locked || !form || entries.some(r => r.status === 'PENDING')} onClick={() => {
         if (window.confirm('Finalize registration? This closes the form and locks further review. Manual player entry remains available while the tournament is in draft.')) void action(async () => { applyForm(await request<RegistrationForm>('/registrations/finalize', 'POST')); setNotice('Registration finalized. You can now run the preflight checklist.'); });
       }}>Finalize registration</button></div>
+      <div className="registration-actions"><button type="button" onClick={() => void copyPlayerDetails()} disabled={busy || copying || entries.length === 0}><Copy size={16} />{copying ? 'Copying…' : 'Copy player details'}</button><p className="registration-muted">Copies all {entries.length} registrations: name, position and phone only.</p></div>
+      {copyFallback !== null && <label className="registration-copy-details">Player details to copy<textarea autoFocus readOnly rows={6} value={copyFallback} onFocus={event => event.target.select()} /></label>}
       <div className="registration-fields"><label>Submission status<select value={filter} onChange={e => setFilter(e.target.value)}><option value="">All submissions</option>{['PENDING', 'APPROVED', 'REJECTED'].map(s => <option key={s}>{s}</option>)}</select></label><label>Search submissions<input type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Name, phone or email" /></label></div>
       <div className="registration-queue">{visible.map(r => <article className="registration-entry" key={r.id}>{r.photoUrl && <img src={r.photoUrl} alt={`${r.name} profile`} />}<div><strong>{r.name}</strong><span>{r.position} · {r.phone}</span>{r.email && <span>{r.email}</span>}<small>{new Date(r.submittedAtUtc).toLocaleString()}</small>{r.possibleDuplicate && <b className="registration-duplicate">Possible duplicate—verify before approval</b>}{r.reviewReason && <p>{r.reviewReason}</p>}</div><span className="registration-status">{r.status}</span>{r.status === 'PENDING' && <button disabled={locked || busy} onClick={() => startReview(r)}>Review submission</button>}</article>)}{!busy && visible.length === 0 && <p className="registration-muted">No submissions match this view.</p>}</div>
     </section>
