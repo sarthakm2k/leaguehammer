@@ -70,6 +70,28 @@ public class TournamentsController : ControllerBase
         }
     }
 
+    [HttpPost("{id:guid}/clone")]
+    public async Task<IActionResult> CloneTournament(Guid id, [FromBody] CloneTournamentRequest request)
+    {
+        try
+        {
+            var clone = await _tournamentService.CloneTournamentAsync(id, request, GetCurrentUserId());
+            return CreatedAtAction(nameof(GetTournament), new { id = clone.Id }, clone);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { title = "Forbidden", detail = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { title = "Not found", detail = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { title = "Cannot clone tournament", detail = ex.Message });
+        }
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteTournament(Guid id)
     {

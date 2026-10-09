@@ -251,6 +251,83 @@ public class TournamentService : ITournamentService
         if (transaction != null) await transaction.CommitAsync();
     }
 
+    public async Task<TournamentResponse> CloneTournamentAsync(Guid tournamentId, CloneTournamentRequest request, Guid userId)
+    {
+        var name = request.Name?.Trim();
+        if (string.IsNullOrEmpty(name) || name.Length < 3 || name.Length > 200)
+            throw new ArgumentException("Tournament name must contain between 3 and 200 characters.");
+
+        // A live source can change while being read; copy one consistent snapshot.
+        await using var transaction = _db.Database.IsRelational()
+            ? await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead) : null;
+        if (!await _db.TournamentMembers.AnyAsync(m => m.TournamentId == tournamentId && m.UserId == userId && m.Role == TournamentRole.OWNER))
+            throw new UnauthorizedAccessException("Only the tournament OWNER can clone a tournament.");
+
+        var source = await _db.Tournaments.AsNoTracking()
+            .Include(t => t.Settings).Include(t => t.Teams).Include(t => t.BasePriceTiers)
+            .Include(t => t.PlayerSets).Include(t => t.Players).AsSplitQuery()
+            .FirstOrDefaultAsync(t => t.Id == tournamentId)
+            ?? throw new KeyNotFoundException("Tournament not found.");
+        var now = DateTime.UtcNow;
+        var clone = new Tournament
+        {
+            Name = name, Season = source.Season, Description = source.Description,
+            LogoUrl = source.LogoUrl, TournamentDate = source.TournamentDate,
+            Location = source.Location, TimeZone = source.TimeZone,
+            Status = TournamentStatus.DRAFT, OwnerUserId = userId, CreatedAtUtc = now,
+        };
+        // The new ID makes concurrent clones and repeated mock runs get distinct URLs.
+        clone.Slug = $"{GenerateSlug(name)}-{clone.Id:N}";
+        _db.Tournaments.Add(clone);
+        _db.TournamentMembers.Add(new() { TournamentId = clone.Id, UserId = userId, Role = TournamentRole.OWNER, CreatedAtUtc = now });
+
+        // Copy scalar configuration only. Navigation properties and auction records
+        // are deliberately excluded, while all optional card attributes are retained.
+        var settings = source.Settings == null ? new TournamentSettings() : (TournamentSettings)_db.Entry(source.Settings).CurrentValues.ToObject();
+        settings.Id = Guid.NewGuid(); settings.TournamentId = clone.Id;
+        settings.CreatedAtUtc = now; settings.UpdatedAtUtc = null;
+        _db.TournamentSettings.Add(settings);
+        foreach (var tier in source.BasePriceTiers)
+        {
+            var copy = (BasePriceTier)_db.Entry(tier).CurrentValues.ToObject();
+            copy.Id = Guid.NewGuid(); copy.TournamentId = clone.Id;
+            copy.CreatedAtUtc = now;
+            _db.BasePriceTiers.Add(copy);
+        }
+        foreach (var team in source.Teams)
+        {
+            var copy = (Team)_db.Entry(team).CurrentValues.ToObject();
+            copy.Id = Guid.NewGuid(); copy.TournamentId = clone.Id;
+            copy.CreatedAtUtc = now; copy.UpdatedAtUtc = null;
+            _db.Teams.Add(copy);
+        }
+        var setIds = new Dictionary<Guid, Guid>();
+        foreach (var set in source.PlayerSets)
+        {
+            var copy = (PlayerSet)_db.Entry(set).CurrentValues.ToObject();
+            copy.Id = Guid.NewGuid(); copy.TournamentId = clone.Id; copy.CreatedAtUtc = now;
+            setIds.Add(set.Id, copy.Id);
+            _db.PlayerSets.Add(copy);
+        }
+        foreach (var player in source.Players)
+        {
+            var copy = (Player)_db.Entry(player).CurrentValues.ToObject();
+            copy.Id = Guid.NewGuid(); copy.TournamentId = clone.Id; copy.PlayerSetId = setIds[player.PlayerSetId];
+            copy.Status = "AVAILABLE"; copy.CreatedAtUtc = now; copy.UpdatedAtUtc = null;
+            _db.Players.Add(copy);
+        }
+        // Registration starts disabled with no dates, submissions or contact details.
+        var sourceForm = await _db.RegistrationForms.AsNoTracking().FirstOrDefaultAsync(f => f.TournamentId == tournamentId);
+        if (sourceForm != null)
+            _db.RegistrationForms.Add(new() { TournamentId = clone.Id, Instructions = sourceForm.Instructions });
+
+        await _db.SaveChangesAsync();
+        if (transaction != null) await transaction.CommitAsync();
+        return new TournamentResponse(clone.Id, clone.Name, clone.Slug, clone.Season, clone.Description,
+            clone.LogoUrl, clone.TournamentDate, clone.Location, clone.TimeZone, clone.Status,
+            userId, TournamentRole.OWNER.ToString(), clone.CreatedAtUtc, null);
+    }
+
     private static string GenerateSlug(string phrase)
     {
         var str = phrase.ToLowerInvariant();

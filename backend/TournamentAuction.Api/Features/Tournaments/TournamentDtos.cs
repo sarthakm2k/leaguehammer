@@ -24,6 +24,10 @@ public record UpdateTournamentRequest(
     string? TimeZone
 );
 
+public record CloneTournamentRequest(
+    [Required, MinLength(3), MaxLength(200)] string Name
+);
+
 public record TournamentResponse(
     Guid Id,
     string Name,

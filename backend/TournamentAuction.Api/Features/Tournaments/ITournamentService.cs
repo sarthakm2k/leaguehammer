@@ -7,4 +7,5 @@ public interface ITournamentService
     Task<TournamentResponse> CreateTournamentAsync(CreateTournamentRequest request, Guid userId);
     Task<TournamentResponse> UpdateTournamentAsync(Guid tournamentId, UpdateTournamentRequest request, Guid userId);
     Task DeleteTournamentAsync(Guid tournamentId, Guid userId);
+    Task<TournamentResponse> CloneTournamentAsync(Guid tournamentId, CloneTournamentRequest request, Guid userId);
 }

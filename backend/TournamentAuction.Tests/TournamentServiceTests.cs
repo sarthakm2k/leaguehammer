@@ -6,7 +6,7 @@ using Xunit;
 
 namespace TournamentAuction.Tests;
 
-public class TournamentServiceTests
+public partial class TournamentServiceTests
 {
     private (TournamentAuctionDbContext db, TournamentService service) CreateService(string dbName)
     {
