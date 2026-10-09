@@ -26,7 +26,7 @@ function fixture() {
 async function mock(page: Page, data: ReturnType<typeof fixture>) {
   await page.route('**/api/public/tournaments/**', route => route.fulfill({ json: route.request().url().includes('auction-state') ? data.state : data }));
   await page.route('**/hubs/auction/negotiate*', route => route.fulfill({ json: { negotiateVersion: 1, connectionId: 'test', connectionToken: 'test', availableTransports: [{ transport: 'WebSockets', transferFormats: ['Text','Binary'] }] } }));
-  let notify = () => {};
+  let notify = (_event = 'TeamUpdated', _args: unknown[] = []) => { void _event; void _args; };
   await page.routeWebSocket('**/hubs/auction*', socket => {
     socket.onMessage(message => {
       for (const part of String(message).split('\u001e').filter(Boolean)) {
@@ -35,9 +35,9 @@ async function mock(page: Page, data: ReturnType<typeof fixture>) {
         if (frame.type === 1 && frame.invocationId) socket.send(JSON.stringify({ type: 3, invocationId: frame.invocationId }) + '\u001e');
       }
     });
-    notify = () => socket.send(JSON.stringify({ type: 1, target: 'TeamUpdated', arguments: [] }) + '\u001e');
+    notify = (event = 'TeamUpdated', args: unknown[] = []) => socket.send(JSON.stringify({ type: 1, target: event, arguments: args }) + '\u001e');
   });
-  return () => notify();
+  return (event?: string, args?: unknown[]) => notify(event,args);
 }
 async function expectCardStatsToFit(page: Page) {
   const card=page.locator('.football-player-card');
@@ -204,4 +204,49 @@ test('team plans persist per device and team and follow live player outcomes', a
   await page.goto(`/live/demo/teams/${otherId}`);
   await page.getByRole('button', { name: 'Plan & targets', exact: true }).click();
   await expect(page.getByRole('button', { name: 'My shortlist (0)', exact: true })).toBeVisible();
+});
+
+
+test('alternative groups retain backups after a first choice is sold', async ({page}) => {
+  const data=fixture(), notify=await mock(page,data);
+  await page.goto(`/live/demo/teams/${teamId}`);
+  await page.getByRole('button',{name:'Plan & targets',exact:true}).click();
+  for(const name of ['Active Forward','Next Keeper']){
+    await page.getByRole('button',{name:`Shortlist ${name}`,exact:true}).click();
+    await page.getByLabel(`Alternative group for ${name}`).fill('Attack');
+  }
+  await page.getByLabel('Priority for Next Keeper').selectOption('Backup');
+  await page.reload();await page.getByRole('button',{name:'Plan & targets',exact:true}).click();
+  await expect(page.getByLabel('Priority for Next Keeper')).toHaveValue('Backup');
+  await expect(page.getByLabel('Alternative group for Active Forward')).toHaveValue('Attack');
+  data.players[1].status='SOLD';data.players[1].winningTeamName='Rivals';data.state.currentLot=null;notify();
+  const groups=page.getByRole('region',{name:'Alternative player groups'});
+  await expect(groups).toContainText('Signed by Rivals');await expect(groups).toContainText('Next Keeper');await expect(groups).toContainText('Still in the pool');
+  await page.setViewportSize({width:320,height:640});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+test('activity includes unsold players and set changes across team tabs', async ({page})=>{
+  const data=fixture(),notify=await mock(page,data);await page.goto(`/live/demo/teams/${teamId}`);
+  await expect(page.getByText('Live connection',{exact:true})).toBeVisible();
+  await page.locator('.team-activity summary').click();
+  await expect(page.locator('.team-activity')).toContainText('Signed Star signed by Falcons Football Club');
+  notify('PlayerUnsold',[{playerName:'Active Forward',lotId:'lot-active'}]);
+  notify('SetCompleted',[{setName:'First Set'}]);
+  await expect(page.locator('.team-activity')).toContainText('Active Forward went unsold');
+  await expect(page.locator('.team-activity')).toContainText('First Set: set completed');
+  await page.getByRole('button',{name:'Squad (1)',exact:true}).click();await page.getByRole('button',{name:'Live auction',exact:true}).click();
+  await expect(page.locator('.team-activity')).toContainText('First Set: set completed');
+});
+
+test('completed team downloads a PNG poster including its entire signed squad',async({page})=>{
+  const data=fixture();data.state.sessionStatus='COMPLETED';data.state.currentLot=null;
+  for(const player of data.players){player.status='SOLD';player.winningTeamId=teamId;player.winningTeamName='Falcons Football Club';player.finalPrice=2000;}
+  data.players[2].photoUrl='https://example.invalid/missing-photo.png';await page.route('**/missing-photo.png',route=>route.abort());
+  await mock(page,data);await page.goto(`/live/demo/teams/${teamId}`);
+  const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'Download final squad poster'}).click()]);
+  expect(download.suggestedFilename()).toMatch(/final-squad.png$/);
+  await download.saveAs('../testscreenshots/team-final-squad.png');
+  await expect(page.getByRole('status').filter({hasText:'Final squad poster downloaded.'})).toBeVisible();
+  expect(await download.failure()).toBeNull();
+  await expect(page.getByRole('status').filter({hasText:'1 unavailable photos use avatars.'})).toBeVisible();
 });

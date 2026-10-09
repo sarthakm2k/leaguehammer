@@ -3,14 +3,14 @@ import { Star, Search } from 'lucide-react';
 import type { AuctionResults } from './resultsTypes';
 import type { TeamAuctionStandingDto } from './auctionTypes';
 
-type Target = { playerId: string; budget: number | null };
+type Target = { playerId: string; budget: number | null; group?: string; priority?: string };
 
 export function TeamAuctionPlanner({ data, standing, money }: { data: AuctionResults; standing: TeamAuctionStandingDto; money: (amount: number) => string }) {
   const storageKey = `leaguehammer:targets:${data.state.tournamentId}:${standing.teamId}`;
   const [targets, setTargets] = useState<Target[]>(() => {
     try {
       const saved: unknown = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      return Array.isArray(saved) ? saved.filter((item): item is Target => item && typeof item.playerId === 'string' && (item.budget === null || Number.isSafeInteger(item.budget) && item.budget >= 0)) : [];
+      return Array.isArray(saved) ? saved.filter((item): item is Target => item && typeof item.playerId === 'string' && (item.budget === null || Number.isSafeInteger(item.budget) && item.budget >= 0)).map(item => ({ ...item, group: typeof item.group === 'string' ? item.group.slice(0,60) : '', priority: ['First choice','Backup','Budget option'].includes(item.priority || '') ? item.priority : 'First choice' })) : [];
     } catch { return []; }
   });
   const [search, setSearch] = useState('');
@@ -30,6 +30,7 @@ export function TeamAuctionPlanner({ data, standing, money }: { data: AuctionRes
   const targetMap = new Map(targets.map(target => [target.playerId, target]));
   const activeTargets = data.players.filter(player => targetMap.has(player.playerId) && available(player.status));
   const planned = activeTargets.reduce((sum, player) => sum + (targetMap.get(player.playerId)?.budget ?? player.basePrice), 0);
+  const updateTarget = (playerId: string, patch: Partial<Target>) => save(targets.map(item => item.playerId === playerId ? { ...item, ...patch } : item));
   const save = (next: Target[]) => {
     setTargets(next);
     try { localStorage.setItem(storageKey, JSON.stringify(next)); setStorageError(''); }
@@ -48,6 +49,10 @@ export function TeamAuctionPlanner({ data, standing, money }: { data: AuctionRes
     <div className="team-plan-coverage" aria-label="Your squad by position">{positions.map(value => <span key={value}>{value}<b>{roster.filter(player => player.position === value).length}</b></span>)}</div>
     <p className="team-plan-note">Shortlists and budgets stay on this device; they are not shared with other link viewers. Planned amounts do not reserve money or place bids.</p>
     {storageError && <p role="status" className="team-plan-warning">{storageError}</p>}
+    {targets.length > 0 && <section className="team-alternatives" aria-label="Alternative player groups"><h3>Your alternatives</h3>{[...new Set(targets.map(target => target.group?.trim() || 'General targets'))].map(group => <div key={group}><h4>{group}</h4>{targets.filter(target => (target.group?.trim() || 'General targets') === group).sort((a,b) => ['First choice','Backup','Budget option'].indexOf(a.priority || 'First choice') - ['First choice','Backup','Budget option'].indexOf(b.priority || 'First choice')).map(target => {
+      const player = data.players.find(item => item.playerId === target.playerId);
+      return player && <p key={target.playerId}><b>{target.priority || 'First choice'}</b><span>{player.playerName}<small>{available(player.status) ? 'Still in the pool' : player.status === 'SOLD' ? `Signed by ${player.winningTeamName || 'a team'}` : 'Auction finished'}</small></span></p>;
+    })}</div>)}</section>}
     <div className="team-plan-filters"><label><Search size={14} /><input aria-label="Search target players" value={search} onChange={event => setSearch(event.target.value)} placeholder="Find a player" /></label><select aria-label="Filter targets by position" value={position} onChange={event => setPosition(event.target.value)}><option value="">All positions</option>{positions.map(value => <option key={value}>{value}</option>)}</select><select aria-label="Filter targets by set" value={setId} onChange={event => setSetId(event.target.value)}><option value="">All sets</option>{sets.map(set => <option key={set.setId} value={set.setId}>{set.setName}</option>)}</select></div>
     <div className="team-plan-switches"><button type="button" aria-pressed={onlyTargets} onClick={() => setOnlyTargets(!onlyTargets)}>My shortlist ({targets.length})</button><button type="button" aria-pressed={withinLimit} onClick={() => setWithinLimit(!withinLimit)}>Within bid limit</button></div>
     <p className="team-plan-note">Base prices only. The current team bid limit is {money(limit)}; the auctioneer still checks reserve and squad rules for every purchase. Names are alphabetical within the pool, with the live player first.</p>
@@ -62,6 +67,7 @@ export function TeamAuctionPlanner({ data, standing, money }: { data: AuctionRes
           if (budget !== null && (!Number.isSafeInteger(budget) || budget < 0)) return;
           save(targets.map(item => item.playerId === player.playerId ? { ...item, budget } : item));
         }} /></label>}</div>
+        {target && <div className="team-target-group"><label>Alternative group<input aria-label={`Alternative group for ${player.playerName}`} maxLength={60} placeholder="e.g. Left winger" value={target.group || ''} onChange={event => updateTarget(player.playerId, { group: event.target.value })} /></label><label>Priority<select aria-label={`Priority for ${player.playerName}`} value={target.priority || 'First choice'} onChange={event => updateTarget(player.playerId, { priority: event.target.value })}>{['First choice','Backup','Budget option'].map(value => <option key={value}>{value}</option>)}</select></label></div>}
         {target && available(player.status) && target.budget !== null && target.budget < player.basePrice && <p className="team-plan-warning">Your ceiling is below the base price.</p>}
         {live && target && (player.basePrice > (target.budget ?? player.basePrice) || (data.state.currentLot?.currentBid ?? player.basePrice) > (target.budget ?? player.basePrice)) && <p className="team-plan-warning">The live bid is above your planned ceiling.</p>}
       </article>;

@@ -11,7 +11,7 @@ export function signingAccent(color?: string | null): string {
   return '#' + result.map(value => value.toString(16).padStart(2,'0')).join('');
 }
 
-async function loadImage(url?: string | null): Promise<HTMLImageElement | null> {
+export async function loadImage(url?: string | null): Promise<HTMLImageElement | null> {
   if (!url) return null;
   return new Promise(resolve => {
     const img = new Image();
@@ -60,7 +60,32 @@ export async function downloadSigningImage(data: AuctionResults, player: ResultP
   text('SIGNED.',66,415,150,'#f8f5ef',948,'left',true);
   // Reuse the on-screen SVG frame; draw safe CORS photos and editable card details
   // natively so the download needs no screenshot library or server rendering.
-  const cardX=180, cardY=460, cardWidth=720, cardHeight=1080, gold='#f4d982';
+  drawPlayerCard(ctx,player,artwork,photo,avatar,180,460,720);
+  ctx.strokeStyle='#ffffff35'; ctx.lineWidth=2;
+  for (const y of [1608,1810]) { ctx.beginPath(); ctx.moveTo(76,y); ctx.lineTo(1004,y); ctx.stroke(); }
+  ctx.fillStyle='#ffffff08'; ctx.beginPath(); ctx.roundRect(76,1650,104,104,22); ctx.fill();
+  if (crest) image(crest,86,1660,84,84);
+  else text(team?.shortName || 'FC',128,1716,31,accent,80,'center');
+  text('NEW COLOURS',208,1665,19,'#b8c1c8',430);
+  text(player.winningTeamName || 'New team',208,1724,39,'#f8f5ef',420);
+  text('SIGNED FOR',1004,1665,19,'#b8c1c8',355,'right');
+  text(formatCurrency(player.finalPrice ?? 0,data.state.currencyCode),1004,1740,76,accent,355,'right');
+  text('AUCTION WRAPPED',76,1870,19,'#94a0ab',420);
+  text('NEW CLUB. NEW CHAPTER.',1004,1870,19,'#94a0ab',450,'right');
+  const blob = await new Promise<Blob>((resolve,reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Unable to create your image.')), 'image/png'));
+  const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
+  const filename = `${data.state.tournamentName}-${player.playerName}-signing`.replace(/[^a-z0-9_-]+/gi,'-').slice(0,160);
+  anchor.href = url; anchor.download = `${filename}.png`; document.body.append(anchor); anchor.click(); anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url),60000);
+  return !!player.photoUrl && !photo;
+}
+
+export function drawPlayerCard(ctx: CanvasRenderingContext2D, player: ResultPlayer, artwork: HTMLImageElement, photo: HTMLImageElement | null, avatar: HTMLImageElement | null, cardX: number, cardY: number, cardWidth: number) {
+  const image = (img: HTMLImageElement, x: number, y: number, width: number, height: number) => {
+    const scale = Math.min(width/img.naturalWidth,height/img.naturalHeight);
+    ctx.drawImage(img,x+(width-img.naturalWidth*scale)/2,y+(height-img.naturalHeight*scale)/2,img.naturalWidth*scale,img.naturalHeight*scale);
+  };
+  const cardHeight=cardWidth*1.5, gold='#f4d982';
   image(artwork,cardX,cardY,cardWidth,cardHeight);
   const cardText=(value:string,x:number,y:number,size:number,maxWidth:number,align:CanvasTextAlign='center',condensed=true) => {
     ctx.fillStyle=gold; ctx.textAlign=align; ctx.textBaseline='middle';
@@ -97,21 +122,4 @@ export async function downloadSigningImage(data: AuctionResults, player: ResultP
   });
   ctx.beginPath();ctx.moveTo(cardX+cardWidth*.26,cardY+cardHeight*.89);ctx.lineTo(cardX+cardWidth*.74,cardY+cardHeight*.89);ctx.stroke();
   cardText('LEAGUEHAMMER',.5,.91,cardWidth*.026,cardWidth*.48,'center',false);
-  ctx.strokeStyle='#ffffff35'; ctx.lineWidth=2;
-  for (const y of [1608,1810]) { ctx.beginPath(); ctx.moveTo(76,y); ctx.lineTo(1004,y); ctx.stroke(); }
-  ctx.fillStyle='#ffffff08'; ctx.beginPath(); ctx.roundRect(76,1650,104,104,22); ctx.fill();
-  if (crest) image(crest,86,1660,84,84);
-  else text(team?.shortName || 'FC',128,1716,31,accent,80,'center');
-  text('NEW COLOURS',208,1665,19,'#b8c1c8',430);
-  text(player.winningTeamName || 'New team',208,1724,39,'#f8f5ef',420);
-  text('SIGNED FOR',1004,1665,19,'#b8c1c8',355,'right');
-  text(formatCurrency(player.finalPrice ?? 0,data.state.currencyCode),1004,1740,76,accent,355,'right');
-  text('AUCTION WRAPPED',76,1870,19,'#94a0ab',420);
-  text('NEW CLUB. NEW CHAPTER.',1004,1870,19,'#94a0ab',450,'right');
-  const blob = await new Promise<Blob>((resolve,reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Unable to create your image.')), 'image/png'));
-  const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
-  const filename = `${data.state.tournamentName}-${player.playerName}-signing`.replace(/[^a-z0-9_-]+/gi,'-').slice(0,160);
-  anchor.href = url; anchor.download = `${filename}.png`; document.body.append(anchor); anchor.click(); anchor.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url),60000);
-  return !!player.photoUrl && !photo;
 }

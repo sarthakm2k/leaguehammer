@@ -42,10 +42,10 @@ test('mobile Wrapped covers all squads, stories, swipe, keyboard, deep links and
   const teamSlides=options.filter(id=>id.startsWith(`team-${teamId}-`)); expect(teamSlides).toHaveLength(5);
   const teamCardSlides=options.filter(id=>id.startsWith(`team-cards-${teamId}-`)); expect(teamCardSlides).toHaveLength(4);
   const cardPlayers:string[]=[];
-  for(const id of teamCardSlides) { await page.getByRole('combobox').selectOption(id); cardPlayers.push(...await page.locator('[data-testid^="wrapped-squad-card-"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('data-testid')!))); }
+  for(const id of teamCardSlides) { await page.getByRole('combobox').selectOption(id); await expect(page.getByTestId('wrapped-slide')).toHaveAttribute('aria-label',new RegExp(`Player cards ${teamCardSlides.indexOf(id)+1}/`)); cardPlayers.push(...await page.locator('[data-testid^="wrapped-squad-card-"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('data-testid')!))); }
   expect(cardPlayers).toEqual(data.players.filter(p=>p.status==='SOLD').map(p=>`wrapped-squad-card-${p.playerId}`));
   const signed:string[]=[];
-  for(const id of teamSlides) { await page.getByRole('combobox').selectOption(id); signed.push(...await page.locator('[data-testid^="wrapped-player-"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('data-testid')!))); }
+  for(const id of teamSlides) { await page.getByRole('combobox').selectOption(id); await expect(page.getByTestId('wrapped-slide')).toHaveAttribute('aria-label',new RegExp(`Squad ${teamSlides.indexOf(id)+1}/`)); signed.push(...await page.locator('[data-testid^="wrapped-player-"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('data-testid')!))); }
   expect(signed).toEqual(data.players.filter(p=>p.status==='SOLD').map(p=>`wrapped-player-${p.playerId}`));
   await page.getByRole('combobox').selectOption(teamSlides[2]);
   await page.getByRole('button',{name:'Copy this slide'}).click();
@@ -217,4 +217,13 @@ test('podium and position spotlights preserve tall and wide photos at phone size
       }
     }
   }
+});
+
+
+test('Wrapped downloads the entire team from a paginated card slide',async({page})=>{
+  const data=storyData();await mock(page,data);await page.setViewportSize({width:320,height:568});
+  await page.goto(`/live/demo/wrapped?slide=team-cards-${teamId}-1`);
+  const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'Download final squad poster'}).click()]);
+  await download.saveAs('../testscreenshots/wrapped-final-squad.png');expect(await download.failure()).toBeNull();
+  await expect(page.getByRole('status').filter({hasText:'Final squad poster downloaded.'})).toBeVisible();
 });

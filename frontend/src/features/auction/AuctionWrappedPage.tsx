@@ -1,3 +1,4 @@
+import { TeamSquadPoster } from './TeamSquadPoster';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
@@ -96,7 +97,7 @@ export function buildWrappedSlides(data: AuctionResults): Slide[] {
           <Link className="wrapped-squad-card" key={player.playerId} to={`?slide=signing-${player.playerId}`} aria-label={`View ${player.playerName} signing card`} data-testid={`wrapped-squad-card-${player.playerId}`}>
             <FootballPlayerCard player={player} /><span className="wrapped-squad-card-price">{money(player.finalPrice ?? 0)}</span>
           </Link>)}</div> : <div className="wrapped-empty-squad"><Shield size={48} /><h3>The collection starts here.</h3><p>No players were signed by this franchise.</p></div>}
-        <p className="wrapped-card-team-caption">{players.length ? `Signings ${index * 4 + 1}–${index * 4 + players.length} of ${roster.length}. Tap a card for the player’s signing story.` : 'Every team has a place in the auction story.'}</p>
+        <div className="wrapped-card-team-actions"><TeamSquadPoster data={data} team={t} /><p className="wrapped-card-team-caption">{players.length ? `Signings ${index * 4 + 1}–${index * 4 + players.length} of ${roster.length}. Tap a card for the player’s signing story.` : 'Every team has a place in the auction story.'}</p></div>
       </section>
     });
   }

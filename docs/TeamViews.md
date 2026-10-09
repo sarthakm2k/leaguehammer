@@ -40,3 +40,13 @@ Plan & targets provides a player shortlist, optional spending ceilings, position
 Plans are stored in browser localStorage separately for each tournament and team. They are private to that browser/device, do not synchronize between viewers, and do not reserve purse or place bids. Actual purchases remain subject to the auction engine's existing reserve and squad validation. No backend or database changes are required.
 
 Verification: production frontend build and lint passed (existing lint warnings only). Five team-dashboard browser tests passed, covering 320/390 px mobile widths, live updates, tab navigation, saved plans, filters, sold targets, team isolation, completed results and the existing projector layout.
+
+## Alternatives, activity and final squad posters
+
+Shortlisted players can be assigned a named alternative group and a priority: First choice, Backup or Budget option. The alternatives summary retains sold targets with their winning team alongside available backups. These fields use the same device-local, per-team storage as existing ceilings; older saved shortlists remain compatible.
+
+The Live auction tab includes a collapsed activity feed. It combines the latest ten recorded signings and latest unsold result with up to twenty live reveal, sale, unsold, set-completion and correction updates received while the page is open. It survives switching team tabs. Reopening or reconnecting restores current results; unsold/set events missed while disconnected are not a complete historical audit.
+
+Completed team pages and Wrapped team-card slides offer Download final squad poster. The PNG includes the entire final signed squad, even when the current Wrapped slide shows only four players. It includes tournament/team names, team logo or initials, total investment, player cards and individual signing prices. Images retain their proportions; unavailable/CORS-blocked photos use avatars. Exports run in the browser without backend rendering or storage writes. Width is normally 1080 px, with height adapting to squad size; unusually large squads scale down to cap height at 8000 px. Empty teams do not show the download button.
+
+Verification for this enhancement: production build and lint passed (existing warnings only); all 15 team-dashboard and Wrapped browser tests passed. Test exports are saved under the git-ignored `testscreenshots/` directory.

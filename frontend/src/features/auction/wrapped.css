@@ -281,3 +281,5 @@
 .signing-footer { display:flex; justify-content:space-between; gap:10px; font-size:6px; text-transform:uppercase; letter-spacing:.12em; color:#94a0ab; }
 @media(max-height:700px) { .wrapped-signing-slide { padding:8px 14px; gap:8px; } .signing-poster { gap:8px; padding:14px; } .signing-announcement h2 { font-size:49px; } .signing-contract { padding:9px 0; } .signing-identity h3 { font-size:26px; } }
 @media(max-height:600px) { .signing-poster { gap:6px; padding:10px 12px; } .signing-announcement h2 { font-size:43px; } .signing-announcement p { font-size:7px; } .signing-photo { min-height:75px; } .signing-club .wrapped-portrait { width:28px; height:28px; } .signing-club strong { font-size:11px; } .signing-contract { padding:7px 0; } .signing-value b { font-size:22px; } .signing-identity h3 { font-size:23px; } .signing-footer { font-size:5px; } }
+
+@media(max-height:650px){.wrapped-team-cards{gap:6px}.wrapped-squad-card .football-player-card{width:min(94cqw,calc(64cqh - 14px),220px)}}
