@@ -1,0 +1,22 @@
+.registration-viewer-main{max-width:1200px;margin:40px auto 60px;min-height:60vh}
+.registration-viewer-heading{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}.registration-viewer-heading h1{font-size:clamp(28px,4vw,44px);font-weight:850;line-height:1.15;margin:16px 0 0;overflow-wrap:anywhere}
+.registration-viewer-counts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:28px 0}.registration-viewer-counts>div{position:relative;background:var(--reg-surface);border:1px solid var(--reg-border);border-radius:16px;padding:20px;display:grid;gap:6px}.registration-viewer-counts svg{position:absolute;right:16px;top:18px;color:var(--reg-accent)}.registration-viewer-counts strong{font-size:30px;font-weight:850}.registration-viewer-counts span{font-size:12px;color:var(--reg-muted)}
+.registration-viewer-filters{display:grid;grid-template-columns:2fr 1fr;gap:16px}.registration-viewer-filters label{display:grid;gap:8px;font-size:12px;color:var(--reg-muted)}.registration-viewer-filters input,.registration-viewer-filters select{min-width:0;width:100%;border:1px solid var(--reg-border);border-radius:10px;padding:12px;background:var(--reg-field);color:var(--reg-text);min-height:44px}
+.registration-viewer-update{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:18px 0;color:var(--reg-muted);font-size:12px}.registration-viewer-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.registration-viewer-player{min-width:0;background:var(--reg-surface);border:1px solid var(--reg-border);border-radius:18px;overflow:hidden}.registration-viewer-photo{height:230px;background:var(--reg-field)}.registration-viewer-photo img{width:100%;height:100%;display:block;object-fit:contain}.registration-viewer-player>div:last-child{padding:20px}.registration-viewer-player h2{font-size:20px;font-weight:750;margin:12px 0 6px;overflow-wrap:anywhere}.registration-viewer-player p{font-size:13px;color:var(--reg-muted);line-height:1.6}.registration-viewer-player small{display:block;margin-top:14px;color:var(--reg-muted);font-size:11px}.registration-viewer-player .registration-status{display:inline-block;letter-spacing:.02em}.registration-viewer-player [data-status="APPROVED"]{color:#9ad66d;border-color:#9ad66d66}.registration-viewer-pagination{display:flex;gap:18px;justify-content:center;align-items:center;margin-top:28px;font-size:13px}
+:root[data-theme="light"] .registration-viewer-player [data-status="APPROVED"]{color:#426600}
+@media(max-width:800px){.registration-viewer-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.registration-viewer-counts{grid-template-columns:repeat(2,minmax(0,1fr))}.registration-viewer-main{margin-top:28px}}
+@media(max-width:640px){
+  .registration-viewer-grid{grid-template-columns:1fr;gap:10px}
+  .registration-viewer-player{display:grid;grid-template-columns:80px minmax(0,1fr);align-items:center;gap:12px;padding:12px;border-radius:14px}
+  .registration-viewer-photo{width:80px;height:108px;border-radius:10px;overflow:hidden}
+  .registration-viewer-player>div:last-child{padding:0;min-width:0}
+  .registration-viewer-player h2{font-size:17px;margin:8px 0 4px;line-height:1.25}
+  .registration-viewer-player p{font-size:12px;line-height:1.5}
+  .registration-viewer-player small{font-size:10px;margin-top:8px;line-height:1.5}
+  .registration-viewer-player .registration-status{font-size:10px;padding:4px 8px;white-space:normal}
+  .registration-viewer-counts{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:20px 0}
+  .registration-viewer-counts>div{padding:12px 8px;gap:4px}.registration-viewer-counts strong{font-size:24px}
+  .registration-viewer-counts span{font-size:10px;line-height:1.4}.registration-viewer-counts svg{display:none}
+  .registration-viewer-pagination{gap:12px}.registration-viewer-pagination button{flex:1}
+}
+@media(max-width:480px){.registration-viewer-filters{grid-template-columns:1fr}.registration-viewer-heading{gap:8px}.registration-viewer-heading button{width:100%}.registration-viewer-filters input,.registration-viewer-filters select{font-size:16px}.registration-viewer-main{margin-top:24px}.registration-viewer-page .registration-header{min-height:72px}}

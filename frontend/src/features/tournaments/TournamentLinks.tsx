@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Copy, ExternalLink, Link2 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { ShareAuctioneerLink } from '../auction/ShareAuctioneerLink';
+import { ShareRegistrationList } from '../registrations/ShareRegistrationList';
 import type { Team } from './tabs/TeamsTab';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -33,7 +34,7 @@ function ViewerLink({ label, path, openPath = path, note }: { label: string; pat
   </div>;
 }
 
-export function TournamentLinks({ tournamentId, slug, status }: { tournamentId: string; slug: string; status: string }) {
+export function TournamentLinks({ tournamentId, slug, status, canShareRegistrations = false }: { tournamentId: string; slug: string; status: string; canShareRegistrations?: boolean }) {
   const { token } = useAuth();
   const load = async <T,>(resource: string, signal: AbortSignal): Promise<T> => {
     const response = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/${resource}`, { signal, headers: { Authorization: `Bearer ${token}` } });
@@ -53,10 +54,11 @@ export function TournamentLinks({ tournamentId, slug, status }: { tournamentId: 
         <p className="mt-1 text-xs leading-relaxed text-slate-400">Open every tournament view here. Viewer links can be shared on any device without signing in.</p>
       </div>
     </div>
-    {settings.data?.publicLiveViewEnabled === false && <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-400">Public viewing is off. Enable Public Live View in Auction Rules &amp; Purse before sharing viewer links.</p>}
+    {settings.data?.publicLiveViewEnabled === false && <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-400">Public viewing is off. Enable Public Live View in Auction Rules &amp; Purse before sharing auction and team viewer links.</p>}
     {settings.isError && <p className="text-xs text-amber-400">Public viewing availability could not be checked. <button type="button" onClick={() => void settings.refetch()} className="underline">Retry</button></p>}
     {status !== 'DRAFT' ? <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-4"><ShareAuctioneerLink tournamentId={tournamentId} /></div> : <p className="text-xs text-slate-400">The auctioneer panel link becomes available after preflight approval.</p>}
     <div className="grid min-w-0 gap-3 md:grid-cols-2">
+      {canShareRegistrations && <ShareRegistrationList tournamentId={tournamentId} />}
       <ViewerLink label="Projector" path={`${publicRoot}/projector`} note="Live broadcast for laptops, phones and hall displays." />
       <ViewerLink label="Public auction view" path={publicRoot} note="Live bidding, teams, players and auction progress." />
       <ViewerLink label="Results & statistics" path={`${publicRoot}?view=results`} openPath={`${memberRoot}/results`} note="Open your results dashboard; copy the public results link to share." />

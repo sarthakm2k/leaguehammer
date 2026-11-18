@@ -359,7 +359,7 @@ export function TournamentOverviewPage() {
           )}
         </div>
 
-        {activeTab === 'overview' && <TournamentLinks tournamentId={tournament.id} slug={tournament.slug} status={statusStr} />}
+        {activeTab === 'overview' && <TournamentLinks tournamentId={tournament.id} slug={tournament.slug} status={statusStr} canShareRegistrations={isOwner || tournament.userRole === 'AUCTIONEER'} />}
 
         {/* Edit Form (if toggled) */}
         {editing && (

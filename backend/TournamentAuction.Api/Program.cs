@@ -36,6 +36,7 @@ builder.Services.AddScoped<IBasePriceTierService, BasePriceTierService>();
 builder.Services.AddScoped<IPlayerSetService, PlayerSetService>();
 builder.Services.AddScoped<IPlayerService, PlayerService>();
 builder.Services.AddScoped<RegistrationService>();
+builder.Services.AddScoped<RegistrationViewerService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHttpClient<IRegistrationPhotoStorage, RegistrationPhotoStorage>(client => client.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddHttpClient<ITeamLogoStorage, RegistrationPhotoStorage>(client => client.Timeout = TimeSpan.FromSeconds(30));
@@ -101,6 +102,7 @@ var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "SuperSecretDevelopmentKe
 if (!builder.Environment.IsDevelopment() && (jwtSecret.Length < 32 || jwtSecret == "SuperSecretDevelopmentKeyMustBeAtLeast32BytesLong!"))
     throw new InvalidOperationException("Set Jwt__Secret to a strong unique secret of at least 32 characters before deploying.");
 var key = Encoding.UTF8.GetBytes(jwtSecret);
+builder.Services.AddSingleton(new RegistrationViewerTokens(key));
 
 builder.Services.AddAuthentication(options =>
 {
