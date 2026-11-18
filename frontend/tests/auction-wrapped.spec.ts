@@ -42,7 +42,7 @@ test('mobile Wrapped covers all squads, stories, swipe, keyboard, deep links and
   const teamSlides=options.filter(id=>id.startsWith(`team-${teamId}-`)); expect(teamSlides).toHaveLength(5);
   const teamCardSlides=options.filter(id=>id.startsWith(`team-cards-${teamId}-`)); expect(teamCardSlides).toHaveLength(4);
   const cardPlayers:string[]=[];
-  for(const id of teamCardSlides) { await page.getByRole('combobox').selectOption(id); await expect(page.getByTestId('wrapped-slide')).toHaveAttribute('aria-label',new RegExp(`Player cards ${teamCardSlides.indexOf(id)+1}/`)); cardPlayers.push(...await page.locator('[data-testid^="wrapped-squad-card-"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('data-testid')!))); }
+  for(const id of teamCardSlides) { await page.getByRole('combobox').selectOption(id); await expect(page.getByTestId('wrapped-slide')).toHaveAttribute('aria-label',new RegExp(`Players ${teamCardSlides.indexOf(id)+1}/`)); cardPlayers.push(...await page.locator('[data-testid^="wrapped-squad-card-"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('data-testid')!))); }
   expect(cardPlayers).toEqual(data.players.filter(p=>p.status==='SOLD').map(p=>`wrapped-squad-card-${p.playerId}`));
   const signed:string[]=[];
   for(const id of teamSlides) { await page.getByRole('combobox').selectOption(id); await expect(page.getByTestId('wrapped-slide')).toHaveAttribute('aria-label',new RegExp(`Squad ${teamSlides.indexOf(id)+1}/`)); signed.push(...await page.locator('[data-testid^="wrapped-player-"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('data-testid')!))); }
@@ -79,8 +79,8 @@ test('Wrapped links appear after completion; public access and empty auctions ar
 
 test('player spotlights, individual sharing and portrait PNG downloads work outside the main story', async ({ page, context }) => {
   const data = storyData();
-  data.players[11].cardPosition='ST';
-  data.players[11].ratings={overall:91,isGoalkeeper:false,attributes:{pace:96,shooting:96,passing:80,dribbling:88,defending:60,physical:94}};
+  Object.assign(data.players[11],{cardPosition:'ST'});
+  (data.players[11] as ResultPlayer & {ratings: unknown}).ratings={overall:91,isGoalkeeper:false,attributes:{pace:96,shooting:96,passing:80,dribbling:88,defending:60,physical:94}};
   // Ties must share podium places and position spotlights.
   data.players[1].finalPrice = data.players[0].finalPrice;
   data.players[2].finalPrice = data.players[0].finalPrice;
@@ -108,10 +108,10 @@ test('player spotlights, individual sharing and portrait PNG downloads work outs
   await page.getByRole('button',{name:'Copy this slide'}).click();
   expect(await page.evaluate(()=>navigator.clipboard.readText())).toBe(new URL('/live/demo/wrapped?slide=signing-p-11',page.url()).href);
   await page.reload(); await expect(page.getByTestId('wrapped-slide')).toContainText('Player 12');
-  const card=page.getByRole('article',{name:'Player 12 player card'});
-  await expect(card.getByLabel('Overall 91')).toHaveText('91');
-  await expect(card.getByLabel('Physical 94')).toHaveText('94');
-  await expect(card.locator('.football-card-photo img')).toHaveCSS('object-fit','contain');
+  const card=page.getByRole('article',{name:'Player 12 player profile'});
+  await expect(card).toContainText('Player 12');
+  await expect(card.getByLabel(/Overall|Physical/)).toHaveCount(0);
+  await expect(card.locator('.player-portrait-photo img')).toHaveCSS('object-fit','contain');
   await page.screenshot({path:'../.cache/wrapped-player-card-mobile.png',animations:'disabled'});
   const downloadEvent = page.waitForEvent('download');
   await page.getByRole('button',{name:'Download signing image'}).click();
@@ -124,13 +124,14 @@ test('player spotlights, individual sharing and portrait PNG downloads work outs
   for await (const part of stream!) parts.push(Buffer.from(part));
   const png = Buffer.concat(parts);
   expect(png.subarray(1,4).toString()).toBe('PNG'); expect(png.readUInt32BE(16)).toBe(1080); expect(png.readUInt32BE(20)).toBe(1920);
-  const bluePixel=await page.evaluate(async base64=>{
+  const photoPixel=await page.evaluate(async base64=>{
     const image=new Image(); image.src=`data:image/png;base64,${base64}`; await image.decode();
     const canvas=document.createElement('canvas'); canvas.width=1080; canvas.height=1920;
     const context=canvas.getContext('2d')!; context.drawImage(image,0,0);
-    return Array.from(context.getImageData(290,1000,1,1).data);
+    return Array.from(context.getImageData(540,880,1,1).data);
   },png.toString('base64'));
-  expect(bluePixel[2]).toBeGreaterThan(bluePixel[0]+30);
+  expect(photoPixel[1]).toBeGreaterThan(photoPixel[0]+100);
+  expect(photoPixel[1]).toBeGreaterThan(photoPixel[2]+100);
   await page.setViewportSize({width:320,height:568});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   expect(await page.getByTestId('wrapped-slide').evaluate(node=>node.scrollHeight<=node.clientHeight+1)).toBe(true);
@@ -145,8 +146,8 @@ test('a missing player photo still produces a signing image and native sharing t
   await mock(page,data); await page.route('https://photos.example.test/**',route=>route.abort());
   await page.addInitScript(() => Object.defineProperty(navigator,'share',{ configurable:true, value:async (value:ShareData) => { (window as unknown as { shared: ShareData }).shared = value; } }));
   await page.goto('/live/demo/wrapped?slide=signing-p-0');
-  await expect(page.locator('.football-card-avatar')).toBeVisible();
-  await expect(page.locator('.football-card-avatar')).toHaveAttribute('src','/brand/player-avatar.svg');
+  await expect(page.locator('.player-portrait-avatar')).toBeVisible();
+  await expect(page.locator('.player-portrait-avatar')).toHaveAttribute('src','/brand/player-avatar.svg');
   await page.getByRole('button',{name:'Share Auction Wrapped'}).click();
   const shared = await page.evaluate(() => (window as unknown as { shared: ShareData }).shared);
   expect(shared.url).toBe(new URL('/live/demo/wrapped?slide=signing-p-0',page.url()).href);
@@ -159,23 +160,23 @@ test('a missing player photo still produces a signing image and native sharing t
 });
 
 test('team card collections keep every signing, share deep links and open individual player stories',async({page,context})=>{
-  const data=storyData(); data.players[0].cardPosition='ST';
+  const data=storyData(); Object.assign(data.players[0],{cardPosition:'ST'});
   data.players[1].photoUrl=null;
-  data.players[0].ratings={overall:87,isGoalkeeper:false,attributes:{pace:99,shooting:80}};
+  Object.assign(data.players[0],{ratings:{overall:87,isGoalkeeper:false,attributes:{pace:99,shooting:80}}});
   await mock(page,data); await context.grantPermissions(['clipboard-read','clipboard-write']);
   await page.setViewportSize({width:390,height:844});
   const first=`team-cards-${teamId}-1`;
   await page.goto(`/live/demo/wrapped?slide=${first}`);
   await expect(page.getByRole('heading',{name:'Falcons FC',exact:true})).toBeVisible();
   await expect(page.locator('.wrapped-squad-card')).toHaveCount(4);
-  await expect(page.getByRole('article',{name:'Player 02 player card'}).locator('.football-card-avatar')).toBeVisible();
-  const card=page.getByRole('article',{name:'Player 01 player card'});
-  await expect(card.getByLabel('Overall 87')).toHaveText('87');
-  await expect(card.getByLabel('Passing not rated')).toBeEmpty();
+  await expect(page.getByRole('article',{name:'Player 02 player profile'}).locator('.player-portrait-avatar')).toBeVisible();
+  const card=page.getByRole('article',{name:'Player 01 player profile'});
+  await expect(card).toContainText('Player 01');
+  await expect(card.getByLabel(/Overall|Passing/)).toHaveCount(0);
   for(const size of [{width:390,height:844},{width:320,height:568},{width:1280,height:800}]) {
     await page.setViewportSize(size);
     for(const item of await page.locator('.wrapped-squad-card').all()) {
-      const tile=await item.boundingBox(); const player=await item.locator('.football-player-card').boundingBox();
+      const tile=await item.boundingBox(); const player=await item.locator('.player-portrait').boundingBox();
       expect(player!.height).toBeGreaterThan(100);
       expect(player!.y+player!.height).toBeLessThanOrEqual(tile!.y+tile!.height);
       expect(player!.width/player!.height).toBeCloseTo(2/3,2);
@@ -187,7 +188,7 @@ test('team card collections keep every signing, share deep links and open indivi
   await page.getByRole('button',{name:'Copy this slide'}).click();
   expect(await page.evaluate(()=>navigator.clipboard.readText())).toBe(new URL(`/live/demo/wrapped?slide=${first}`,page.url()).href);
   await page.reload(); await expect(page.locator('.wrapped-squad-card')).toHaveCount(4);
-  await page.getByRole('link',{name:'View Player 01 signing card'}).click();
+  await page.getByRole('link',{name:'View Player 01 signing profile'}).click();
   await expect(page).toHaveURL(/slide=signing-p-0/);
   await expect(page.getByRole('button',{name:'Download signing image'})).toBeVisible();
   await page.goto('/live/demo/wrapped?slide=team-cards-empty-1');

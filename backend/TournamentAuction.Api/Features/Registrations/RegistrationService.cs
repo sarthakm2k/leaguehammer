@@ -85,13 +85,15 @@ public class RegistrationService(TournamentAuctionDbContext db, IPlayerService p
         }
         t = await db.Tournaments.AsNoTracking().SingleAsync(x => x.Id == t.Id);
         if (Status(t, await db.RegistrationForms.FindAsync(t.Id)) != "OPEN") throw new InvalidOperationException("Registrations are not open. Your details have not been submitted.");
+        if (r.Photo == null || r.Photo.Length == 0) throw new ArgumentException("Please add a player photo to register.");
+        if (!photos.Available) throw new InvalidOperationException("Photo uploads are unavailable. A player photo is required to register. Please contact the organiser.");
         if (await db.PlayerRegistrations.CountAsync(x => x.TournamentId == t.Id) >= 10000) throw new InvalidOperationException("The registration limit has been reached. Contact the organiser.");
         var entry = new PlayerRegistration {
             Id = r.SubmissionId, TournamentId = t.Id, Name = r.Name.Trim(), Phone = Phone(r.Phone), Email = Clean(r.Email)?.ToLowerInvariant(),
             Age = r.Age, Position = r.Position, CardPosition = CardRatings.Position(r.CardPosition), PreferredFoot = Clean(r.PreferredFoot), JerseyNumber = r.JerseyNumber,
             PreviousTeam = Clean(r.PreviousTeam), ShortBio = Clean(r.ShortBio), SubmittedAtUtc = Now
         };
-        if (r.Photo != null) entry.PhotoPath = await photos.UploadAsync(t.Id, r.SubmissionId, r.Photo);
+        entry.PhotoPath = await photos.UploadAsync(t.Id, r.SubmissionId, r.Photo);
         db.PlayerRegistrations.Add(entry);
         await db.SaveChangesAsync();
         if (tx != null) await tx.CommitAsync();

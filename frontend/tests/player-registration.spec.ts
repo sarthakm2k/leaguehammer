@@ -1,6 +1,7 @@
 import { test, expect } from 'playwright/test';
 
 const API = process.env.AUCTION_API_URL || 'http://localhost:5050';
+const portrait = { name:'player.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2ioAAAAASUVORK5CYII=','base64') };
 test('registration survives cold start and lost response; organiser reviews, approves and finalizes', async ({ browser, request }, testInfo) => {
   const account = await request.post(`${API}/api/auth/register`, { data: { email: `registration-${Date.now()}@example.test`, password: 'RegistrationTest!2026', fullName: 'Registration Owner' } });
   expect(account.ok()).toBeTruthy(); const { token } = await account.json(); const headers = { Authorization: `Bearer ${token}` };
@@ -13,6 +14,9 @@ test('registration survives cold start and lost response; organiser reviews, app
   const set = await api('post', `${root}/player-sets`, { name: 'Forwards', sortOrder: 1 });
   const settings = { enabled: true, opensAtUtc: new Date(Date.now() - 60000).toISOString(), closesAtUtc: new Date(Date.now() + 3600000).toISOString(), closedManually: false, instructions: 'All positions welcome.' };
   await api('put', `${root}/registrations/settings`, settings);
+  const registrationForm = await request.get(`${API}/api/registration/${tournament.slug}`);
+  expect(registrationForm.ok(), await registrationForm.text()).toBeTruthy();
+  test.skip(!(await registrationForm.json()).photoUploadAvailable, 'Registration requires configured photo storage.');
   const guest = await browser.newContext({ viewport: { width: 320, height: 844 } });
   const organiser = await browser.newContext({ viewport: { width: 1440, height: 1000 }, permissions: ['clipboard-read', 'clipboard-write'] });
   await organiser.addInitScript(value => localStorage.setItem('auth_token', value), token);
@@ -36,6 +40,7 @@ test('registration survives cold start and lost response; organiser reviews, app
       localStorage.setItem(key, JSON.stringify(draft));
     }, tournament.slug);
     await page.reload(); await expect(page.getByLabel('Full name')).toHaveValue('Mobile Player');
+    await page.getByLabel('Player photo (required)').setInputFiles(portrait);
     await page.getByRole('checkbox').check();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
     await page.screenshot({ path: testInfo.outputPath('registration-dark-mobile.png'), fullPage: true });
@@ -60,6 +65,7 @@ test('registration survives cold start and lost response; organiser reviews, app
     await expect(page.getByRole('checkbox')).not.toBeChecked();
     await page.getByLabel('Full name').fill('Second Player');
     await page.getByLabel('Contact number').fill('+91 9876543210');
+    await page.getByLabel('Player photo (required)').setInputFiles(portrait);
     await page.getByLabel('Playing position').selectOption('Defender'); await page.getByRole('checkbox').check();
     const secondDraft = await page.evaluate(slug => JSON.parse(localStorage.getItem(`leaguehammer-registration-${slug}`)!), tournament.slug);
     expect(secondDraft.submissionId).not.toBe(saved.submissionId);
@@ -72,7 +78,7 @@ test('registration survives cold start and lost response; organiser reviews, app
     const retries = await Promise.all([request.post(`${API}/api/registration/${tournament.slug}/submissions`, { multipart: payload }), request.post(`${API}/api/registration/${tournament.slug}/submissions`, { multipart: payload })]);
     for (const response of retries) expect(response.ok(), await response.text()).toBeTruthy();
     const queue = await api('get', `${root}/registrations`);
-    expect(queue.length).toBe(2); expect(queue.every((entry: { hasPhoto: boolean }) => entry.hasPhoto === false)).toBeTruthy();
+    expect(queue.length).toBe(2); expect(queue.every((entry: { hasPhoto: boolean }) => entry.hasPhoto === true)).toBeTruthy();
     expect(queue.every((entry: { jerseyNumber: number | null; previousTeam: string | null; shortBio: string | null }) => entry.jerseyNumber === null && entry.previousTeam === null && entry.shortBio === null)).toBeTruthy();
     await api('put', `${root}/registrations/settings`, { ...settings, closedManually: true });
     expect((await request.post(`${API}/api/registration/${tournament.slug}/submissions`, { multipart: payload })).ok()).toBeTruthy();

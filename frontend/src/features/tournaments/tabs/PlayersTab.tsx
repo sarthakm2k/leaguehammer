@@ -1,6 +1,4 @@
 import { PlayerPhotoManager } from '../../players/PlayerPhotoManager';
-import { PlayerRatingsEditor } from '../../players/PlayerRatingsEditor';
-import type { RatingValues, PlayerRatings } from '../../players/playerCardTypes';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import { formatInr } from '../../../utils/formatters';
@@ -41,8 +39,6 @@ interface Player {
   playerSetName: string;
   name: string;
   photoUrl: string | null;
-  cardPosition?: string | null;
-  ratings?: PlayerRatings | null;
   age: number | null;
   position: string | null;
   preferredFoot: string | null;
@@ -106,8 +102,6 @@ export function PlayersTab({ tournamentId, isOwner, status, currencySymbol = 'â‚
   const [playerSetId, setPlayerSetId] = useState('');
   const [basePrice, setBasePrice] = useState<number>(1000);
   const [position, setPosition] = useState('');
-  const [cardPosition, setCardPosition] = useState('');
-  const [ratings, setRatings] = useState<RatingValues>({});
   const [age, setAge] = useState<string>('');
   const [preferredFoot, setPreferredFoot] = useState('');
   const [jerseyNumber, setJerseyNumber] = useState<string>('');
@@ -190,7 +184,6 @@ export function PlayersTab({ tournamentId, isOwner, status, currencySymbol = 'â‚
     setPlayerSetId(sets.length > 0 ? sets[0].id : '');
     setBasePrice(tiers.length > 0 ? tiers[0].amount : 1000);
     setPosition('Midfielder');
-    setCardPosition(''); setRatings({});
     setAge('');
     setPreferredFoot('Right');
     setJerseyNumber('');
@@ -207,7 +200,6 @@ export function PlayersTab({ tournamentId, isOwner, status, currencySymbol = 'â‚
     setPlayerSetId(p.playerSetId);
     setBasePrice(p.basePrice);
     setPosition(p.position || '');
-    setCardPosition(p.cardPosition || ''); setRatings(p.ratings?.attributes || {});
     setAge(p.age ? String(p.age) : '');
     setPreferredFoot(p.preferredFoot || 'Right');
     setJerseyNumber(p.jerseyNumber ? String(p.jerseyNumber) : '');
@@ -242,7 +234,6 @@ export function PlayersTab({ tournamentId, isOwner, status, currencySymbol = 'â‚
       const body = {
         name: name.trim(),
         playerSetId,
-        cardPosition: cardPosition || null, ratings,
         basePrice,
         photoUrl: photoUrl.trim() || null,
         age: age ? parseInt(age, 10) : null,
@@ -811,8 +802,6 @@ export function PlayersTab({ tournamentId, isOwner, status, currencySymbol = 'â‚
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500 transition resize-none"
                 />
               </div>
-
-              <PlayerRatingsEditor value={ratings} onChange={setRatings} cardPosition={cardPosition} onPositionChange={setCardPosition} position={position} name={name} photoUrl={photoUrl} disabled={modalSubmitting} />
 
               <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-800">
                 <button

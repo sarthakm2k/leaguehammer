@@ -1,5 +1,7 @@
 # LeagueHammer player ratings
 
+This feature has been retired from the app. Player setup and registration review no longer offer card positions or ratings. Auction views, squad profiles and downloaded images show player photos and playing details without rating cards. Existing API and database fields remain for compatibility; the formulas below document the former feature.
+
 Overall uses LeagueHammer's own position weights. These are inspired by football roles and do not reproduce EA's proprietary rating formula.
 
 For each entered attribute, multiply its rating by its position weight. Divide the sum by the sum of weights for **entered attributes only**, then round to the nearest integer (halves round up). Overall and attributes range from 1 to 99. If no attributes in the active profile are entered, overall stays blank. Goalkeepers use their six goalkeeper attributes; outfield attributes do not affect goalkeeper overall, and vice versa.

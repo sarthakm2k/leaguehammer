@@ -1,14 +1,12 @@
 import './squad-poster.css';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Download } from 'lucide-react';
-import { PlayerCardArtwork } from '../players/FootballPlayerCard';
 import type { AuctionResults } from './resultsTypes';
 import type { TeamAuctionStandingDto } from './auctionTypes';
-import { drawPlayerCard, loadImage, signingAccent } from './signingImage';
+import { drawPlayerProfile, loadImage, signingAccent } from './signingImage';
 import { formatCurrency } from '../../utils/formatters';
 
 export function TeamSquadPoster({ data, team }: { data: AuctionResults; team: TeamAuctionStandingDto }) {
-  const artworkRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const roster = data.players.filter(player => player.status === 'SOLD' && player.winningTeamId === team.teamId).sort((a,b) => a.playerName.localeCompare(b.playerName));
@@ -17,11 +15,7 @@ export function TeamSquadPoster({ data, team }: { data: AuctionResults; team: Te
     if (busy) return;
     setBusy(true); setMessage('Preparing your final squad poster?');
     try {
-      const svg = artworkRef.current?.querySelector('svg')?.cloneNode(true) as SVGSVGElement | undefined;
-      if (!svg) throw new Error('Artwork unavailable');
-      svg.setAttribute('xmlns','http://www.w3.org/2000/svg'); svg.setAttribute('width','300'); svg.setAttribute('height','450');
-      const [artwork, crest, avatar] = await Promise.all([loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(new XMLSerializer().serializeToString(svg))}`),loadImage(team.logoUrl),loadImage('/brand/player-avatar.svg')]);
-      if (!artwork) throw new Error('Artwork could not load');
+      const [crest, avatar] = await Promise.all([loadImage(team.logoUrl),loadImage('/brand/player-avatar.svg')]);
       const columns = roster.length === 1 ? 1 : roster.length === 2 ? 2 : 3, cardWidth = columns === 1 ? 600 : columns === 2 ? 420 : 300;
       const rowHeight = cardWidth*1.5+60, rows = Math.ceil(roster.length/columns);
       const logicalHeight = 400+rows*rowHeight+120, scale = Math.min(1,8000/logicalHeight);
@@ -44,7 +38,7 @@ export function TeamSquadPoster({ data, team }: { data: AuctionResults; team: Te
         for(let col=0;col<players.length;col++){
           const player=players[col], photo=photos[col];if(player.photoUrl&&!photo)missingPhotos++;
           const gap=(1080-columns*cardWidth)/(columns+1), x=(1080-players.length*cardWidth-(players.length-1)*gap)/2+col*(cardWidth+gap),y=380+(offset/columns)*rowHeight;
-          drawPlayerCard(ctx,player,artwork,photo,avatar,x,y,cardWidth);
+          drawPlayerProfile(ctx,player,photo,avatar,x,y,cardWidth);
           text(formatCurrency(player.finalPrice || 0,data.state.currencyCode),x+cardWidth/2,y+cardWidth*1.5+28,24,accent,cardWidth,'center');
         }
       }
@@ -55,5 +49,5 @@ export function TeamSquadPoster({ data, team }: { data: AuctionResults; team: Te
     } catch { setMessage('Could not download the poster. Please try again.'); }
     finally { setBusy(false); }
   };
-  return <div className="team-poster-download"><div ref={artworkRef} hidden><PlayerCardArtwork /></div><button type="button" disabled={busy} onClick={()=>void download()}><Download size={16}/>{busy ? 'Preparing poster?' : 'Download final squad poster'}</button>{message && <span role="status">{message}</span>}</div>;
+  return <div className="team-poster-download"><button type="button" disabled={busy} onClick={()=>void download()}><Download size={16}/>{busy ? 'Preparing poster?' : 'Download final squad poster'}</button>{message && <span role="status">{message}</span>}</div>;
 }

@@ -40,7 +40,7 @@ test('auction controls fit laptop screens while long team lists stay inside thei
   await setup(page, fixture(12), true);
   for (const viewport of [{ width: 1366, height: 768 }, { width: 1280, height: 588 }, { width: 1024, height: 500 }, { width: 1280, height: 650 }, { width: 1536, height: 864 }]) {
     await page.setViewportSize(viewport);
-    for (const selector of ['.football-player-card', '.console-sale-actions', '.console-bid-controls', '.console-purse-panel']) await fitsViewport(page, selector);
+    for (const selector of ['.player-portrait', '.console-sale-actions', '.console-bid-controls', '.console-purse-panel']) await fitsViewport(page, selector);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight + 1)).toBe(true);
     await expect(page.getByRole('button', { name: 'Update Live Bid' })).toBeEnabled();
     await expect(page.getByRole('button', { name: /SOLD TO FC1/ })).toBeEnabled();
@@ -55,14 +55,14 @@ test('projector scales to full HD and 4K with every team visible and no team scr
   const cardWidths: number[] = [];
   for (const viewport of [{ width: 1366, height: 768 }, { width: 1920, height: 1080 }, { width: 3840, height: 2160 }]) {
     await page.setViewportSize(viewport);
-    for (const selector of ['.stage-main', '.stage-team-list', '.stage-ticker', '.football-player-card']) await fitsViewport(page, selector);
+    for (const selector of ['.stage-main', '.stage-team-list', '.stage-ticker', '.player-portrait']) await fitsViewport(page, selector);
     for (const team of await page.locator('.stage-team').all()) {
       const box = await team.boundingBox();
       expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
     }
     expect(await page.locator('.stage-team-list').evaluate(element => element.scrollHeight <= element.clientHeight + 1)).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1)).toBe(true);
-    cardWidths.push((await page.locator('.football-player-card').boundingBox())!.width);
+    cardWidths.push((await page.locator('.player-portrait').boundingBox())!.width);
     if (viewport.width !== 1366) await page.screenshot({ path: `../testscreenshots/projector-${viewport.width}.png` });
   }
   expect(cardWidths[1]).toBeGreaterThan(cardWidths[0] * 1.2);
@@ -86,7 +86,7 @@ test('sold projector result and 24 franchises fit a large display in light mode'
   await setup(page, state as unknown as ReturnType<typeof fixture>, false);
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
   await expect(page.getByTestId('stage-result')).toBeVisible();
-  for (const selector of ['.stage-result', '.football-player-card', '.stage-team-list']) await fitsViewport(page, selector);
+  for (const selector of ['.stage-result', '.player-portrait', '.stage-team-list']) await fitsViewport(page, selector);
   expect(await page.locator('.stage-team-list').evaluate(element => element.scrollHeight <= element.clientHeight + 1)).toBe(true);
   await expect(page.locator('.stage-team')).toHaveCount(24);
 });

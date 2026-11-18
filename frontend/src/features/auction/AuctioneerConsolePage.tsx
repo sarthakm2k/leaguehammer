@@ -1,4 +1,4 @@
-import { FootballPlayerCard } from '../players/FootballPlayerCard';
+import { PlayerPortrait } from '../players/PlayerPortrait';
 import { LeagueHammerBrand } from '../../components/LeagueHammerBrand';
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -638,7 +638,7 @@ export function AuctioneerConsolePage() {
               <div className="console-player-spotlight py-6 grid grid-cols-1 sm:grid-cols-12 gap-6 items-center">
                 {/* Photo / Avatar */}
                 <div className="sm:col-span-5 flex flex-col items-center">
-                  <FootballPlayerCard key={`${currentLot.playerId}:${currentLot.photoUrl}`} player={currentLot} />
+                  <PlayerPortrait key={`${currentLot.playerId}:${currentLot.photoUrl}`} player={currentLot} />
                 </div>
 
                 {/* Player Credentials & Base Price Spotlight */}
@@ -648,6 +648,7 @@ export function AuctioneerConsolePage() {
                       <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${getPositionBadge(currentLot.position)}`}>
                         {currentLot.position || 'Player'}
                       </span>
+                      {currentLot.jerseyNumber != null && <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">#{currentLot.jerseyNumber}</span>}
                       {currentLot.preferredFoot && (
                         <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
                           {currentLot.preferredFoot} Foot

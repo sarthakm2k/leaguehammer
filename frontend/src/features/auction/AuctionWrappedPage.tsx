@@ -8,7 +8,7 @@ import { useAuth } from '../auth/AuthContext';
 import type { AuctionResults, ResultPlayer } from './resultsTypes';
 import { formatCurrency } from '../../utils/formatters';
 import { downloadSigningImage, signingAccent } from './signingImage';
-import { FootballPlayerCard } from '../players/FootballPlayerCard';
+import { PlayerPortrait } from '../players/PlayerPortrait';
 import './wrapped.css';
 
 const API = import.meta.env.VITE_API_BASE_URL || '';
@@ -90,14 +90,14 @@ export function buildWrappedSlides(data: AuctionResults): Slide[] {
     </> });
     const cardPages = roster.length ? chunks(roster,4) : [[]];
     for (const [index, players] of cardPages.entries()) slides.push({
-      id:`team-cards-${t.teamId}-${index + 1}`, label:`${t.teamName} · Player cards ${index + 1}/${cardPages.length}`,
-      tone:'club', accent:signingAccent(t.primaryColor), content:<section className="wrapped-team-cards" aria-label={`${t.teamName} squad cards`}>
+      id:`team-cards-${t.teamId}-${index + 1}`, label:`${t.teamName} · Players ${index + 1}/${cardPages.length}`,
+      tone:'club', accent:signingAccent(t.primaryColor), content:<section className="wrapped-team-cards" aria-label={`${t.teamName} squad profiles`}>
         <div className="wrapped-card-team-header"><StoryPortrait name={t.teamName} url={t.logoUrl} crest /><div><p className="wrapped-kicker">The squad collection / {index + 1} of {cardPages.length}</p><h2>{t.teamName}</h2><p>{roster.length} signings · {money(t.totalSpent)} invested</p></div></div>
         {players.length ? <div className="wrapped-squad-card-grid" data-card-count={players.length}>{players.map(player =>
-          <Link className="wrapped-squad-card" key={player.playerId} to={`?slide=signing-${player.playerId}`} aria-label={`View ${player.playerName} signing card`} data-testid={`wrapped-squad-card-${player.playerId}`}>
-            <FootballPlayerCard player={player} /><span className="wrapped-squad-card-price">{money(player.finalPrice ?? 0)}</span>
+          <Link className="wrapped-squad-card" key={player.playerId} to={`?slide=signing-${player.playerId}`} aria-label={`View ${player.playerName} signing profile`} data-testid={`wrapped-squad-card-${player.playerId}`}>
+            <PlayerPortrait player={player} showDetails /><span className="wrapped-squad-card-price">{money(player.finalPrice ?? 0)}</span>
           </Link>)}</div> : <div className="wrapped-empty-squad"><Shield size={48} /><h3>The collection starts here.</h3><p>No players were signed by this franchise.</p></div>}
-        <div className="wrapped-card-team-actions"><TeamSquadPoster data={data} team={t} /><p className="wrapped-card-team-caption">{players.length ? `Signings ${index * 4 + 1}–${index * 4 + players.length} of ${roster.length}. Tap a card for the player’s signing story.` : 'Every team has a place in the auction story.'}</p></div>
+        <div className="wrapped-card-team-actions"><TeamSquadPoster data={data} team={t} /><p className="wrapped-card-team-caption">{players.length ? `Signings ${index * 4 + 1}–${index * 4 + players.length} of ${roster.length}. Tap a player to see their signing story.` : 'Every team has a place in the auction story.'}</p></div>
       </section>
     });
   }
@@ -113,7 +113,7 @@ function buildSigningSlides(data: AuctionResults): Slide[] {
     return { id: `signing-${player.playerId}`, label: `${player.playerName} · New signing`, tone: 'club', accent: signingAccent(team?.primaryColor), player, content: <div className="signing-poster">
       <div className="signing-edition"><span>{data.state.tournamentName}</span><span><i />Confirmed</span></div>
       <div className="signing-announcement"><p>Meet your new signing</p><h2>SIGNED<span>.</span></h2></div>
-      <div className="signing-player-card"><FootballPlayerCard player={player} /></div>
+      <div className="signing-player-card"><PlayerPortrait player={player} showDetails /></div>
       <div className="signing-contract"><div className="signing-club"><StoryPortrait name={player.winningTeamName || 'Team'} url={team?.logoUrl} crest /><div><small>New colours</small><strong>{player.winningTeamName}</strong></div></div><div className="signing-value"><small>Signed for</small><b>{formatCurrency(player.finalPrice ?? 0,data.state.currencyCode)}</b></div></div>
       <div className="signing-footer"><span>Auction Wrapped</span><span>New club. New chapter.</span></div>
     </div> };
@@ -179,11 +179,7 @@ function WrappedStory({ data, publicView }: { data: AuctionResults; publicView: 
     if (!slide.player || downloading) return;
     setDownloading(true); setMessage('Preparing your portrait image…');
     try {
-      const artwork = document.querySelector<SVGSVGElement>('.signing-player-card .football-card-artwork');
-      if (!artwork) throw new Error('Player card is not ready.');
-      const exported = artwork.cloneNode(true) as SVGSVGElement;
-      exported.setAttribute('xmlns','http://www.w3.org/2000/svg'); exported.setAttribute('width','300'); exported.setAttribute('height','450');
-      const missingPhoto = await downloadSigningImage(data,slide.player,new XMLSerializer().serializeToString(exported));
+      const missingPhoto = await downloadSigningImage(data,slide.player);
       setMessage(missingPhoto ? 'Image downloaded with an avatar. The player photo could not be exported.' : 'Portrait image downloaded. Ready to share.');
     }
     catch { setMessage('Image download failed. Please try again or copy this slide link.'); }

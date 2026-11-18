@@ -1,6 +1,5 @@
 import type { AuctionResults, ResultPlayer } from './resultsTypes';
 import { formatCurrency } from '../../utils/formatters';
-import { GOALKEEPER_ATTRIBUTES, OUTFIELD_ATTRIBUTES, isGoalkeeper } from '../players/playerCardTypes';
 
 export function signingAccent(color?: string | null): string {
   if (!/^#[0-9a-f]{6}$/i.test(color ?? '')) return '#c4f143';
@@ -24,10 +23,9 @@ export async function loadImage(url?: string | null): Promise<HTMLImageElement |
 }
 
 /** A standalone portrait PNG; remote images must permit anonymous CORS. */
-export async function downloadSigningImage(data: AuctionResults, player: ResultPlayer, artworkSvg: string): Promise<boolean> {
+export async function downloadSigningImage(data: AuctionResults, player: ResultPlayer): Promise<boolean> {
   const team = data.state.teamStandings.find(t => t.teamId === player.winningTeamId);
-  const [photo, crest, brand, artwork, avatar] = await Promise.all([loadImage(player.photoUrl), loadImage(team?.logoUrl), loadImage('/brand/leaguehammer.png'),loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(artworkSvg)}`),loadImage('/brand/player-avatar.svg')]);
-  if (!artwork) throw new Error('Unable to render the player card artwork.');
+  const [photo, crest, brand, avatar] = await Promise.all([loadImage(player.photoUrl), loadImage(team?.logoUrl), loadImage('/brand/leaguehammer.png'), loadImage('/brand/player-avatar.svg')]);
   const canvas = document.createElement('canvas'); canvas.width = 1080; canvas.height = 1920;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Image export is unavailable in this browser.');
@@ -58,9 +56,7 @@ export async function downloadSigningImage(data: AuctionResults, player: ResultP
   text(data.state.tournamentName,76,208,31,'#b8c1c8');
   text('MEET YOUR NEW SIGNING',76,288,24,'#b8c1c8');
   text('SIGNED.',66,415,150,'#f8f5ef',948,'left',true);
-  // Reuse the on-screen SVG frame; draw safe CORS photos and editable card details
-  // natively so the download needs no screenshot library or server rendering.
-  drawPlayerCard(ctx,player,artwork,photo,avatar,180,460,720);
+  drawPlayerProfile(ctx,player,photo,avatar,180,460,720);
   ctx.strokeStyle='#ffffff35'; ctx.lineWidth=2;
   for (const y of [1608,1810]) { ctx.beginPath(); ctx.moveTo(76,y); ctx.lineTo(1004,y); ctx.stroke(); }
   ctx.fillStyle='#ffffff08'; ctx.beginPath(); ctx.roundRect(76,1650,104,104,22); ctx.fill();
@@ -80,46 +76,29 @@ export async function downloadSigningImage(data: AuctionResults, player: ResultP
   return !!player.photoUrl && !photo;
 }
 
-export function drawPlayerCard(ctx: CanvasRenderingContext2D, player: ResultPlayer, artwork: HTMLImageElement, photo: HTMLImageElement | null, avatar: HTMLImageElement | null, cardX: number, cardY: number, cardWidth: number) {
-  const image = (img: HTMLImageElement, x: number, y: number, width: number, height: number) => {
-    const scale = Math.min(width/img.naturalWidth,height/img.naturalHeight);
-    ctx.drawImage(img,x+(width-img.naturalWidth*scale)/2,y+(height-img.naturalHeight*scale)/2,img.naturalWidth*scale,img.naturalHeight*scale);
-  };
-  const cardHeight=cardWidth*1.5, gold='#f4d982';
-  image(artwork,cardX,cardY,cardWidth,cardHeight);
-  const cardText=(value:string,x:number,y:number,size:number,maxWidth:number,align:CanvasTextAlign='center',condensed=true) => {
-    ctx.fillStyle=gold; ctx.textAlign=align; ctx.textBaseline='middle';
-    let fontSize=size;
-    const font=()=>`${condensed ? '' : '700 '}${fontSize}px ${condensed ? 'Impact,"Arial Narrow",Arial' : 'Arial'}`;
-    ctx.font=font();
-    while(ctx.measureText(value).width>maxWidth && fontSize>12) {fontSize--;ctx.font=font();}
-    ctx.fillText(value,cardX+x*cardWidth,cardY+y*cardHeight,maxWidth);
-    ctx.textBaseline='alphabetic';
-  };
-  const position=player.cardPosition || ({Goalkeeper:'GK',Defender:'DEF',Midfielder:'MID',Forward:'FWD'}[player.position || ''] ?? '');
-  cardText(String(player.ratings?.overall ?? ''),.25,.23,cardWidth*.22,cardWidth*.24);
-  cardText(position,.25,.335,cardWidth*.1,cardWidth*.24);
-  ctx.strokeStyle=gold; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.moveTo(cardX+cardWidth*.45,cardY+cardHeight*.08); ctx.lineTo(cardX+cardWidth*.55,cardY+cardHeight*.08); ctx.lineTo(cardX+cardWidth*.54,cardY+cardHeight*.135); ctx.lineTo(cardX+cardWidth*.5,cardY+cardHeight*.16); ctx.lineTo(cardX+cardWidth*.46,cardY+cardHeight*.135); ctx.closePath();ctx.stroke();
-  cardText('LH',.5,.115,cardWidth*.045,cardWidth*.09,'center',false);
-  if(photo) image(photo,cardX+cardWidth*.32,cardY+cardHeight*.19,cardWidth*.59,cardHeight*.43);
-  else if(avatar) image(avatar,cardX+cardWidth*.3554,cardY+cardHeight*.1771,cardWidth*.5192,cardHeight*.3784);
-  else {
-    // Even if the bundled avatar cannot load, the export retains a silhouette.
-    ctx.fillStyle=gold; ctx.beginPath();ctx.arc(cardX+cardWidth*.615,cardY+cardHeight*.32,cardWidth*.075,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(cardX+cardWidth*.615,cardY+cardHeight*.48,cardWidth*.14,cardHeight*.1,0,0,Math.PI*2);ctx.fill();
+export function drawPlayerProfile(ctx: CanvasRenderingContext2D, player: ResultPlayer, photo: HTMLImageElement | null, avatar: HTMLImageElement | null, x: number, y: number, width: number) {
+  const height = width * 1.5, photoHeight = height * .78;
+  ctx.save();
+  ctx.fillStyle = '#ffffff08';
+  ctx.beginPath(); ctx.roundRect(x,y,width,height,16); ctx.fill(); ctx.clip();
+  const image = photo || avatar;
+  if (image) {
+    const padding = photo ? 0 : width * .12;
+    const scale = Math.min((width-padding*2)/image.naturalWidth,(photoHeight-padding*2)/image.naturalHeight);
+    ctx.drawImage(image,x+(width-image.naturalWidth*scale)/2,y+(photoHeight-image.naturalHeight*scale)/2,image.naturalWidth*scale,image.naturalHeight*scale);
+  } else {
+    ctx.fillStyle = '#94a3b8';
+    ctx.beginPath(); ctx.arc(x+width*.5,y+photoHeight*.35,width*.1,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+width*.5,y+photoHeight*.65,width*.2,photoHeight*.18,0,0,Math.PI*2); ctx.fill();
   }
-  if(player.jerseyNumber!=null) cardText(`#${player.jerseyNumber}`,.23,.45,cardWidth*.06,cardWidth*.2,'center',false);
-  cardText(player.playerName.toUpperCase(),.5,.63,cardWidth*.1,cardWidth*.8);
-  ctx.strokeStyle='#dabd7070'; ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(cardX+cardWidth*.18,cardY+cardHeight*.69);ctx.lineTo(cardX+cardWidth*.82,cardY+cardHeight*.69);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cardX+cardWidth*.5,cardY+cardHeight*.723);ctx.lineTo(cardX+cardWidth*.5,cardY+cardHeight*.87);ctx.stroke();
-  const attributes=isGoalkeeper(player.cardPosition,player.position) ? GOALKEEPER_ATTRIBUTES : OUTFIELD_ATTRIBUTES;
-  attributes.forEach(([key,code],index)=>{
-    const left=index<3; const row=index%3; const x=left ? .245 : .57;
-    cardText(String(player.ratings?.attributes[key] ?? ''),x,.725+row*.055,cardWidth*.068,cardWidth*.075);
-    cardText(code,x+.045,.725+row*.055,cardWidth*.064,cardWidth*.135,'left');
-  });
-  ctx.beginPath();ctx.moveTo(cardX+cardWidth*.26,cardY+cardHeight*.89);ctx.lineTo(cardX+cardWidth*.74,cardY+cardHeight*.89);ctx.stroke();
-  cardText('LEAGUEHAMMER',.5,.91,cardWidth*.026,cardWidth*.48,'center',false);
+  const text = (value: string, baseline: number, size: number, color: string) => {
+    ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '700 ' + size + 'px Arial';
+    while (ctx.measureText(value).width > width*.9 && size > 12) { size--; ctx.font = '700 ' + size + 'px Arial'; }
+    ctx.fillText(value,x+width/2,baseline,width*.9);
+  };
+  text(player.playerName,y+height*.85,width*.07,'#f8f5ef');
+  const details = (player.position || 'Player') + (player.jerseyNumber == null ? '' : ' · #' + player.jerseyNumber);
+  text(details,y+height*.94,width*.045,'#b8c1c8');
+  ctx.restore();
 }

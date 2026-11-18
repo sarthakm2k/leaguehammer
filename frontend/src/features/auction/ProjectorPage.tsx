@@ -1,4 +1,4 @@
-import { FootballPlayerCard } from '../players/FootballPlayerCard';
+import { PlayerPortrait } from '../players/PlayerPortrait';
 import { LeagueHammerBrand } from '../../components/LeagueHammerBrand';
 import { useCallback, useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
@@ -15,8 +15,8 @@ import './projector.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
-function PlayerPortrait({ lot, revealing }: { lot: PublicAuctionLotDto; revealing: boolean }) {
-  return <div className="stage-portrait stage-card-wrap">{revealing ? <PlayerCardReveal key={lot.lotId} lotId={lot.lotId} /> : <FootballPlayerCard key={`${lot.playerId}:${lot.photoUrl}`} player={lot} />}</div>;
+function StagePortrait({ lot, revealing }: { lot: PublicAuctionLotDto; revealing: boolean }) {
+  return <div className="stage-portrait stage-photo-wrap">{revealing ? <PlayerCardReveal key={lot.lotId} lotId={lot.lotId} /> : <PlayerPortrait key={`${lot.playerId}:${lot.photoUrl}`} player={lot} />}</div>;
 }
 
 export function ProjectorPage() {
@@ -90,10 +90,10 @@ export function ProjectorPage() {
         <div className="stage-setline"><span><span className="stage-dot" />{state.isUnsoldRound ? state.currentSetName || 'Unsold round' : state.currentSetName || 'Auction stage'}</span><strong data-testid="stage-status">{state.sessionStatus === 'PAUSED' ? 'Auction paused' : state.sessionStatus === 'COMPLETED' ? 'Auction complete' : state.sessionStatus === 'READY' ? 'Starting soon' : 'Live from the floor'}</strong></div>
 
         {lot ? <article className="stage-spotlight" key={lot.lotId}>
-          <PlayerPortrait key={lot.lotId} lot={lot} revealing={reveal.revealing} />
+          <StagePortrait key={lot.lotId} lot={lot} revealing={reveal.revealing} />
           <div className="stage-player-info">
             {reveal.revealing ? <PlayerRevealMessage /> : <>
-            <div className="stage-player-meta"><span className="stage-position">{lot.position || 'Player'}</span><span>{lot.age != null ? `${lot.age} years` : ''}{lot.age != null && lot.preferredFoot ? ' / ' : ''}{lot.preferredFoot ? `${lot.preferredFoot} foot` : ''}</span></div>
+            <div className="stage-player-meta"><span className="stage-position">{lot.position || 'Player'}</span>{lot.jerseyNumber != null && <span>#{lot.jerseyNumber}</span>}<span>{lot.age != null ? `${lot.age} years` : ''}{lot.age != null && lot.preferredFoot ? ' / ' : ''}{lot.preferredFoot ? `${lot.preferredFoot} foot` : ''}</span></div>
             <p className="stage-eyebrow">{state.currentLot ? 'Now on the podium' : 'Latest result'}</p>
             <h2 data-testid="stage-player">{lot.playerName}</h2>
             <div className="stage-base"><span>Base price</span><strong>{money(lot.basePrice)}</strong></div>

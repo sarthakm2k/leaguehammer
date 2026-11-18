@@ -251,7 +251,7 @@
 .signing-photo .wrapped-portrait>span { position:static; font-size:32px; }
 .signing-photo-line { position:absolute; width:220%; height:1px; background:#ffffff0a; top:45%; left:-60%; transform:rotate(-40deg); }
 .signing-player-card { container-type:size; flex:1; min-height:0; position:relative; display:flex; align-items:center; justify-content:center; }
-.signing-player-card .football-player-card { width:min(92cqw,64cqh,300px); height:auto; aspect-ratio:2/3; }
+.signing-player-card .player-portrait { width:min(92cqw,64cqh,300px); height:auto; aspect-ratio:2/3; }
 .wrapped-team-cards { flex:1; min-height:0; display:flex; flex-direction:column; gap:14px; }
 .wrapped-card-team-header { display:flex; align-items:center; gap:12px; flex-shrink:0; }
 .wrapped-card-team-header .wrapped-portrait { width:46px; height:46px; border:1px solid #ffffff25; }
@@ -263,8 +263,8 @@
 .wrapped-squad-card-grid:is([data-card-count="1"],[data-card-count="2"]) { grid-template-rows:minmax(0,1fr); }
 .wrapped-squad-card-grid[data-card-count="1"] { grid-template-columns:minmax(0,1fr); }
 .wrapped-squad-card { container-type:size; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; border-radius:12px; text-decoration:none; }
-.wrapped-squad-card .football-player-card { width:min(94cqw,calc(64cqh - 18px),220px); height:auto; aspect-ratio:2/3; }
-.wrapped-squad-card-grid[data-card-count="1"] .football-player-card { max-width:270px; }
+.wrapped-squad-card .player-portrait { width:min(94cqw,calc(64cqh - 18px),220px); height:auto; aspect-ratio:2/3; }
+.wrapped-squad-card-grid[data-card-count="1"] .player-portrait { max-width:270px; }
 .wrapped-squad-card-price { color:var(--wrapped-accent); font-size:12px; font-weight:850; line-height:18px; }
 .wrapped-card-team-caption { flex-shrink:0; margin:0; font-size:9px; line-height:1.4; text-align:center; color:var(--wrapped-muted); }
 @media(max-height:650px) { .wrapped-team-cards { gap:8px; } .wrapped-card-team-header h2 { font-size:20px; } .wrapped-card-team-header .wrapped-portrait { width:34px; height:34px; } .wrapped-squad-card-grid { gap:8px; } .wrapped-card-team-caption { font-size:8px; } }
@@ -282,4 +282,4 @@
 @media(max-height:700px) { .wrapped-signing-slide { padding:8px 14px; gap:8px; } .signing-poster { gap:8px; padding:14px; } .signing-announcement h2 { font-size:49px; } .signing-contract { padding:9px 0; } .signing-identity h3 { font-size:26px; } }
 @media(max-height:600px) { .signing-poster { gap:6px; padding:10px 12px; } .signing-announcement h2 { font-size:43px; } .signing-announcement p { font-size:7px; } .signing-photo { min-height:75px; } .signing-club .wrapped-portrait { width:28px; height:28px; } .signing-club strong { font-size:11px; } .signing-contract { padding:7px 0; } .signing-value b { font-size:22px; } .signing-identity h3 { font-size:23px; } .signing-footer { font-size:5px; } }
 
-@media(max-height:650px){.wrapped-team-cards{gap:6px}.wrapped-squad-card .football-player-card{width:min(94cqw,calc(64cqh - 14px),220px)}}
+@media(max-height:650px){.wrapped-team-cards{gap:6px}.wrapped-squad-card .player-portrait{width:min(94cqw,calc(64cqh - 14px),220px)}}

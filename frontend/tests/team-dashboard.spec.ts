@@ -39,20 +39,13 @@ async function mock(page: Page, data: ReturnType<typeof fixture>) {
   });
   return (event?: string, args?: unknown[]) => notify(event,args);
 }
-async function expectCardStatsToFit(page: Page) {
-  const card=page.locator('.football-player-card');
-  const stats=await card.locator('.football-card-attributes').boundingBox();
-  const footer=await card.locator('.football-card-signature').boundingBox();
-  expect(stats!.y+stats!.height).toBeLessThan(footer!.y);
-  for(const row of await card.locator('.football-card-attributes>div').all()) {
-    const rowBox=await row.boundingBox();
-    for(const text of await row.locator('dt,dd').all()) {
-      const box=await text.boundingBox();
-      expect(box!.y).toBeGreaterThanOrEqual(rowBox!.y-1);
-      expect(box!.y+box!.height).toBeLessThanOrEqual(rowBox!.y+rowBox!.height+1);
-      expect(box!.x+box!.width).toBeLessThanOrEqual(rowBox!.x+rowBox!.width+1);
-    }
-  }
+async function expectPortraitToFit(page: Page) {
+  const portrait = page.locator('.player-portrait');
+  const bounds = await portrait.boundingBox();
+  const photo = await portrait.locator('img').boundingBox();
+  expect(photo!.width).toBeLessThanOrEqual(bounds!.width + 1);
+  expect(photo!.height).toBeLessThanOrEqual(bounds!.height + 1);
+  await expect(page.getByLabel(/Overall 91|Physical 94/)).toHaveCount(0);
 }
 test('franchise dashboard explains finances, slots, signings, remaining sets and live updates', async ({ page }) => {
   const data = fixture(); const notify = await mock(page, data);
@@ -107,10 +100,8 @@ test('projector fits laptop viewports with the player, progress and ticker visib
       const box = await page.locator(selector).boundingBox();
       expect(box!.y + box!.height).toBeLessThanOrEqual(size.height + 1);
     }
-    await expect(page.locator('.stage-portrait .football-card-photo img')).toHaveCSS('object-fit', 'contain');
-    await expect(page.getByLabel('Overall 91')).toHaveText('91');
-    await expect(page.getByLabel('Physical 94')).toBeVisible();
-    await expectCardStatsToFit(page);
+    await expect(page.locator('.stage-portrait .player-portrait-photo img')).toHaveCSS('object-fit', 'contain');
+    await expectPortraitToFit(page);
     expect(await page.locator('.stage-team-list').evaluate(node => node.scrollHeight <= node.clientHeight + 1)).toBe(true);
     for (const card of await page.locator('.stage-team').all()) {
       const box = await card.boundingBox();
@@ -144,12 +135,12 @@ test('projector fits laptop viewports with the player, progress and ticker visib
   expect(sold!.y + sold!.height).toBeLessThanOrEqual(progress!.y);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await expectCardStatsToFit(page);
-  await page.locator('.football-player-card').screenshot({path:'../.cache/player-card-detail.png'});
+  await expectPortraitToFit(page);
+  await page.locator('.player-portrait').screenshot({path:'../.cache/player-card-detail.png'});
   await page.screenshot({path:'../.cache/projector-card-mobile.png',fullPage:true});
   for(const width of [150,180,300]) {
-    await page.locator('.football-player-card').evaluate((node,size)=>{const element=node as HTMLElement; element.style.width=`${size}px`;},width);
-    await expectCardStatsToFit(page);
+    await page.locator('.player-portrait').evaluate((node,size)=>{const element=node as HTMLElement; element.style.width=`${size}px`;},width);
+    await expectPortraitToFit(page);
   }
 });
 

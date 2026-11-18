@@ -24,7 +24,7 @@ public class RegistrationPhotoStorage(HttpClient http, IConfiguration config) : 
     public bool Available => Uri.TryCreate(Url, UriKind.Absolute, out var uri) && uri.Scheme == "https" && Key.Length > 0;
     private async Task<HttpResponseMessage> Send(HttpMethod method, string path, HttpContent? content = null, bool upsert = false)
     {
-        if (!Available) throw new InvalidOperationException("Photo storage is not configured. Submit without a photo or contact the organiser.");
+        if (!Available) throw new InvalidOperationException("Photo storage is not configured. Please contact the organiser.");
         using var request = new HttpRequestMessage(method, $"{Url}/storage/v1/{path}") { Content = content };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Key);
         request.Headers.Add("apikey", Key);

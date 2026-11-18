@@ -17,7 +17,7 @@
   .console-lot-meta span { font-size: 10px; }
   .console-player-spotlight { min-height: 0; padding: 0; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
   .console-player-spotlight>div { width: 100%; min-width: 0; }
-  .console-player-spotlight .football-player-card { width: min(100%,25dvh,240px); }
+  .console-player-spotlight .player-portrait { width: min(100%,25dvh,240px); }
   .console-player-spotlight>div:last-child { display: flex; flex-direction: column; gap: 10px; }
   .console-player-spotlight h2 { font-size: clamp(22px,2vw,34px); line-height: 1.1; overflow-wrap: anywhere; }
   .console-player-spotlight>div:last-child>div:last-child { padding: 10px; flex-wrap: wrap; gap: 4px; }
@@ -64,7 +64,7 @@
   .console-active-lot { padding: 12px; gap: 8px; }
   .console-lot-meta { padding-bottom: 6px; }
   .console-player-spotlight { gap: 6px; }
-  .console-player-spotlight .football-player-card { width: min(100%,21dvh,180px); }
+  .console-player-spotlight .player-portrait { width: min(100%,21dvh,180px); }
   .console-player-spotlight h2 { font-size: 22px; }
   .console-player-spotlight>div:last-child { gap: 6px; }
   .console-player-spotlight>div:last-child>div:last-child { padding: 7px; }

@@ -95,7 +95,9 @@ function RegistrationFormPage({ slug }: { slug: string }) {
     try {
       if (draft.pending && await checkReceipt()) return;
       if (!open) throw new Error('Registrations are closed. A previous submission can still be checked using its reference.');
+      if (!form?.photoUploadAvailable) throw new Error('Photo uploads are unavailable. A player photo is required to register. Please contact the organiser.');
       if (draft.hadPhoto && !photo) throw new Error('Please select your photo again. Browsers cannot restore a file selection after a refresh.');
+      if (!photo) throw new Error('Please add a player photo to register.');
       if (!consent) throw new Error('Please confirm consent to register.');
       const pending = { ...draft, pending: true, hadPhoto: !!photo || draft.hadPhoto };
       setDraft(pending);
@@ -125,16 +127,16 @@ function RegistrationFormPage({ slug }: { slug: string }) {
           {form && !open && <p className="registration-alert" role="status">{form.status === 'SCHEDULED' && form.opensAtUtc && serverNow < Date.parse(form.opensAtUtc) ? `Registration opens ${date(form.opensAtUtc)}.` : 'Registration is closed.'}</p>}
           {(open || draft.pending) && <form onSubmit={submit}>
             <PlayerFields value={draft.details} onChange={details => setDraft(v => ({ ...v, details }))} disabled={busy || draft.pending} />
-            <label className="registration-photo">Player photo (optional)<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy || !form?.photoUploadAvailable} onChange={e => {
+            <label className="registration-photo">Player photo (required)<input key={draft.submissionId} type="file" required={!draft.pending} accept="image/jpeg,image/png,image/webp" disabled={busy || !form?.photoUploadAvailable} onChange={e => {
               const file = e.target.files?.[0] || null;
-              if (file && (file.size > 3 * 1024 * 1024 || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type))) { setError('Choose a JPEG, PNG or WebP photo up to 3 MB.'); e.target.value = ''; return; }
+              if (file && (file.size === 0 || file.size > 3 * 1024 * 1024 || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type))) { setPhoto(null); setError('Choose a JPEG, PNG or WebP photo up to 3 MB.'); e.target.value = ''; return; }
               setPhoto(file); setDraft(v => ({ ...v, hadPhoto: !!file })); setError('');
-            }} /><small>{form?.photoUploadAvailable ? 'JPEG, PNG or WebP · Up to 3 MB. Pending photos are private.' : 'Photo uploads are not available yet. You can still register.'}</small>{photoPreview && <img src={photoPreview} alt="Selected player photo" />}</label>
+            }} /><small>{form?.photoUploadAvailable ? 'Required · JPEG, PNG or WebP · Up to 3 MB. Pending photos are private.' : 'Photo uploads are unavailable. A player photo is required to register. Please contact the organiser.'}</small>{photoPreview && <img src={photoPreview} alt="Selected player photo" />}</label>
             <label className="registration-honeypot" aria-hidden="true">Website<input value={website} onChange={e => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off" /></label>
             <label className="registration-consent"><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} disabled={busy} /><span>I confirm these details are accurate and consent to organiser review and publication of my approved player profile and photo. Contact details remain private.</span></label>
             {draft.pending && <p className="registration-muted">A submission is awaiting confirmation. Your details are locked to keep retries consistent. Reference: <code>LH-{draft.submissionId.replaceAll('-', '')}</code></p>}
             {error && <p className="registration-error" role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
-            <button className="registration-primary" disabled={busy || connecting} type="submit">{busy ? 'Confirming registration…' : draft.pending ? 'Check & retry submission' : 'Submit registration'}</button>
+            <button className="registration-primary" disabled={busy || connecting || (!form?.photoUploadAvailable && !draft.pending)} type="submit">{busy ? 'Confirming registration…' : draft.pending ? 'Check & retry submission' : 'Submit registration'}</button>
             {!draft.pending && <button type="button" className="registration-quiet" disabled={busy} onClick={startFreshDraft}>Clear draft</button>}
             <p className="registration-muted registration-draft-note">Your draft is saved in this browser until submission. Clear it when using a shared device. Keep this page open during a submission.</p>
           </form>}

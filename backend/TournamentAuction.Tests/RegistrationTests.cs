@@ -17,7 +17,7 @@ public class RegistrationTests
     }
     private sealed class Photos : IRegistrationPhotoStorage
     {
-        public bool Available => true;
+        public bool Available { get; set; } = true;
         public int Uploads, Publications;
         public bool Fail;
         public Task<string> UploadAsync(Guid t, Guid r, IFormFile photo) { Uploads++; if (Fail) throw new HttpRequestException("Storage unavailable"); return Task.FromResult($"{t}/{r}.png"); }
@@ -37,9 +37,48 @@ public class RegistrationTests
         await service.UpdateSettingsAsync(t.Id, user.Id, new(true, clock.Current.UtcDateTime.AddHours(-1), clock.Current.UtcDateTime.AddHours(1), false, "Bring your game."));
         return (db, service, clock, photos, t, set);
     }
-    private static RegistrationSubmissionRequest Submission(Guid? id = null) => new() { SubmissionId = id ?? Guid.NewGuid(), Name = "Arjun Nair", Phone = "+91 98765 43210", Position = "Forward", Age = 24, Consent = true };
+    private static RegistrationSubmissionRequest Submission(Guid? id = null) => new() { SubmissionId = id ?? Guid.NewGuid(), Name = "Arjun Nair", Phone = "+91 98765 43210", Position = "Forward", Age = 24, Consent = true,
+        Photo = new FormFile(new MemoryStream([137,80,78,71,13,10,26,10]), 0, 8, "photo", "player.png") { Headers = new HeaderDictionary(), ContentType = "image/png" } };
     private static RegistrationReviewRequest Review(PlayerSet set, bool approve = true, bool duplicate = false, long price = 500) =>
         new(approve, "Arjun Reviewed", "+91 98765 43210", "player@example.test", 24, "Forward", "Right", 10, "Malabar FC", "Fast winger", set.Id, price, approve ? null : "Not eligible", duplicate);
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task NewSubmissionsRequireANonemptyPhoto(bool emptyFile)
+    {
+        var (db, service, _, photos, t, _) = await Fixture();
+        var request = Submission();
+        request.Photo = emptyFile ? new FormFile(new MemoryStream(), 0, 0, "photo", "player.png") : null;
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => service.SubmitAsync(t.Slug, request));
+        Assert.Contains("Please add a player photo", error.Message);
+        Assert.Empty(db.PlayerRegistrations);
+        Assert.Equal(0, photos.Uploads);
+    }
+    [Fact]
+    public async Task UnavailableStorageBlocksNewSubmissionsButNotReceiptRecovery()
+    {
+        var (db, service, _, photos, t, _) = await Fixture();
+        var request = Submission(); photos.Available = false;
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.SubmitAsync(t.Slug, request));
+        Assert.Empty(db.PlayerRegistrations); Assert.Equal(0, photos.Uploads);
+        photos.Available = true;
+        var receipt = await service.SubmitAsync(t.Slug, request);
+        photos.Available = false; request.Photo = null;
+        Assert.Equal(receipt, await service.SubmitAsync(t.Slug, request));
+        Assert.Single(db.PlayerRegistrations); Assert.Equal(1, photos.Uploads);
+    }
+    [Fact]
+    public async Task FailedPhotoUploadDoesNotSaveSubmissionAndCanBeRetried()
+    {
+        var (db, service, _, photos, t, _) = await Fixture();
+        var request = Submission(); photos.Fail = true;
+        await Assert.ThrowsAsync<HttpRequestException>(() => service.SubmitAsync(t.Slug, request));
+        Assert.Empty(db.PlayerRegistrations);
+        photos.Fail = false;
+        await service.SubmitAsync(t.Slug, request);
+        Assert.NotNull(Assert.Single(db.PlayerRegistrations).PhotoPath);
+    }
 
     [Fact]
     public async Task Submission_StaysPending_AndRetryAfterDeadlineReturnsSameReceipt()
@@ -49,6 +88,7 @@ public class RegistrationTests
         var first = await service.SubmitAsync(t.Slug, request);
         Assert.Equal("LW",(await service.ListAsync(t.Id,t.OwnerUserId)).Single().CardPosition);
         clock.Current = clock.Current.AddHours(2);
+        request.Photo = null; // Receipt recovery never needs the original file to be uploaded again.
         var again = await service.SubmitAsync(t.Slug, request);
         Assert.Equal(first, again);
         Assert.Single(db.PlayerRegistrations);
@@ -203,7 +243,7 @@ public class RegistrationTests
         await service.ReviewAsync(t.Id, request.SubmissionId, t.OwnerUserId, Review(set, false));
         await service.FinalizeAsync(t.Id, t.OwnerUserId);
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdatePhotoAsync(t.Id, request.SubmissionId, t.OwnerUserId, file));
-        Assert.Equal(0, photos.Uploads);
+        Assert.Equal(1, photos.Uploads);
     }
     [Fact]
     public async Task CrossTournamentPhotoUpdateCannotTouchAnotherSubmission()
@@ -211,6 +251,6 @@ public class RegistrationTests
         var (db, service, _, photos, t, _) = await Fixture();var request=Submission();await service.SubmitAsync(t.Slug,request);
         var other=new Tournament { OwnerUserId=t.OwnerUserId };db.Tournaments.Add(other);await db.SaveChangesAsync();
         await Assert.ThrowsAsync<KeyNotFoundException>(()=>service.UpdatePhotoAsync(other.Id,request.SubmissionId,t.OwnerUserId,new FormFile(new MemoryStream([1]),0,1,"photo","photo.png")));
-        Assert.Equal(0,photos.Uploads);
+        Assert.Equal(1,photos.Uploads);
     }
 }

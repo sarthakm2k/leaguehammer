@@ -34,7 +34,7 @@ test('four-second live reveals conceal identities, do not replay, and yield to a
   try {
     const events=await Promise.all([connect(stage,data,'/live/reveal/projector'),connect(live,data,'/live/reveal')]);
     for(const page of pages) {
-      await expect(page.getByRole('article',{name:'First Signing player card'})).toBeVisible();
+      await expect(page.getByRole('article',{name:'First Signing player profile'})).toBeVisible();
       await expect(page.getByTestId('auction-player-reveal')).toHaveCount(0);
     }
     // Playwright's clock is shared by all pages in this browser context.
@@ -48,7 +48,7 @@ test('four-second live reveals conceal identities, do not replay, and yield to a
     for(const page of pages) {
       await expect(page.getByTestId('auction-player-reveal')).toBeVisible();
       await expect(page.locator('.auction-card-spinner')).toHaveCSS('animation-duration','4s');
-      await expect(page.getByRole('article',{name:'Surprise Signing player card'})).toHaveCount(0);
+      await expect(page.getByRole('article',{name:'Surprise Signing player profile'})).toHaveCount(0);
     }
     await expect(stage.getByTestId('stage-player')).toHaveCount(0);
     await expect(live.getByTestId('portal-current-player')).toHaveCount(0);
@@ -58,14 +58,14 @@ test('four-second live reveals conceal identities, do not replay, and yield to a
     await stage.clock.runFor(600);
     for(const page of pages) {
       await expect(page.getByTestId('auction-player-reveal')).toHaveCount(0);
-      await expect(page.getByRole('article',{name:'Surprise Signing player card'})).toBeVisible();
+      await expect(page.getByRole('article',{name:'Surprise Signing player profile'})).toBeVisible();
     }
     next('lot-three','Opening Bid Signing');
     for(const page of pages) await expect(page.getByTestId('auction-player-reveal')).toBeVisible();
     data.state.currentLot!.currentBid=750; notify('BidUpdated',[750,null]);
     for(const page of pages) {
       await expect(page.getByTestId('auction-player-reveal')).toHaveCount(0);
-      await expect(page.getByRole('article',{name:'Opening Bid Signing player card'})).toBeVisible();
+      await expect(page.getByRole('article',{name:'Opening Bid Signing player profile'})).toBeVisible();
     }
     for(const status of ['SOLD','UNSOLD']) {
       next(`lot-${status}`,`${status} Signing`);
@@ -74,7 +74,7 @@ test('four-second live reveals conceal identities, do not replay, and yield to a
       notify(status==='SOLD' ? 'PlayerSold' : 'PlayerUnsold',[data.state.lastResult]);
       for(const page of pages) {
         await expect(page.getByTestId('auction-player-reveal')).toHaveCount(0);
-        await expect(page.getByRole('article',{name:`${status} Signing player card`})).toBeVisible();
+        await expect(page.getByRole('article',{name:`${status} Signing player profile`})).toBeVisible();
       }
     }
     next('lot-older','Older Signing');
@@ -82,12 +82,12 @@ test('four-second live reveals conceal identities, do not replay, and yield to a
     next('lot-latest','Latest Signing');
     for(const page of pages) await expect(page.getByTestId('auction-player-reveal')).toHaveAttribute('data-lot-id','lot-latest');
     await stage.clock.runFor(4100);
-    for(const page of pages) await expect(page.getByRole('article',{name:'Latest Signing player card'})).toBeVisible();
+    for(const page of pages) await expect(page.getByRole('article',{name:'Latest Signing player profile'})).toBeVisible();
     await stage.clock.resume();
     // A reload gets the current state directly, without a live reveal event.
     await live.reload(); await expect(live.getByText('Live connection',{exact:true})).toBeVisible();
     await expect(live.getByTestId('auction-player-reveal')).toHaveCount(0);
-    await expect(live.getByRole('article',{name:'Latest Signing player card'})).toBeVisible();
+    await expect(live.getByRole('article',{name:'Latest Signing player profile'})).toBeVisible();
     await stage.evaluate(()=>window.dispatchEvent(new Event('offline')));
     await expect(stage.getByText('Connection lost · Reconnecting…',{exact:true})).toBeVisible();
     await stage.evaluate(()=>window.dispatchEvent(new Event('online')));
@@ -108,7 +108,7 @@ test('a mobile reveal animates and finishes after four real seconds',async({page
   await expect.poll(()=>spinner.evaluate(node=>getComputedStyle(node).transform)).not.toBe(transform);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:'../.cache/player-pack-reveal-mobile.png',animations:'disabled'});
-  await expect(page.getByRole('article',{name:'New Star Signing player card'})).toBeVisible({timeout:6000});
+  await expect(page.getByRole('article',{name:'New Star Signing player profile'})).toBeVisible({timeout:6000});
   expect(Date.now()-started).toBeGreaterThan(3500);
   expect(Date.now()-started).toBeLessThan(6500);
 });
@@ -118,13 +118,13 @@ test('reduced motion skips the pack opening and a preference change interrupts i
   const emit=await connect(page,data,'/live/reveal/projector');
   data.state.currentLot={...data.lot,lotId:'reduced',playerName:'Reduced Motion Signing'};
   emit('PlayerRevealed',[data.state.currentLot]);
-  await expect(page.getByRole('article',{name:'Reduced Motion Signing player card'})).toBeVisible();
+  await expect(page.getByRole('article',{name:'Reduced Motion Signing player profile'})).toBeVisible();
   await expect(page.getByTestId('auction-player-reveal')).toHaveCount(0);
   await page.emulateMedia({reducedMotion:'no-preference'});
   data.state.currentLot={...data.lot,lotId:'animated',playerName:'Animated Signing'};
   emit('PlayerRevealed',[data.state.currentLot]);
   await expect(page.getByTestId('auction-player-reveal')).toBeVisible();
   await page.emulateMedia({reducedMotion:'reduce'});
-  await expect(page.getByRole('article',{name:'Animated Signing player card'})).toBeVisible();
+  await expect(page.getByRole('article',{name:'Animated Signing player profile'})).toBeVisible();
   await expect(page.getByTestId('auction-player-reveal')).toHaveCount(0);
 });

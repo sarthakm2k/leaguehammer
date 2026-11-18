@@ -1,5 +1,3 @@
-import { PlayerRatingsEditor } from '../players/PlayerRatingsEditor';
-import type { RatingValues } from '../players/playerCardTypes';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Copy, ExternalLink, RefreshCw, UserRoundCheck, Upload, Trash2 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
@@ -32,7 +30,6 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
   const [photoInputKey, setPhotoInputKey] = useState(0);
   const photoVersion = useRef(0);
   const reviewPanel = useRef<HTMLElement>(null);
-  const [ratings, setRatings] = useState<RatingValues>({});
   const [details, setDetails] = useState<PlayerDetails | null>(null);
   const [setId, setSetId] = useState(''); const [price, setPrice] = useState('');
   const [reason, setReason] = useState(''); const [duplicateConfirmed, setDuplicateConfirmed] = useState(false);
@@ -68,8 +65,7 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
   const startReview = (r: RegistrationEntry) => {
     const version = ++photoVersion.current; setPhotoFile(null); setPhotoInputKey(key => key + 1);
     setReview(r); setDetails({ name: r.name, phone: r.phone, email: r.email || '', age: r.age?.toString() || '', position: r.position,
-      preferredFoot: r.preferredFoot || '', cardPosition: r.cardPosition || '' });
-    setRatings({});
+      preferredFoot: r.preferredFoot || '' });
     setSetId(''); setPrice(''); setReason(''); setDuplicateConfirmed(false); setError('');
     if (r.hasPhoto) void request<{ photoUrl: string }>(`/registrations/${r.id}/photo`).then(value => {
       if (photoVersion.current !== version) return;
@@ -93,7 +89,7 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
   };
   const decide = (approve: boolean) => void action(async () => {
     if (!review || !details) return;
-    await request(`/registrations/${review.id}/review`, 'POST', { ...details, approve, cardPosition: details.cardPosition, ratings,
+    await request(`/registrations/${review.id}/review`, 'POST', { ...details, approve,
       email: details.email || null, age: details.age ? Number(details.age) : null,
       jerseyNumber: review.jerseyNumber, previousTeam: review.previousTeam, shortBio: review.shortBio,
       playerSetId: setId || null, basePrice: price ? Number(price) : null, reason: reason || null, duplicateConfirmed,
@@ -125,7 +121,7 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
         <button type="submit" className="registration-primary">Save registration settings</button>
       </fieldset></form>
       {form && <div className="registration-share"><span className="registration-status">{form.status}</span><input aria-label="Player registration link" readOnly value={link} /><button type="button" onClick={() => void navigator.clipboard.writeText(link).then(() => setNotice('Registration link copied.')).catch(() => setError('Select and copy the registration link.'))}><Copy size={16} />Copy link</button><a href={link} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} />Open form</a></div>}
-      <p className="registration-muted">Manual entry and CSV import remain available in Player Registry. Submissions do not enter the auction until approved. Photos are optional{form && !form.photoUploadAvailable ? '; storage has not been configured yet' : ''}.</p>
+      <p className="registration-muted">Manual entry and CSV import remain available in Player Registry. Submissions do not enter the auction until approved. A photo is required for new registrations{form && !form.photoUploadAvailable ? '; configure photo storage before players can submit' : ''}.</p>
     </section>
     <section className="registration-card"><div className="registration-admin-heading"><div><h3>Review queue</h3><p>{entries.filter(r => r.status === 'PENDING').length} pending · {entries.filter(r => r.status === 'APPROVED').length} approved · {entries.filter(r => r.status === 'REJECTED').length} rejected</p></div><button type="button" disabled={busy || locked || !form || entries.some(r => r.status === 'PENDING')} onClick={() => {
         if (window.confirm('Finalize registration? This closes the form and locks further review. Manual player entry remains available while the tournament is in draft.')) void action(async () => { applyForm(await request<RegistrationForm>('/registrations/finalize', 'POST')); setNotice('Registration finalized. You can now run the preflight checklist.'); });
@@ -144,7 +140,7 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
           setPhotoFile(file);
         }} /></label><p className="registration-muted">JPEG, PNG or WebP, up to 3 MB.</p><div className="registration-actions"><button type="button" disabled={busy || locked || !photoFile || !form?.photoUploadAvailable} onClick={() => changePhoto()}><Upload size={16} />{review.hasPhoto ? 'Replace registration photo' : 'Upload registration photo'}</button>{review.hasPhoto && <button type="button" disabled={busy || locked} onClick={() => changePhoto(true)}><Trash2 size={16} />Remove registration photo</button>}</div>
       </div>
-      <form onSubmit={e => { e.preventDefault(); decide(true); }}><PlayerFields value={details} onChange={setDetails} disabled={busy || locked} /><PlayerRatingsEditor value={ratings} onChange={setRatings} name={details.name} position={details.position} cardPosition={details.cardPosition} photoUrl={review.photoUrl || undefined} disabled={busy || locked} />
+      <form onSubmit={e => { e.preventDefault(); decide(true); }}><PlayerFields value={details} onChange={setDetails} disabled={busy || locked} />
         <div className="registration-fields"><label>Auction player set<select value={setId} onChange={e => setSetId(e.target.value)} required><option value="">Select a set</option>{sets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label><label>Base price<input aria-label="Base price" type="number" min={10} max={1000000000} value={price} onChange={e => setPrice(e.target.value)} list="registration-tiers" required /><datalist id="registration-tiers">{tiers.map(t => <option value={t.amount} key={t.id}>{t.label}</option>)}</datalist></label><label className="registration-wide">Review note / rejection reason<textarea rows={2} maxLength={1000} value={reason} onChange={e => setReason(e.target.value)} /></label></div>
         {(review.possibleDuplicate || error.startsWith('Possible duplicate')) && <label className="registration-consent registration-duplicate"><input type="checkbox" checked={duplicateConfirmed} onChange={e => setDuplicateConfirmed(e.target.checked)} /><span>I checked the possible duplicate and want to approve this player.</span></label>}
         {error && <p className="registration-error" role="alert">{error}</p>}

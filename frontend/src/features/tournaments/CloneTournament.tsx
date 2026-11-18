@@ -51,7 +51,7 @@ export function CloneTournament({ id, name }: { id: string; name: string }) {
       <form onSubmit={clone} className="space-y-5 p-5 sm:p-6">
         <CopyPlus className="h-8 w-8 text-emerald-400" />
         <h2 id="clone-dialog-title" className="text-xl font-bold text-white">Clone tournament</h2>
-        <p className="text-sm leading-relaxed text-slate-400">Copy the setup for a practice run. Bids, sold results, history and registration submissions are left behind. Player photos, card ratings and team logos are retained.</p>
+        <p className="text-sm leading-relaxed text-slate-400">Copy the setup for a practice run. Bids, sold results, history and registration submissions are left behind. Player photos and team logos are retained.</p>
         <div className="space-y-2">
           <label htmlFor="clone-tournament-name" className="block text-sm text-slate-300">New tournament name</label>
           <input id="clone-tournament-name" required minLength={3} maxLength={200} value={cloneName} disabled={cloning} onChange={event => setCloneName(event.target.value)} className="w-full rounded-xl border border-slate-700 bg-[#101219] px-3 py-2.5 text-sm text-white focus:border-emerald-400 focus:outline-none" />
