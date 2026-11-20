@@ -178,6 +178,53 @@ public class RegistrationService(TournamentAuctionDbContext db, IPlayerService p
         if (tx != null) await tx.CommitAsync();
         return Receipt(r);
     }
+    public Task<RegistrationReceipt> UndoApprovalAsync(Guid id, Guid submissionId, Guid user, RegistrationApprovalChangeRequest request)
+        => ChangeApprovalAsync(id, submissionId, user, request, false);
+
+    public Task<RegistrationReceipt> RejectApprovedAsync(Guid id, Guid submissionId, Guid user, RegistrationApprovalChangeRequest request)
+        => ChangeApprovalAsync(id, submissionId, user, request, true);
+
+    private async Task<RegistrationReceipt> ChangeApprovalAsync(Guid id, Guid submissionId, Guid user,
+        RegistrationApprovalChangeRequest request, bool reject)
+    {
+        await Tournament(id, user);
+        await using var tx = await Lock(id);
+        var tournament = await db.Tournaments.AsNoTracking().SingleAsync(t => t.Id == id);
+        var form = await db.RegistrationForms.FindAsync(id);
+        if (tournament.Status != TournamentStatus.DRAFT || form?.FinalizedAtUtc != null)
+            throw new InvalidOperationException("Registration review is locked.");
+        var registration = await db.PlayerRegistrations.SingleOrDefaultAsync(r => r.Id == submissionId && r.TournamentId == id)
+            ?? throw new KeyNotFoundException("Registration not found.");
+        if (registration.Status != "APPROVED")
+            throw new InvalidOperationException("Only approved registrations can use this action. Refresh the registration list.");
+        if (registration.PlayerId != request.PlayerId)
+            throw new InvalidOperationException("This approval has changed. Refresh the registration list before trying again.");
+        var reason = Clean(request.Reason);
+        if (reject && (reason == null || reason.Length > 1000))
+            throw new ArgumentException("Provide a rejection reason of up to 1000 characters.");
+
+        Player? player = null;
+        if (registration.PlayerId is { } playerId)
+        {
+            player = await db.Players.SingleOrDefaultAsync(p => p.Id == playerId && p.TournamentId == id)
+                ?? throw new InvalidOperationException("The linked player could not be found. Refresh the registration list.");
+            if (player.Status != "AVAILABLE" || await db.AuctionLots.AnyAsync(l => l.PlayerId == playerId))
+                throw new InvalidOperationException("This player has already entered an auction. Their approval cannot be changed.");
+        }
+
+        // Preserve the submission and its private photo; remove only the linked auction player.
+        // A single save inside the tournament lock keeps both records consistent with finalization/preflight.
+        registration.PlayerId = null;
+        registration.Status = reject ? "REJECTED" : "PENDING";
+        registration.ReviewReason = reject ? reason : null;
+        registration.ReviewedByUserId = reject ? user : null;
+        registration.ReviewedAtUtc = reject ? Now : null;
+        if (player != null) db.Players.Remove(player);
+        await db.SaveChangesAsync();
+        if (tx != null) await tx.CommitAsync();
+        return Receipt(registration);
+    }
+
     public async Task<RegistrationFormDto> FinalizeAsync(Guid id, Guid user)
     {
         await Tournament(id, user);

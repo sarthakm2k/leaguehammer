@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Copy, ExternalLink, RefreshCw, UserRoundCheck, Upload, Trash2 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { PlayerFields } from './PlayerFields';
+import { RegistrationApprovalDialog } from './RegistrationApprovalDialog';
 import { registrationRequest } from './registrationApi';
 import type { PlayerDetails, RegistrationEntry, RegistrationForm } from './registrationApi';
 import './registration.css';
@@ -26,6 +27,7 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
   const [error, setError] = useState(''); const [notice, setNotice] = useState(''); const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState('PENDING'); const [search, setSearch] = useState('');
   const [review, setReview] = useState<RegistrationEntry | null>(null);
+  const [approvalChange, setApprovalChange] = useState<{entry:RegistrationEntry;reject:boolean} | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoInputKey, setPhotoInputKey] = useState(0);
   const photoVersion = useRef(0);
@@ -96,6 +98,17 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
     });
     setReview(null); setDetails(null); await load(); setNotice(approve ? 'Player approved and added to the registry.' : 'Submission rejected.');
   });
+  const changeApproval = (rejectionReason:string) => {
+    if (!approvalChange || busy || locked) return;
+    const {entry,reject} = approvalChange;
+    void action(async () => {
+      await request(`/registrations/${entry.id}/${reject ? 'reject-approved' : 'undo-approval'}`, 'POST', {playerId:entry.playerId,reason:reject ? rejectionReason : null});
+      if (review?.id === entry.id) {++photoVersion.current;setReview(null);setDetails(null);}
+      setApprovalChange(null);setFilter(reject ? 'REJECTED' : 'PENDING');
+      await load();
+      setNotice(reject ? 'Registration rejected and player removed from Player Registry.' : 'Approval undone. The registration is pending review and the player was removed from Player Registry.');
+    });
+  };
   const visible = entries.filter(r => (!filter || r.status === filter) && `${r.name} ${r.phone} ${r.email || ''}`.toLowerCase().includes(search.toLowerCase()));
   const copyPlayerDetails = async () => {
     setCopying(true); setCopyFallback(null); setNotice('');
@@ -129,7 +142,7 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
       <div className="registration-actions"><button type="button" onClick={() => void copyPlayerDetails()} disabled={busy || copying || entries.length === 0}><Copy size={16} />{copying ? 'Copying…' : 'Copy player details'}</button><p className="registration-muted">Copies all {entries.length} registrations: name, position and phone only.</p></div>
       {copyFallback !== null && <label className="registration-copy-details">Player details to copy<textarea autoFocus readOnly rows={6} value={copyFallback} onFocus={event => event.target.select()} /></label>}
       <div className="registration-fields"><label>Submission status<select value={filter} onChange={e => setFilter(e.target.value)}><option value="">All submissions</option>{['PENDING', 'APPROVED', 'REJECTED'].map(s => <option key={s}>{s}</option>)}</select></label><label>Search submissions<input type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Name, phone or email" /></label></div>
-      <div className="registration-queue">{visible.map(r => <article className="registration-entry" key={r.id}>{r.photoUrl && <img src={r.photoUrl} alt={`${r.name} profile`} />}<div><strong>{r.name}</strong><span>{r.position} · {r.phone}</span>{r.email && <span>{r.email}</span>}<small>{new Date(r.submittedAtUtc).toLocaleString()}</small>{r.possibleDuplicate && <b className="registration-duplicate">Possible duplicate—verify before approval</b>}{r.reviewReason && <p>{r.reviewReason}</p>}</div><span className="registration-status">{r.status}</span>{r.status === 'PENDING' && <button disabled={locked || busy} onClick={() => startReview(r)}>Review submission</button>}</article>)}{!busy && visible.length === 0 && <p className="registration-muted">No submissions match this view.</p>}</div>
+      <div className="registration-queue">{visible.map(r => <article className="registration-entry" key={r.id}>{r.photoUrl && <img src={r.photoUrl} alt={`${r.name} profile`} />}<div><strong>{r.name}</strong><span>{r.position} · {r.phone}</span>{r.email && <span>{r.email}</span>}<small>{new Date(r.submittedAtUtc).toLocaleString()}</small>{r.possibleDuplicate && <b className="registration-duplicate">Possible duplicate—verify before approval</b>}{r.reviewReason && <p>{r.reviewReason}</p>}</div><span className="registration-status">{r.status}</span>{r.status === 'PENDING' && <button disabled={locked || busy} onClick={() => startReview(r)}>Review submission</button>}{r.status === 'APPROVED' && <div className="registration-actions"><button type="button" disabled={locked || busy} onClick={() => {setError('');setApprovalChange({entry:r,reject:false});}}>Undo approval</button><button type="button" disabled={locked || busy} onClick={() => {setError('');setApprovalChange({entry:r,reject:true});}}>Reject registration</button></div>}</article>)}{!busy && visible.length === 0 && <p className="registration-muted">No submissions match this view.</p>}</div>
     </section>
     {review && details && <section ref={reviewPanel} className="registration-card registration-review" aria-label="Review player submission"><div className="registration-admin-heading"><h3>Review {review.name}</h3><button disabled={busy} onClick={() => setReview(null)}>Close review</button></div>
       {review.photoUrl && <img className="registration-review-photo" src={review.photoUrl} alt={`${review.name} submitted photo`} />}
@@ -147,5 +160,6 @@ export function RegistrationsTab({ tournamentId, status }: { tournamentId: strin
         <div className="registration-actions"><button className="registration-primary" disabled={busy || locked} type="submit">Approve & add player</button><button type="button" disabled={busy || locked} onClick={() => decide(false)}>Reject submission</button></div>
       </form><p className="registration-muted">The approved profile and photo appear in the auction. Phone and email stay in this private review queue.</p>
     </section>}
+    {approvalChange && <RegistrationApprovalDialog key={`${approvalChange.entry.id}:${approvalChange.reject}`} entry={approvalChange.entry} reject={approvalChange.reject} busy={busy} locked={locked} error={error} onCancel={() => {setApprovalChange(null);setError('');}} onConfirm={changeApproval} />}
   </div>;
 }

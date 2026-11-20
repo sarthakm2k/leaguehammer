@@ -42,6 +42,7 @@ public record RegistrationFormDto(Guid TournamentId, string TournamentName, stri
     bool Enabled, DateTime? OpensAtUtc, DateTime? ClosesAtUtc, bool ClosedManually,
     DateTime? FinalizedAtUtc, string? Instructions, string Status, DateTime ServerTimeUtc, bool PhotoUploadAvailable);
 public record RegistrationReceipt(Guid SubmissionId, string Reference, DateTime SubmittedAtUtc);
+public record RegistrationApprovalChangeRequest(Guid? PlayerId, [MaxLength(1000)] string? Reason = null);
 public record RegistrationViewerLinkDto(string Path);
 public record RegistrationViewerDto(string TournamentName, string TimeZone, DateTime UpdatedAtUtc, List<RegistrationViewerPlayerDto> Players);
 public record RegistrationViewerPlayerDto(Guid Id, string Name, int? Age, string Position, string? PreferredFoot,

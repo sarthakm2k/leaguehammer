@@ -58,6 +58,14 @@ public class RegistrationsController(RegistrationService service) : ControllerBa
     [HttpPost("api/tournaments/{id:guid}/registrations/{submissionId:guid}/review")]
     public Task<IActionResult> Review(Guid id, Guid submissionId, RegistrationReviewRequest request) => Run(async () => await service.ReviewAsync(id, submissionId, UserId, request));
     [Authorize]
+    [HttpPost("api/tournaments/{id:guid}/registrations/{submissionId:guid}/undo-approval")]
+    public Task<IActionResult> UndoApproval(Guid id, Guid submissionId, RegistrationApprovalChangeRequest request) =>
+        Run(async () => await service.UndoApprovalAsync(id, submissionId, UserId, request));
+    [Authorize]
+    [HttpPost("api/tournaments/{id:guid}/registrations/{submissionId:guid}/reject-approved")]
+    public Task<IActionResult> RejectApproved(Guid id, Guid submissionId, RegistrationApprovalChangeRequest request) =>
+        Run(async () => await service.RejectApprovedAsync(id, submissionId, UserId, request));
+    [Authorize]
     [HttpPost("api/tournaments/{id:guid}/registrations/finalize")]
     public Task<IActionResult> FinalizeRegistration(Guid id) => Run(async () => await service.FinalizeAsync(id, UserId));
 }

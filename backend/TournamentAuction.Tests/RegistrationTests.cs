@@ -8,7 +8,7 @@ using TournamentAuction.Api.Features.Registrations;
 
 namespace TournamentAuction.Tests;
 
-public class RegistrationTests
+public partial class RegistrationTests
 {
     private sealed class Clock : TimeProvider
     {
