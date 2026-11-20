@@ -241,6 +241,7 @@
 .signing-announcement p { margin:0 0 4px; font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:#b8c1c8; }
 .signing-announcement h2 { margin:0; font-size:clamp(46px,9dvh,76px); font-weight:950; font-style:italic; letter-spacing:-.07em; line-height:.88; }
 .signing-announcement h2 span { color:var(--poster-accent); }
+.signing-poster[data-preassigned="true"] .signing-announcement h2 { font-size:min(8dvh,14vw,60px); }
 .signing-photo { flex:1; min-height:100px; position:relative; display:grid; background:linear-gradient(145deg,#ffffff07,#ffffff02); border:1px solid #ffffff14; border-radius:4px 20px 4px 20px; overflow:hidden; }
 .signing-photo::before,.signing-photo::after { content:''; position:absolute; z-index:1; width:22px; height:22px; pointer-events:none; border-color:var(--poster-accent); border-style:solid; }
 .signing-photo::before { left:0; top:0; border-width:2px 0 0 2px; }

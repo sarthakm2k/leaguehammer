@@ -50,7 +50,7 @@ public class PublicAuctionResultsController(IAuctionEngineService auction) : Con
             if (team == null) return NotFound(new { detail = "Franchise not found in this tournament." });
             return Ok(new TeamSquadDto(results.State.TournamentId, results.State.TournamentName, results.State.Slug,
                 results.State.SessionStatus, results.State.CurrencyCode, results.State.CurrencySymbol, team,
-                results.Players.Where(p => p.WinningTeamId == teamId && p.Status == "SOLD").OrderByDescending(p => p.FinalPrice).ToList()));
+                results.Players.Where(p => p.AssignedTeamId == teamId || (p.WinningTeamId == teamId && p.Status == "SOLD")).OrderBy(p => p.AssignedRole == null).ThenByDescending(p => p.FinalPrice).ToList()));
         }
         catch (KeyNotFoundException ex) { return NotFound(new { detail = ex.Message }); }
     }

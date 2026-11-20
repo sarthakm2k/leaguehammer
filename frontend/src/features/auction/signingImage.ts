@@ -1,5 +1,6 @@
 import type { AuctionResults, ResultPlayer } from './resultsTypes';
 import { formatCurrency } from '../../utils/formatters';
+import { playerTeamId, playerTeamName, roleLabel } from '../teams/teamPlayers';
 
 export function signingAccent(color?: string | null): string {
   if (!/^#[0-9a-f]{6}$/i.test(color ?? '')) return '#c4f143';
@@ -24,7 +25,7 @@ export async function loadImage(url?: string | null): Promise<HTMLImageElement |
 
 /** A standalone portrait PNG; remote images must permit anonymous CORS. */
 export async function downloadSigningImage(data: AuctionResults, player: ResultPlayer): Promise<boolean> {
-  const team = data.state.teamStandings.find(t => t.teamId === player.winningTeamId);
+  const team = data.state.teamStandings.find(t => t.teamId === playerTeamId(player));
   const [photo, crest, brand, avatar] = await Promise.all([loadImage(player.photoUrl), loadImage(team?.logoUrl), loadImage('/brand/leaguehammer.png'), loadImage('/brand/player-avatar.svg')]);
   const canvas = document.createElement('canvas'); canvas.width = 1080; canvas.height = 1920;
   const ctx = canvas.getContext('2d');
@@ -54,8 +55,8 @@ export async function downloadSigningImage(data: AuctionResults, player: ResultP
   text('CONFIRMED',1004,123,24,accent,300,'right');
   ctx.fillStyle=accent; ctx.beginPath(); ctx.arc(820,115,7,0,Math.PI*2); ctx.fill();
   text(data.state.tournamentName,76,208,31,'#b8c1c8');
-  text('MEET YOUR NEW SIGNING',76,288,24,'#b8c1c8');
-  text('SIGNED.',66,415,150,'#f8f5ef',948,'left',true);
+  text(player.assignedRole ? 'PREASSIGNED · NO PURSE DEDUCTION' : 'MEET YOUR NEW SIGNING',76,288,24,'#b8c1c8');
+  text(player.assignedRole ? roleLabel(player.assignedRole).toUpperCase()+'.' : 'SIGNED.',66,415,150,'#f8f5ef',948,'left',true);
   drawPlayerProfile(ctx,player,photo,avatar,180,460,720);
   ctx.strokeStyle='#ffffff35'; ctx.lineWidth=2;
   for (const y of [1608,1810]) { ctx.beginPath(); ctx.moveTo(76,y); ctx.lineTo(1004,y); ctx.stroke(); }
@@ -63,9 +64,9 @@ export async function downloadSigningImage(data: AuctionResults, player: ResultP
   if (crest) image(crest,86,1660,84,84);
   else text(team?.shortName || 'FC',128,1716,31,accent,80,'center');
   text('NEW COLOURS',208,1665,19,'#b8c1c8',430);
-  text(player.winningTeamName || 'New team',208,1724,39,'#f8f5ef',420);
-  text('SIGNED FOR',1004,1665,19,'#b8c1c8',355,'right');
-  text(formatCurrency(player.finalPrice ?? 0,data.state.currencyCode),1004,1740,76,accent,355,'right');
+  text(playerTeamName(player) || 'New team',208,1724,39,'#f8f5ef',420);
+  text(player.assignedRole ? 'SQUAD ROLE' : 'SIGNED FOR',1004,1665,19,'#b8c1c8',355,'right');
+  text(player.assignedRole ? roleLabel(player.assignedRole) : formatCurrency(player.finalPrice ?? 0,data.state.currencyCode),1004,1740,76,accent,355,'right');
   text('AUCTION WRAPPED',76,1870,19,'#94a0ab',420);
   text('NEW CLUB. NEW CHAPTER.',1004,1870,19,'#94a0ab',450,'right');
   const blob = await new Promise<Blob>((resolve,reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Unable to create your image.')), 'image/png'));
@@ -98,7 +99,7 @@ export function drawPlayerProfile(ctx: CanvasRenderingContext2D, player: ResultP
     ctx.fillText(value,x+width/2,baseline,width*.9);
   };
   text(player.playerName,y+height*.85,width*.07,'#f8f5ef');
-  const details = (player.position || 'Player') + (player.jerseyNumber == null ? '' : ' · #' + player.jerseyNumber);
+  const details = (player.assignedRole ? roleLabel(player.assignedRole)+' · ' : '') + (player.position || 'Player') + (player.jerseyNumber == null ? '' : ' · #' + player.jerseyNumber);
   text(details,y+height*.94,width*.045,'#b8c1c8');
   ctx.restore();
 }

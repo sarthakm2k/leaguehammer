@@ -186,7 +186,7 @@ public partial class AuctionEngineService : IAuctionEngineService
         if (session.CurrentSetId != null && session.CurrentSetId != set.Id)
             throw new InvalidOperationException("Complete the active set before starting another set.");
         var completedSets = await GetCompletedSetIdsAsync(session.Id);
-        var nextSet = await _db.PlayerSets.Where(s => s.TournamentId == tournamentId && !completedSets.Contains(s.Id))
+        var nextSet = await _db.PlayerSets.Where(s => s.TournamentId == tournamentId && !completedSets.Contains(s.Id) && _db.Players.Any(p => p.PlayerSetId == s.Id && p.AssignedTeamId == null))
             .OrderBy(s => s.SortOrder).ThenBy(s => s.Id).FirstOrDefaultAsync();
         if (nextSet?.Id != set.Id)
             throw new InvalidOperationException("Start the next unfinished player set in tournament order.");
@@ -201,7 +201,7 @@ public partial class AuctionEngineService : IAuctionEngineService
         {
             // Retrieve available players in this set
             var players = await _db.Players
-                .Where(p => p.TournamentId == tournamentId && p.PlayerSetId == request.SetId && p.Status == "AVAILABLE")
+                .Where(p => p.TournamentId == tournamentId && p.PlayerSetId == request.SetId && p.Status == "AVAILABLE" && p.AssignedTeamId == null)
                 .ToListAsync();
 
             if (!players.Any())
@@ -373,6 +373,7 @@ public partial class AuctionEngineService : IAuctionEngineService
         var currentSquadCount = await _db.AuctionLots
             .CountAsync(l => l.TournamentId == tournamentId && l.WinningTeamId == team.Id && l.Status == AuctionLotStatus.SOLD && l.Id != lot.Id);
 
+        currentSquadCount += await _db.Players.CountAsync(p => p.AssignedTeamId == team.Id);
         if (currentSquadCount + 1 > settings.MaximumSquadSize)
         {
             throw new InvalidOperationException(
@@ -640,6 +641,7 @@ public partial class AuctionEngineService : IAuctionEngineService
         var newTeamCurrentSquad = await _db.AuctionLots
             .CountAsync(l => l.TournamentId == tournamentId && l.WinningTeamId == newTeam.Id && l.Status == AuctionLotStatus.SOLD && l.Id != lot.Id);
 
+        newTeamCurrentSquad += await _db.Players.CountAsync(p => p.AssignedTeamId == newTeam.Id);
         if (newTeamCurrentSquad + 1 > settings.MaximumSquadSize)
         {
             throw new InvalidOperationException(
@@ -732,7 +734,7 @@ public partial class AuctionEngineService : IAuctionEngineService
                 $"Cannot complete auction: there are still {pendingLots} pending or active auction lot(s).");
         }
 
-        if (tournament.Settings?.SellAllPlayers == true && await _db.Players.AnyAsync(p => p.TournamentId == tournamentId && p.Status != "SOLD"))
+        if (tournament.Settings?.SellAllPlayers == true && await _db.Players.AnyAsync(p => p.TournamentId == tournamentId && p.AssignedTeamId == null && p.Status != "SOLD"))
             throw new InvalidOperationException("Sell all players is enabled. Every player must be SOLD before completing the auction; an override cannot bypass this rule.");
 
         // 2. Check if unsold round was required and not conducted
@@ -757,6 +759,7 @@ public partial class AuctionEngineService : IAuctionEngineService
             var squadCount = await _db.AuctionLots
                 .CountAsync(l => l.TournamentId == tournamentId && l.WinningTeamId == team.Id && l.Status == AuctionLotStatus.SOLD);
 
+            squadCount += await _db.Players.CountAsync(p => p.AssignedTeamId == team.Id);
             if (squadCount < settings.MinimumSquadSize)
             {
                 deficientTeams.Add($"{team.Name} ({squadCount}/{settings.MinimumSquadSize})");
@@ -854,7 +857,7 @@ public partial class AuctionEngineService : IAuctionEngineService
     private async Task ValidateNormalSetsCompletedAsync(Guid tournamentId, AuctionSession session)
     {
         var completed = await GetCompletedSetIdsAsync(session.Id);
-        if (session.CurrentSetId != null || await _db.PlayerSets.AnyAsync(s => s.TournamentId == tournamentId && !completed.Contains(s.Id)))
+        if (session.CurrentSetId != null || await _db.PlayerSets.AnyAsync(s => s.TournamentId == tournamentId && !completed.Contains(s.Id) && _db.Players.Any(p => p.PlayerSetId == s.Id && p.AssignedTeamId == null)))
             throw new InvalidOperationException("Complete all normal player sets before the Final Unsold Round or auction completion.");
     }
 
@@ -956,8 +959,8 @@ public partial class AuctionEngineService : IAuctionEngineService
     private async Task<AuctionStateDto> BuildInitialAuctionStateAsync(Tournament tournament)
     {
         var standings = await CalculateTeamStandingsAsync(tournament.Id, tournament.Settings!);
-        var totalSets = await _db.PlayerSets.CountAsync(s => s.TournamentId == tournament.Id);
-        var totalPlayers = await _db.Players.CountAsync(p => p.TournamentId == tournament.Id);
+        var totalSets = await _db.PlayerSets.CountAsync(s => s.TournamentId == tournament.Id && _db.Players.Any(p => p.PlayerSetId == s.Id && p.AssignedTeamId == null));
+        var totalPlayers = await _db.Players.CountAsync(p => p.TournamentId == tournament.Id && p.AssignedTeamId == null);
 
         return new AuctionStateDto(
             tournament.Id,
@@ -1019,8 +1022,8 @@ public partial class AuctionEngineService : IAuctionEngineService
             currentSetSummary = await CalculateSetSummaryAsync(session.Id, session.CurrentSetId.Value, setName);
         }
 
-        var totalSets = await _db.PlayerSets.CountAsync(s => s.TournamentId == tournament.Id);
-        var totalPlayers = await _db.Players.CountAsync(p => p.TournamentId == tournament.Id);
+        var totalSets = await _db.PlayerSets.CountAsync(s => s.TournamentId == tournament.Id && _db.Players.Any(p => p.PlayerSetId == s.Id && p.AssignedTeamId == null));
+        var totalPlayers = await _db.Players.CountAsync(p => p.TournamentId == tournament.Id && p.AssignedTeamId == null);
 
         var totalSold = await _db.AuctionLots
             .CountAsync(l => l.AuctionSessionId == session.Id && l.Status == AuctionLotStatus.SOLD);
@@ -1092,12 +1095,14 @@ public partial class AuctionEngineService : IAuctionEngineService
             .Where(l => l.TournamentId == tournamentId && l.Status == AuctionLotStatus.SOLD && l.WinningTeamId != null)
             .ToListAsync();
 
+        var assigned = await _db.Players.AsNoTracking().Where(p => p.TournamentId == tournamentId && p.AssignedTeamId != null).ToListAsync();
         var standings = new List<TeamAuctionStandingDto>();
 
         foreach (var team in teams)
         {
             var teamSoldLots = soldLots.Where(l => l.WinningTeamId == team.Id).ToList();
-            var currentSquadSize = teamSoldLots.Count;
+            var teamAssigned = assigned.Where(p => p.AssignedTeamId == team.Id).ToList();
+            var currentSquadSize = teamSoldLots.Count + teamAssigned.Count;
             var totalSpent = teamSoldLots.Sum(l => l.FinalPrice ?? 0);
             var remainingPurse = team.InitialPurse - totalSpent;
 
@@ -1125,7 +1130,8 @@ public partial class AuctionEngineService : IAuctionEngineService
                 maxSlotsAvailable,
                 requiredReserveForMinSquad,
                 maximumAllowedBid,
-                canBid
+                canBid,
+                teamAssigned.Select(TournamentAuction.Api.Features.Teams.TeamAssignedPlayerDto.From).ToList()
             ));
         }
 

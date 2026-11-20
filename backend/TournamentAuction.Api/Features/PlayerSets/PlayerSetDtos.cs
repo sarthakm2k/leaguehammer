@@ -25,5 +25,6 @@ public record PlayerSetDto(
     string? Description,
     int SortOrder,
     int PlayerCount,
-    DateTime CreatedAtUtc
+    DateTime CreatedAtUtc,
+    int? AuctionPlayerCount = null
 );

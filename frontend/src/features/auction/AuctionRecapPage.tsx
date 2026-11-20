@@ -6,6 +6,8 @@ import { ArrowDown, ArrowUpRight, Check, Copy, Crown, MoveUpRight, Share2, Shirt
 import { useAuth } from '../auth/AuthContext';
 import type { AuctionResults, ResultPlayer } from './resultsTypes';
 import './recap.css';
+import { isSquadPlayer, playerTeamId, playerTeamName, playerAcquisition } from '../teams/teamPlayers';
+import { TeamAssignedPlayers } from '../teams/TeamAssignedPlayers';
 
 const API = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -54,8 +56,8 @@ export function AuctionRecapPage({ publicView = false }: { publicView?: boolean 
   const comeback = sold.find(p => p.attemptCount > 1);
   const lift = stats.highestPriceMultiplier;
   const players = [...data.players].sort((a, b) => Number(b.status === 'SOLD') - Number(a.status === 'SOLD') || (b.finalPrice ?? 0) - (a.finalPrice ?? 0) || a.playerName.localeCompare(b.playerName))
-    .filter(p => (teamFilter === 'ALL' || (teamFilter === 'UNSOLD' ? p.status !== 'SOLD' : p.winningTeamId === teamFilter)) &&
-      `${p.playerName} ${p.position || ''} ${p.winningTeamName || ''}`.toLowerCase().includes(search.toLowerCase()));
+    .filter(p => (teamFilter === 'ALL' || (teamFilter === 'UNSOLD' ? !isSquadPlayer(p) : playerTeamId(p) === teamFilter)) &&
+      `${p.playerName} ${p.position || ''} ${playerTeamName(p) || ''}`.toLowerCase().includes(search.toLowerCase()));
   const shareUrl = new URL(`/live/${encodeURIComponent(state.slug)}/recap`, window.location.origin).href;
   const copy = async () => {
     try { await navigator.clipboard.writeText(shareUrl); setMessage('Recap link copied'); }
@@ -99,12 +101,12 @@ export function AuctionRecapPage({ publicView = false }: { publicView?: boolean 
       <section className="recap-section recap-franchises" aria-labelledby="recap-teams-title"><div className="recap-chapter"><span>02 / THE SQUADS</span><Shirt size={20} /></div><div className="recap-section-heading"><h2 id="recap-teams-title">Teams that<br /><em>made their move.</em></h2><p>{spendingLeaders.length ? `${spendingLeaders.map(t => t.standing.teamName).join(' & ')} ${spendingLeaders.length > 1 ? 'share the top spending spot' : 'led the spending'} with ${money(spendingLeaders[0].standing.totalSpent)}${spendingLeaders.length > 1 ? ' each' : ''}.` : 'No team spending was recorded.'}</p></div>
         <div className="recap-team-grid">{teams.map((team, index) => {
           const t = team.standing;
-          const roster = sold.filter(p => p.winningTeamId === t.teamId);
+          const roster = data.players.filter(p => isSquadPlayer(p) && playerTeamId(p) === t.teamId);
           return <article className="recap-team" key={t.teamId} data-testid={`recap-team-${t.teamId}`} style={{ '--club-color': /^#[0-9a-f]{6}$/i.test(t.primaryColor || '') ? t.primaryColor : '#d6fd54' } as CSSProperties}>
-            <div className="recap-team-top"><span className="recap-team-code">{t.shortName}</span><span className="recap-team-award">{spendingLeaders.some(item => item.standing.teamId === t.teamId) ? 'TOP SPENDER' : `FRANCHISE ${String(index + 1).padStart(2, '0')}`}</span></div><h3>{t.teamName}</h3><strong className="recap-team-spend">{money(t.totalSpent)}</strong><p className="recap-team-spend-caption">invested in {t.currentSquadSize} {t.currentSquadSize === 1 ? 'player' : 'players'}</p>
+            <div className="recap-team-top"><span className="recap-team-code">{t.shortName}</span><span className="recap-team-award">{spendingLeaders.some(item => item.standing.teamId === t.teamId) ? 'TOP SPENDER' : `FRANCHISE ${String(index + 1).padStart(2, '0')}`}</span></div><h3>{t.teamName}</h3><strong className="recap-team-spend">{money(t.totalSpent)}</strong><p className="recap-team-spend-caption">auction investment · {t.currentSquadSize} in squad</p>
             <dl><div><dt>Purse remaining</dt><dd>{money(t.remainingPurse)}</dd></div><div><dt>Average signing</dt><dd>{money(team.averagePlayerCost)}</dd></div></dl>
-            {team.mostExpensiveSigning && <div className="recap-team-record"><Crown size={15} /><div><small>Record signing</small><b>{team.mostExpensiveSigning.playerName}</b><span>{money(team.mostExpensiveSigning.finalPrice ?? 0)}</span></div></div>}
-            <details><summary>Meet the squad <span>{roster.length} <ArrowDown size={14} /></span></summary><ul>{roster.map(p => <li key={p.playerId}><span>{p.playerName}<small>{p.position || 'Player'}</small></span><b>{money(p.finalPrice ?? 0)}</b></li>)}</ul>{!roster.length && <p className="recap-muted">No players signed.</p>}</details>
+            <TeamAssignedPlayers players={t.assignedPlayers}/>{team.mostExpensiveSigning && <div className="recap-team-record"><Crown size={15} /><div><small>Record signing</small><b>{team.mostExpensiveSigning.playerName}</b><span>{money(team.mostExpensiveSigning.finalPrice ?? 0)}</span></div></div>}
+            <details><summary>Meet the squad <span>{roster.length} <ArrowDown size={14} /></span></summary><ul>{roster.map(p => <li key={p.playerId}><span>{p.playerName}<small>{p.position || 'Player'}</small></span><b>{playerAcquisition(p,money)}</b></li>)}</ul>{!roster.length && <p className="recap-muted">No players signed.</p>}</details>
           </article>;
         })}</div>
       </section>
@@ -112,9 +114,9 @@ export function AuctionRecapPage({ publicView = false }: { publicView?: boolean 
       <section className="recap-section recap-signings" id="recap-signings" aria-labelledby="recap-players-title"><div className="recap-chapter"><span>03 / EVERY PLAYER. EVERY OUTCOME.</span><Trophy size={20} /></div><div className="recap-section-heading"><h2 id="recap-players-title">The names.<br /><em>The numbers.</em></h2><p>Every player, ranked by sale price. Find your name, your team, or your next favourite signing.</p></div>
         <div className="recap-player-tools"><input aria-label="Find a player" placeholder="Find a player, position or team…" value={search} onChange={event => setSearch(event.target.value)} /><select aria-label="Filter recap by team" value={teamFilter} onChange={event => setTeamFilter(event.target.value)}><option value="ALL">All players</option>{teams.map(t => <option key={t.standing.teamId} value={t.standing.teamId}>{t.standing.teamName}</option>)}<option value="UNSOLD">Unsold players</option></select></div>
         <p className="recap-player-count" aria-live="polite">{players.length} {players.length === 1 ? 'player' : 'players'}{search || teamFilter !== 'ALL' ? ' matching your selection' : ' in the auction'}</p>
-        <div className="recap-player-grid">{players.map(player => <article key={player.playerId} className={`recap-player ${player.status !== 'SOLD' ? 'recap-player-unsold' : ''}`} data-testid={`recap-player-${player.playerId}`}>
-          <div className="recap-player-top"><PlayerPortrait key={`${player.playerId}:${player.photoUrl}`} player={player} /><div><span className="recap-player-position">{player.position || 'Player'}{player.jerseyNumber != null ? ` · #${player.jerseyNumber}` : ''}</span><h3>{player.playerName}</h3><p>{player.winningTeamName || 'No winning team'}</p></div></div>
-          <div className="recap-player-price"><strong>{player.status === 'SOLD' ? money(player.finalPrice ?? 0) : 'Unsold'}</strong><span>{player.status === 'SOLD' && player.priceMultiplier != null ? `${player.priceMultiplier.toFixed(2)}× base` : `${player.attemptCount} ${player.attemptCount === 1 ? 'attempt' : 'attempts'}`}</span></div><div className="recap-player-meta"><span>Base {money(player.basePrice)}</span><span>{player.status === 'SOLD' && player.attemptCount > 1 ? `Comeback · ${player.attemptCount} attempts` : player.playerSetName}</span></div>
+        <div className="recap-player-grid">{players.map(player => <article key={player.playerId} className={`recap-player ${!isSquadPlayer(player) ? 'recap-player-unsold' : ''}`} data-testid={`recap-player-${player.playerId}`}>
+          <div className="recap-player-top"><PlayerPortrait key={`${player.playerId}:${player.photoUrl}`} player={player} /><div><span className="recap-player-position">{player.position || 'Player'}{player.jerseyNumber != null ? ` · #${player.jerseyNumber}` : ''}</span><h3>{player.playerName}</h3><p>{playerTeamName(player) || 'No winning team'}</p></div></div>
+          <div className="recap-player-price"><strong>{playerAcquisition(player,money)}</strong><span>{player.status === 'SOLD' && player.priceMultiplier != null ? `${player.priceMultiplier.toFixed(2)}× base` : `${player.attemptCount} ${player.attemptCount === 1 ? 'attempt' : 'attempts'}`}</span></div><div className="recap-player-meta"><span>{player.assignedRole ? 'No purse deduction' : `Base ${money(player.basePrice)}`}</span><span>{player.status === 'SOLD' && player.attemptCount > 1 ? `Comeback · ${player.attemptCount} attempts` : player.playerSetName}</span></div>
         </article>)}</div>
         {!players.length && <p className="recap-empty">No players match this selection. Try another name or team.</p>}
       </section>

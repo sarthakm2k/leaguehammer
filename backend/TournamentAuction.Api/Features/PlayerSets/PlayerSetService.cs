@@ -28,7 +28,7 @@ public class PlayerSetService : IPlayerSetService
                 s.Description,
                 s.SortOrder,
                 s.Players.Count,
-                s.CreatedAtUtc
+                s.CreatedAtUtc, s.Players.Count(p => p.AssignedTeamId == null)
             ))
             .ToListAsync();
 
@@ -53,7 +53,7 @@ public class PlayerSetService : IPlayerSetService
             s.Description,
             s.SortOrder,
             s.Players.Count,
-            s.CreatedAtUtc
+            s.CreatedAtUtc, s.Players.Count(p => p.AssignedTeamId == null)
         );
     }
 
@@ -137,7 +137,7 @@ public class PlayerSetService : IPlayerSetService
             set.Description,
             set.SortOrder,
             set.Players.Count,
-            set.CreatedAtUtc
+            set.CreatedAtUtc, set.Players.Count(p => p.AssignedTeamId == null)
         );
     }
 

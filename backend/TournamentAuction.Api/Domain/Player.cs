@@ -55,6 +55,9 @@ public class Player
     [Required]
     [MaxLength(30)]
     public string Status { get; set; } = "AVAILABLE"; // AVAILABLE, ON_AUCTION, SOLD, UNSOLD, FINAL_UNSOLD
+    public Guid? AssignedTeamId { get; set; }
+    public string? AssignedRole { get; set; } // CAPTAIN or ICON; preassigned, without an auction purchase.
+    public Team? AssignedTeam { get; set; }
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 

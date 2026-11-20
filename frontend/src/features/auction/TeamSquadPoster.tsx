@@ -1,4 +1,5 @@
 import './squad-poster.css';
+import { isSquadPlayer, playerTeamId, roleLabel } from '../teams/teamPlayers';
 import { useState } from 'react';
 import { Download } from 'lucide-react';
 import type { AuctionResults } from './resultsTypes';
@@ -9,7 +10,7 @@ import { formatCurrency } from '../../utils/formatters';
 export function TeamSquadPoster({ data, team }: { data: AuctionResults; team: TeamAuctionStandingDto }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
-  const roster = data.players.filter(player => player.status === 'SOLD' && player.winningTeamId === team.teamId).sort((a,b) => a.playerName.localeCompare(b.playerName));
+  const roster = data.players.filter(player => isSquadPlayer(player) && playerTeamId(player) === team.teamId).sort((a,b) => a.playerName.localeCompare(b.playerName));
   if (data.state.sessionStatus !== 'COMPLETED' || !roster.length) return null;
   const download = async () => {
     if (busy) return;
@@ -30,7 +31,7 @@ export function TeamSquadPoster({ data, team }: { data: AuctionResults; team: Te
       else text(team.shortName,60,125,48,accent,130);
       text('THE FINAL SQUAD',190,94,24,accent,830);text(data.state.tournamentName,190,140,28,'#b6c4d8',830);
       text(team.teamName.toUpperCase(),60,235,64,'#ffffff');
-      text(`${roster.length} SIGNINGS  /  ${formatCurrency(team.totalSpent,data.state.currencyCode)} INVESTED`,60,300,26,accent);
+      text(`${roster.length} SQUAD PLAYERS  /  ${formatCurrency(team.totalSpent,data.state.currencyCode)} INVESTED`,60,300,26,accent);
       ctx.fillStyle=accent;ctx.fillRect(60,337,960,3);
       let missingPhotos=0;
       for(let offset=0;offset<roster.length;offset+=columns){
@@ -39,7 +40,7 @@ export function TeamSquadPoster({ data, team }: { data: AuctionResults; team: Te
           const player=players[col], photo=photos[col];if(player.photoUrl&&!photo)missingPhotos++;
           const gap=(1080-columns*cardWidth)/(columns+1), x=(1080-players.length*cardWidth-(players.length-1)*gap)/2+col*(cardWidth+gap),y=380+(offset/columns)*rowHeight;
           drawPlayerProfile(ctx,player,photo,avatar,x,y,cardWidth);
-          text(formatCurrency(player.finalPrice || 0,data.state.currencyCode),x+cardWidth/2,y+cardWidth*1.5+28,24,accent,cardWidth,'center');
+          text(player.assignedRole ? roleLabel(player.assignedRole) : formatCurrency(player.finalPrice || 0,data.state.currencyCode),x+cardWidth/2,y+cardWidth*1.5+28,24,accent,cardWidth,'center');
         }
       }
       text('NEW COLOURS. ONE SQUAD.',60,logicalHeight-55,25,accent);text('LEAGUEHAMMER / AUCTION WRAPPED',1020,logicalHeight-55,18,'#9daec6',460,'right');

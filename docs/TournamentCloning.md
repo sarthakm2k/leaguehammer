@@ -4,7 +4,7 @@ Owners can open **Tournament Overview → Run a mock auction → Clone tournamen
 
 The clone gets a new tournament ID, unique slug, owner membership and separate sharing links. It always starts in **DRAFT**, so the owner can adjust the setup and must pass preflight before launching the mock auction.
 
-Copied: season, description, date, location, timezone, tournament logo, auction settings (including public viewing and sell-all rules), base price tiers, teams with their original starting purses/colors/logos, player sets with their ordering, and registered auction players with their profiles, photos, base prices and card attributes. Player IDs, team IDs and set IDs are regenerated and remapped. All copied players start **AVAILABLE**.
+Copied: season, description, date, location, timezone, tournament logo, auction settings (including public viewing and sell-all rules), base price tiers, teams with their original starting purses/colors/logos, player sets with their ordering, and registered players with their profiles, photos and base prices. Player IDs, team IDs and set IDs are regenerated and remapped. Captain and icon assignments are preserved against the cloned teams with status **ASSIGNED**. Other copied players start **AVAILABLE**.
 
 Not copied: auction sessions, random draws, lots, bids, sales, events, results, existing tournament members beyond the cloning owner, and registration submissions/contact details. Public registration starts disabled with no schedule or finalized state; registration instructions are retained if a form existed. Applicants who have not been approved into the player registry do not become auction players in the clone.
 

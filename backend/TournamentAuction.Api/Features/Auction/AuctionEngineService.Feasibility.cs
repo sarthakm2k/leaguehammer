@@ -14,11 +14,12 @@ public partial class AuctionEngineService
             l.Status == AuctionLotStatus.SOLD && l.Id != replacedLotId)
             .Select(l => new { l.PlayerId, l.WinningTeamId, l.FinalPrice }).ToListAsync();
         var purchased = sales.Select(l => l.PlayerId).Append(playerId).ToHashSet();
-        var players = await _db.Players.AsNoTracking().Where(p => p.TournamentId == tournament.Id)
+        var players = await _db.Players.AsNoTracking().Where(p => p.TournamentId == tournament.Id && p.AssignedTeamId == null)
             .Select(p => new { p.Id, p.BasePrice }).ToListAsync();
         var teams = await _db.Teams.AsNoTracking().Where(t => t.TournamentId == tournament.Id).ToListAsync();
+        var assigned = await _db.Players.AsNoTracking().Where(p => p.TournamentId == tournament.Id && p.AssignedTeamId != null).Select(p => p.AssignedTeamId).ToListAsync();
         var capacities = teams.Select(t => {
-            var squad = sales.Count(l => l.WinningTeamId == t.Id) + (t.Id == teamId ? 1 : 0);
+            var squad = sales.Count(l => l.WinningTeamId == t.Id) + assigned.Count(id => id == t.Id) + (t.Id == teamId ? 1 : 0);
             var spent = sales.Where(l => l.WinningTeamId == t.Id).Sum(l => l.FinalPrice ?? 0) + (t.Id == teamId ? price : 0);
             return new PurchaseCapacity(t.InitialPurse - spent, settings.MaximumSquadSize - squad, Math.Max(0, settings.MinimumSquadSize - squad));
         });

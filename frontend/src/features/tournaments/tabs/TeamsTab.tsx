@@ -2,10 +2,14 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import { Plus, Users, Edit2, Trash2, AlertCircle, X, Shield, Copy, ExternalLink } from 'lucide-react';
 import { formatInr } from '../../../utils/formatters';
+import { TeamAssignedPlayers } from '../../teams/TeamAssignedPlayers';
+import { TeamAssignmentsDialog } from '../../teams/TeamAssignmentsDialog';
+import type { AssignedTeamPlayer } from '../../teams/teamPlayers';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 export interface Team {
+  assignedPlayers?:AssignedTeamPlayer[]|null;
   id: string;
   tournamentId: string;
   name: string;
@@ -61,6 +65,7 @@ function TeamShareLink({ slug, team }: { slug: string; team: Team }) {
 export function TeamsTab({ tournamentId, tournamentSlug, isOwner, status, defaultPurse }: Props) {
   const { token } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
+  const [assignmentTeam,setAssignmentTeam]=useState<Team|null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -298,6 +303,8 @@ export function TeamsTab({ tournamentId, tournamentSlug, isOwner, status, defaul
               </div>
 
               <TeamShareLink slug={tournamentSlug} team={t} />
+              <TeamAssignedPlayers players={t.assignedPlayers}/>
+              {isOwner && !isLocked && <button type="button" onClick={()=>setAssignmentTeam(t)} className="rounded-lg border border-emerald-500/40 px-3 py-2 text-xs font-semibold text-emerald-300">Assign captain &amp; icon</button>}
               {isOwner && <label className="block text-xs text-slate-300">
                 {uploadingLogo === t.id ? 'Uploading logo…' : t.logoUrl ? 'Replace team logo' : 'Upload team logo'}
                 <input type="file" aria-label={`Upload ${t.name} logo`} accept="image/jpeg,image/png,image/webp"
@@ -347,6 +354,7 @@ export function TeamsTab({ tournamentId, tournamentSlug, isOwner, status, defaul
       )}
 
       {/* Add / Edit Team Modal */}
+      {assignmentTeam && <TeamAssignmentsDialog tournamentId={tournamentId} team={assignmentTeam} onClose={()=>setAssignmentTeam(null)} onSaved={()=>{setAssignmentTeam(null);void fetchTeams();}}/>}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-[#191d28] border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">

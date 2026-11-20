@@ -116,7 +116,7 @@ export function AuctioneerConsolePage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setAllSets(data);
+        setAllSets(data.filter((set: PlayerSetSummary) => (set.auctionPlayerCount ?? set.playerCount ?? 1) > 0));
       }
     } catch {
       // ignore

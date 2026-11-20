@@ -233,6 +233,13 @@ namespace TournamentAuction.Api.Migrations
                     b.Property<int?>("Age")
                         .HasColumnType("integer");
 
+                    b.Property<string>("AssignedRole")
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<Guid?>("AssignedTeamId")
+                        .HasColumnType("uuid");
+
                     b.Property<long>("BasePrice")
                         .HasColumnType("bigint");
 
@@ -325,6 +332,10 @@ namespace TournamentAuction.Api.Migrations
 
                     b.HasIndex("PlayerSetId");
 
+                    b.HasIndex("AssignedTeamId", "AssignedRole")
+                        .IsUnique()
+                        .HasFilter("\"AssignedTeamId\" IS NOT NULL");
+
                     b.HasIndex("TournamentId", "Name");
 
                     b.HasIndex("TournamentId", "PlayerSetId");
@@ -334,6 +345,8 @@ namespace TournamentAuction.Api.Migrations
                     b.ToTable("Players", t =>
                         {
                             t.HasCheckConstraint("CK_Players_CardRatings", "(\"Pace\" IS NULL OR \"Pace\" BETWEEN 1 AND 99) AND (\"Shooting\" IS NULL OR \"Shooting\" BETWEEN 1 AND 99) AND (\"Passing\" IS NULL OR \"Passing\" BETWEEN 1 AND 99) AND (\"Dribbling\" IS NULL OR \"Dribbling\" BETWEEN 1 AND 99) AND (\"Defending\" IS NULL OR \"Defending\" BETWEEN 1 AND 99) AND (\"Physical\" IS NULL OR \"Physical\" BETWEEN 1 AND 99) AND (\"Diving\" IS NULL OR \"Diving\" BETWEEN 1 AND 99) AND (\"Handling\" IS NULL OR \"Handling\" BETWEEN 1 AND 99) AND (\"Kicking\" IS NULL OR \"Kicking\" BETWEEN 1 AND 99) AND (\"Reflexes\" IS NULL OR \"Reflexes\" BETWEEN 1 AND 99) AND (\"Speed\" IS NULL OR \"Speed\" BETWEEN 1 AND 99) AND (\"Positioning\" IS NULL OR \"Positioning\" BETWEEN 1 AND 99)");
+
+                            t.HasCheckConstraint("CK_Players_TeamAssignment", "(\"AssignedTeamId\" IS NULL AND \"AssignedRole\" IS NULL AND \"Status\" <> 'ASSIGNED') OR (\"AssignedTeamId\" IS NOT NULL AND \"AssignedRole\" IN ('CAPTAIN', 'ICON') AND \"AssignedRole\" IS NOT NULL AND \"Status\" = 'ASSIGNED')");
                         });
                 });
 
@@ -840,6 +853,11 @@ namespace TournamentAuction.Api.Migrations
 
             modelBuilder.Entity("TournamentAuction.Api.Domain.Player", b =>
                 {
+                    b.HasOne("TournamentAuction.Api.Domain.Team", "AssignedTeam")
+                        .WithMany("AssignedPlayers")
+                        .HasForeignKey("AssignedTeamId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("TournamentAuction.Api.Domain.PlayerSet", "PlayerSet")
                         .WithMany("Players")
                         .HasForeignKey("PlayerSetId")
@@ -851,6 +869,8 @@ namespace TournamentAuction.Api.Migrations
                         .HasForeignKey("TournamentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("AssignedTeam");
 
                     b.Navigation("PlayerSet");
 
@@ -957,6 +977,11 @@ namespace TournamentAuction.Api.Migrations
             modelBuilder.Entity("TournamentAuction.Api.Domain.PlayerSet", b =>
                 {
                     b.Navigation("Players");
+                });
+
+            modelBuilder.Entity("TournamentAuction.Api.Domain.Team", b =>
+                {
+                    b.Navigation("AssignedPlayers");
                 });
 
             modelBuilder.Entity("TournamentAuction.Api.Domain.Tournament", b =>

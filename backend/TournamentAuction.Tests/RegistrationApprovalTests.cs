@@ -7,6 +7,19 @@ namespace TournamentAuction.Tests;
 public partial class RegistrationTests
 {
     [Fact]
+    public async Task AssignedCaptainMustBeReleasedBeforeApprovalCanChange()
+    {
+        var(db,service,_,_,t,set)=await Fixture();var request=Submission();await service.SubmitAsync(t.Slug,request);
+        await service.ReviewAsync(t.Id,request.SubmissionId,t.OwnerUserId,Review(set));var entry=db.PlayerRegistrations.Single();
+        var team=new Team {TournamentId=t.Id,Name="Falcons"};db.Teams.Add(team);
+        var player=db.Players.Single();player.AssignedTeamId=team.Id;player.AssignedRole="CAPTAIN";player.Status="ASSIGNED";await db.SaveChangesAsync();
+        var change=new RegistrationApprovalChangeRequest(entry.PlayerId,"Withdrawn");
+        var error=await Assert.ThrowsAsync<InvalidOperationException>(()=>service.UndoApprovalAsync(t.Id,entry.Id,t.OwnerUserId,change));
+        Assert.Contains("captain or icon assignment",error.Message);
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>service.RejectApprovedAsync(t.Id,entry.Id,t.OwnerUserId,change));
+        Assert.Equal("APPROVED",entry.Status);Assert.Equal("ASSIGNED",player.Status);Assert.Single(db.Players);
+    }
+    [Fact]
     public async Task UndoApprovalPreservesSubmissionAndPhotoAndAllowsFreshApproval()
     {
         var (db,service,_,photos,t,set)=await Fixture();var request=Submission();

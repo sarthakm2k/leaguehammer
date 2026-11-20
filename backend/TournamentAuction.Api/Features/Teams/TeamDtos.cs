@@ -33,5 +33,16 @@ public record TeamDto(
     string? OwnerName,
     long InitialPurse,
     DateTime CreatedAtUtc,
-    DateTime? UpdatedAtUtc
+    DateTime? UpdatedAtUtc,
+    List<TeamAssignedPlayerDto>? AssignedPlayers = null
 );
+
+public record TeamAssignedPlayerDto(Guid PlayerId, string PlayerName, string? PhotoUrl, string? Position,
+    int? Age, string? PreferredFoot, int? JerseyNumber, string Role)
+{
+    public static TeamAssignedPlayerDto From(TournamentAuction.Api.Domain.Player p) =>
+        new(p.Id, p.Name, p.PhotoUrl, p.Position, p.Age, p.PreferredFoot, p.JerseyNumber, p.AssignedRole!);
+}
+public record TeamAssignmentsRequest(Guid? CaptainPlayerId, Guid? IconPlayerId);
+public record TeamAssignmentCandidateDto(Guid PlayerId, string PlayerName, string? PhotoUrl, string? Position);
+public record TeamAssignmentsDto(List<TeamAssignedPlayerDto> AssignedPlayers, List<TeamAssignmentCandidateDto> AvailablePlayers);

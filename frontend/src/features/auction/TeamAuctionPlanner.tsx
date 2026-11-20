@@ -1,3 +1,4 @@
+import { isSquadPlayer, playerTeamId, playerTeamName, roleLabel } from '../teams/teamPlayers';
 import { useState } from 'react';
 import { Star, Search } from 'lucide-react';
 import type { AuctionResults } from './resultsTypes';
@@ -24,7 +25,7 @@ export function TeamAuctionPlanner({ data, standing, money }: { data: AuctionRes
   const slots = Math.max(0, standing.maximumSquadSize - standing.currentSquadSize);
   const minimumNeeded = Math.max(0, standing.minimumSquadSize - standing.currentSquadSize);
   const limit = Math.min(standing.remainingPurse, standing.maximumAllowedBid);
-  const roster = data.players.filter(player => player.status === 'SOLD' && player.winningTeamId === standing.teamId);
+  const roster = data.players.filter(player => isSquadPlayer(player) && playerTeamId(player) === standing.teamId);
   const positions = [...new Set(['Goalkeeper', 'Defender', 'Midfielder', 'Forward', ...data.players.map(player => player.position || 'Player')])];
   const sets = data.statistics.sets.slice().sort((a, b) => a.sortOrder - b.sortOrder);
   const targetMap = new Map(targets.map(target => [target.playerId, target]));
@@ -51,7 +52,7 @@ export function TeamAuctionPlanner({ data, standing, money }: { data: AuctionRes
     {storageError && <p role="status" className="team-plan-warning">{storageError}</p>}
     {targets.length > 0 && <section className="team-alternatives" aria-label="Alternative player groups"><h3>Your alternatives</h3>{[...new Set(targets.map(target => target.group?.trim() || 'General targets'))].map(group => <div key={group}><h4>{group}</h4>{targets.filter(target => (target.group?.trim() || 'General targets') === group).sort((a,b) => ['First choice','Backup','Budget option'].indexOf(a.priority || 'First choice') - ['First choice','Backup','Budget option'].indexOf(b.priority || 'First choice')).map(target => {
       const player = data.players.find(item => item.playerId === target.playerId);
-      return player && <p key={target.playerId}><b>{target.priority || 'First choice'}</b><span>{player.playerName}<small>{available(player.status) ? 'Still in the pool' : player.status === 'SOLD' ? `Signed by ${player.winningTeamName || 'a team'}` : 'Auction finished'}</small></span></p>;
+      return player && <p key={target.playerId}><b>{target.priority || 'First choice'}</b><span>{player.playerName}<small>{player.assignedRole ? `${roleLabel(player.assignedRole)} · ${playerTeamName(player)}` : available(player.status) ? 'Still in the pool' : player.status === 'SOLD' ? `Signed by ${player.winningTeamName || 'a team'}` : 'Auction finished'}</small></span></p>;
     })}</div>)}</section>}
     <div className="team-plan-filters"><label><Search size={14} /><input aria-label="Search target players" value={search} onChange={event => setSearch(event.target.value)} placeholder="Find a player" /></label><select aria-label="Filter targets by position" value={position} onChange={event => setPosition(event.target.value)}><option value="">All positions</option>{positions.map(value => <option key={value}>{value}</option>)}</select><select aria-label="Filter targets by set" value={setId} onChange={event => setSetId(event.target.value)}><option value="">All sets</option>{sets.map(set => <option key={set.setId} value={set.setId}>{set.setName}</option>)}</select></div>
     <div className="team-plan-switches"><button type="button" aria-pressed={onlyTargets} onClick={() => setOnlyTargets(!onlyTargets)}>My shortlist ({targets.length})</button><button type="button" aria-pressed={withinLimit} onClick={() => setWithinLimit(!withinLimit)}>Within bid limit</button></div>
@@ -61,7 +62,7 @@ export function TeamAuctionPlanner({ data, standing, money }: { data: AuctionRes
       const live = player.playerId === data.state.currentLot?.playerId;
       return <article key={player.playerId} data-testid={`team-target-${player.playerId}`} className={live ? 'team-plan-live' : ''}>
         <button className="team-target-star" type="button" aria-label={`${target ? 'Remove' : 'Shortlist'} ${player.playerName}`} aria-pressed={!!target} onClick={() => save(target ? targets.filter(item => item.playerId !== player.playerId) : [...targets, { playerId: player.playerId, budget: player.basePrice }])}><Star size={18} fill={target ? 'currentColor' : 'none'} /></button>
-        <div className="team-target-name"><strong>{player.playerName}</strong><small>{player.position || 'Player'} · {player.playerSetName}</small><span>{live ? 'ON THE PODIUM' : player.status === 'UNSOLD' ? 'Returning to auction' : player.status === 'SOLD' ? `Signed by ${player.winningTeamName || 'a team'}` : completed || player.status === 'FINAL_UNSOLD' ? 'Finished unsold' : 'Available'}</span></div>
+        <div className="team-target-name"><strong>{player.playerName}</strong><small>{player.position || 'Player'} · {player.playerSetName}</small><span>{player.assignedRole ? `${roleLabel(player.assignedRole)} · ${playerTeamName(player) || 'Preassigned'}` : live ? 'ON THE PODIUM' : player.status === 'UNSOLD' ? 'Returning to auction' : player.status === 'SOLD' ? `Signed by ${player.winningTeamName || 'a team'}` : completed || player.status === 'FINAL_UNSOLD' ? 'Finished unsold' : 'Available'}</span></div>
         <div className="team-target-price"><small>Base</small><b>{money(player.basePrice)}</b>{target && available(player.status) && <label>My ceiling<input aria-label={`Target budget for ${player.playerName}`} type="number" min={0} step={1} value={target.budget ?? ''} onChange={event => {
           const budget = event.target.value === '' ? null : Number(event.target.value);
           if (budget !== null && (!Number.isSafeInteger(budget) || budget < 0)) return;

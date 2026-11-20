@@ -164,6 +164,10 @@ public class TournamentAuctionDbContext : DbContext
         // Player
         modelBuilder.Entity<Player>(entity =>
         {
+            entity.Property(e => e.AssignedRole).HasMaxLength(7);
+            entity.HasOne(e => e.AssignedTeam).WithMany(t => t.AssignedPlayers).HasForeignKey(e => e.AssignedTeamId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.AssignedTeamId, e.AssignedRole }).IsUnique().HasFilter("\"AssignedTeamId\" IS NOT NULL");
+            entity.ToTable(t => t.HasCheckConstraint("CK_Players_TeamAssignment", "(\"AssignedTeamId\" IS NULL AND \"AssignedRole\" IS NULL AND \"Status\" <> 'ASSIGNED') OR (\"AssignedTeamId\" IS NOT NULL AND \"AssignedRole\" IN ('CAPTAIN', 'ICON') AND \"AssignedRole\" IS NOT NULL AND \"Status\" = 'ASSIGNED')"));
             entity.ToTable(table => table.HasCheckConstraint("CK_Players_CardRatings", "(\"Pace\" IS NULL OR \"Pace\" BETWEEN 1 AND 99) AND (\"Shooting\" IS NULL OR \"Shooting\" BETWEEN 1 AND 99) AND (\"Passing\" IS NULL OR \"Passing\" BETWEEN 1 AND 99) AND (\"Dribbling\" IS NULL OR \"Dribbling\" BETWEEN 1 AND 99) AND (\"Defending\" IS NULL OR \"Defending\" BETWEEN 1 AND 99) AND (\"Physical\" IS NULL OR \"Physical\" BETWEEN 1 AND 99) AND (\"Diving\" IS NULL OR \"Diving\" BETWEEN 1 AND 99) AND (\"Handling\" IS NULL OR \"Handling\" BETWEEN 1 AND 99) AND (\"Kicking\" IS NULL OR \"Kicking\" BETWEEN 1 AND 99) AND (\"Reflexes\" IS NULL OR \"Reflexes\" BETWEEN 1 AND 99) AND (\"Speed\" IS NULL OR \"Speed\" BETWEEN 1 AND 99) AND (\"Positioning\" IS NULL OR \"Positioning\" BETWEEN 1 AND 99)"));
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(150);

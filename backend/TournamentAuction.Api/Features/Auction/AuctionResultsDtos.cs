@@ -5,7 +5,8 @@ namespace TournamentAuction.Api.Features.Auction;
 public record ResultPlayerDto(Guid PlayerId, string PlayerName, string? PhotoUrl, string? Position,
     int? Age, string? PreferredFoot, int? JerseyNumber, Guid PlayerSetId, string PlayerSetName,
     long BasePrice, string Status, int AttemptCount, Guid? WinningTeamId, string? WinningTeamName,
-    long? FinalPrice, long? PricePremium, decimal? PriceMultiplier, string? CardPosition = null, PlayerRatingsDto? Ratings = null);
+    long? FinalPrice, long? PricePremium, decimal? PriceMultiplier, string? CardPosition = null, PlayerRatingsDto? Ratings = null,
+    Guid? AssignedTeamId = null, string? AssignedTeamName = null, string? AssignedRole = null);
 
 public record PositionStatisticsDto(string Position, int PlayerCount, long TotalSpent);
 public record TeamStatisticsDto(TeamAuctionStandingDto Standing, decimal AveragePlayerCost,
@@ -18,7 +19,7 @@ public record TournamentStatisticsDto(int TotalPlayers, int SoldPlayers, int Uns
     List<ResultPlayerDto> MostExpensiveByPosition, List<ResultPlayerDto> MostExpensiveBySet,
     List<TeamStatisticsDto> Teams, List<SetStatisticsDto> Sets, List<PositionStatisticsDto> Positions,
     Guid? BiggestSpenderTeamId, Guid? SmallestSpenderTeamId, Guid? LargestRemainingPurseTeamId,
-    Guid? MostPlayersTeamId, Guid? BestSellingSetId);
+    Guid? MostPlayersTeamId, Guid? BestSellingSetId, int AssignedPlayers = 0);
 public record AuctionResultsDto(PublicAuctionStateDto State, string? TournamentLogoUrl, bool PublicLiveViewEnabled,
     List<ResultPlayerDto> Players, TournamentStatisticsDto Statistics);
 public record TeamSquadDto(Guid TournamentId, string TournamentName, string Slug, string SessionStatus,

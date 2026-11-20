@@ -47,6 +47,14 @@ public class TournamentPreflightService : ITournamentPreflightService
         var teams = tournament.Teams.ToList();
         var sets = tournament.PlayerSets.OrderBy(s => s.SortOrder).ToList();
         var players = tournament.Players.ToList();
+        var assigned = players.Where(p => p.AssignedTeamId != null).ToList();
+        var auctionPlayers = players.Where(p => p.AssignedTeamId == null).ToList();
+        if (assigned.Any(p => !teams.Any(t => t.Id == p.AssignedTeamId)) || teams.Any(t => assigned.Count(p => p.AssignedTeamId == t.Id) > (settings?.MaximumSquadSize ?? 16)))
+        {
+            const string message = "Captain/icon assignments must belong to this tournament and fit each team's maximum squad size.";
+            checks.Add(new PreflightCheckItem("TEAM_ASSIGNMENTS", "Teams", "Captain and Icon Assignments", "FAIL", message));
+            blockingErrors.Add(message);
+        }
 
         // 1. Settings Checks
         if (settings == null)
@@ -103,18 +111,18 @@ public class TournamentPreflightService : ITournamentPreflightService
         }
 
         // Check each team's purse sufficiency
-        var underfundedTeams = teams.Where(t => t.InitialPurse < minPurseFloor).ToList();
+        var underfundedTeams = teams.Where(t => t.InitialPurse < Math.Max(0,minSquad-assigned.Count(p => p.AssignedTeamId == t.Id))*minPriceFloor).ToList();
         if (underfundedTeams.Count > 0)
         {
-            var teamNames = string.Join(", ", underfundedTeams.Select(t => t.Name));
-            var msg = $"Insufficient starting purse: {underfundedTeams.Count} team(s) ({teamNames}) have purses below the minimum reserve ({settings?.CurrencySymbol ?? "₹"}{minPurseFloor:N0}) needed to acquire the minimum squad of {minSquad} players.";
+            var teamReserves = string.Join(", ", underfundedTeams.Select(t => $"{t.Name}: {settings?.CurrencySymbol ?? "₹"}{Math.Max(0,minSquad-assigned.Count(p => p.AssignedTeamId == t.Id))*minPriceFloor:N0}"));
+            var msg = $"Insufficient starting purse: {underfundedTeams.Count} team(s) need higher purses to fill their remaining minimum squad slots after captain/icon assignments. Required reserves: {teamReserves}.";
             checks.Add(new PreflightCheckItem("TEAM_PURSE_FLOOR", "Teams", "Team Purse Reserve Feasibility", "FAIL", msg, "Increase starting purses in Teams tab"));
             blockingErrors.Add(msg);
         }
         else if (teams.Count > 0)
         {
             checks.Add(new PreflightCheckItem("TEAM_PURSE_FLOOR", "Teams", "Team Purse Reserve Feasibility", "PASS", 
-                $"All {teams.Count} teams have sufficient purse (>= {settings?.CurrencySymbol ?? "₹"}{minPurseFloor:N0}) to acquire required squads"));
+                $"All {teams.Count} teams have sufficient purse to fill their remaining minimum squad slots after captain/icon assignments."));
         }
 
         // 3. Player Sets Checks
@@ -130,11 +138,11 @@ public class TournamentPreflightService : ITournamentPreflightService
                 $"{sets.Count} ordered auction sets configured"));
         }
 
-        var emptySets = sets.Where(s => s.Players.Count == 0).ToList();
+        var emptySets = sets.Where(s => s.Players.All(p => p.AssignedTeamId != null)).ToList();
         if (emptySets.Count > 0)
         {
             var setNames = string.Join(", ", emptySets.Select(s => s.Name));
-            var msg = $"Notice: {emptySets.Count} player set(s) ({setNames}) have 0 players assigned. These rounds will be skipped during auction.";
+            var msg = $"Notice: {emptySets.Count} player set(s) ({setNames}) have 0 auction-eligible players. These rounds will be skipped during auction.";
             checks.Add(new PreflightCheckItem("EMPTY_SETS", "Sets", "Set Distribution", "WARN", msg, "Assign players or delete empty sets"));
             warnings.Add(msg);
         }
@@ -146,8 +154,8 @@ public class TournamentPreflightService : ITournamentPreflightService
 
         if (settings?.SellAllPlayers == true)
         {
-            var allocation = RemainingPlayerFeasibility.Check(players.Select(p => Math.Max(p.BasePrice, settings.MinimumAcquisitionPrice)),
-                teams.Select(t => new PurchaseCapacity(t.InitialPurse, settings.MaximumSquadSize, settings.MinimumSquadSize)));
+            var allocation = RemainingPlayerFeasibility.Check(auctionPlayers.Select(p => Math.Max(p.BasePrice, settings.MinimumAcquisitionPrice)),
+                teams.Select(t => new PurchaseCapacity(t.InitialPurse, settings.MaximumSquadSize-assigned.Count(p => p.AssignedTeamId == t.Id), Math.Max(0,settings.MinimumSquadSize-assigned.Count(p => p.AssignedTeamId == t.Id)))));
             var feasible = allocation == PurchaseFeasibility.Feasible;
             var message = feasible ? "Every player can be allocated at their base price within individual team purses and squad limits."
                 : allocation == PurchaseFeasibility.SearchLimit ? "A complete player allocation could not be verified within the validation limit. Adjust team purses/squad limits or disable Sell all players."
@@ -158,6 +166,7 @@ public class TournamentPreflightService : ITournamentPreflightService
 
         // 4. Player Registry & Mathematical Squad Feasibility
         int requiredMinPlayers = teams.Count * minSquad;
+        int requiredAuctionPlayers = teams.Sum(t => Math.Max(0,minSquad-assigned.Count(p => p.AssignedTeamId == t.Id)));
 
         if (players.Count == 0)
         {
@@ -172,7 +181,7 @@ public class TournamentPreflightService : ITournamentPreflightService
         }
 
         // Check for players below price floor
-        var underpricedPlayers = players.Where(p => p.BasePrice < minPriceFloor).ToList();
+        var underpricedPlayers = auctionPlayers.Where(p => p.BasePrice < minPriceFloor).ToList();
         if (underpricedPlayers.Count > 0)
         {
             var msg = $"{underpricedPlayers.Count} player(s) have base prices below the tournament floor ({settings?.CurrencySymbol ?? "₹"}{minPriceFloor:N0}).";
@@ -188,10 +197,11 @@ public class TournamentPreflightService : ITournamentPreflightService
         // Mathematical squad feasibility check
         if (teams.Count >= 2 && minSquad >= 1)
         {
-            if (players.Count < requiredMinPlayers)
+            if (auctionPlayers.Count < requiredAuctionPlayers)
             {
-                var shortfall = requiredMinPlayers - players.Count;
+                var shortfall = requiredAuctionPlayers - auctionPlayers.Count;
                 var msg = $"Mathematical Squad Shortfall: {teams.Count} teams require at least {minSquad} players each ({requiredMinPlayers} total players), but only {players.Count} players are available. You need at least {shortfall} more player(s) to fulfill minimum squad rules.";
+                if (assigned.Count > 0) msg = $"Mathematical Squad Shortfall: after captain/icon assignments, teams still need {requiredAuctionPlayers} auction players, but only {auctionPlayers.Count} are available. Add at least {shortfall} more player(s).";
                 checks.Add(new PreflightCheckItem("SQUAD_FEASIBILITY", "Feasibility", "Mathematical Squad Feasibility", "FAIL", msg, $"Add at least {shortfall} more players"));
                 blockingErrors.Add(msg);
             }

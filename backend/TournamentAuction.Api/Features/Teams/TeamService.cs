@@ -26,12 +26,12 @@ public class TeamService : ITeamService
 
         var teams = await _db.Teams
             .AsNoTracking()
+            .Include(t => t.AssignedPlayers)
             .Where(t => t.TournamentId == tournamentId)
             .OrderBy(t => t.Name)
-            .Select(t => ToDto(t))
             .ToListAsync();
 
-        return teams;
+        return teams.Select(ToDto).ToList();
     }
 
     public async Task<TeamDto?> GetTeamByIdAsync(Guid tournamentId, Guid teamId, Guid userId)
@@ -47,6 +47,7 @@ public class TeamService : ITeamService
 
         var team = await _db.Teams
             .AsNoTracking()
+            .Include(t => t.AssignedPlayers)
             .FirstOrDefaultAsync(t => t.TournamentId == tournamentId && t.Id == teamId);
 
         return team == null ? null : ToDto(team);
@@ -133,7 +134,7 @@ public class TeamService : ITeamService
             throw new UnauthorizedAccessException("Only the tournament OWNER can update teams.");
         }
 
-        var team = await _db.Teams.FirstOrDefaultAsync(t => t.TournamentId == tournamentId && t.Id == teamId);
+        var team = await _db.Teams.Include(t => t.AssignedPlayers).FirstOrDefaultAsync(t => t.TournamentId == tournamentId && t.Id == teamId);
         if (team == null)
         {
             throw new KeyNotFoundException("Team not found.");
@@ -155,7 +156,7 @@ public class TeamService : ITeamService
         }
 
         var settings = await _db.TournamentSettings.FirstOrDefaultAsync(s => s.TournamentId == tournamentId);
-        var minReserve = (settings?.MinimumSquadSize ?? 12) * (settings?.MinimumAcquisitionPrice ?? 500);
+        var minReserve = Math.Max(0,(settings?.MinimumSquadSize ?? 12)-team.AssignedPlayers.Count) * (settings?.MinimumAcquisitionPrice ?? 500);
 
         if (request.InitialPurse.HasValue && request.InitialPurse.Value > 0)
         {
@@ -199,6 +200,7 @@ public class TeamService : ITeamService
 
         var team = await _db.Teams.FirstOrDefaultAsync(t => t.TournamentId == tournamentId && t.Id == teamId);
         if (team == null) return;
+        if (await _db.Players.AnyAsync(p => p.AssignedTeamId == teamId)) throw new InvalidOperationException("Remove the team's captain and icon assignments before deleting the team.");
 
         _db.Teams.Remove(team);
         await _db.SaveChangesAsync();
@@ -216,6 +218,7 @@ public class TeamService : ITeamService
             t.OwnerName,
             t.InitialPurse,
             t.CreatedAtUtc,
-            t.UpdatedAtUtc
+            t.UpdatedAtUtc,
+            t.AssignedPlayers.OrderBy(p => p.AssignedRole).Select(TeamAssignedPlayerDto.From).ToList()
         );
 }

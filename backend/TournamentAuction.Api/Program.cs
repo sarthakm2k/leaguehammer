@@ -32,6 +32,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITournamentService, TournamentService>();
 builder.Services.AddScoped<ITournamentSettingsService, TournamentSettingsService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
+builder.Services.AddScoped<TeamAssignmentService>();
 builder.Services.AddScoped<IBasePriceTierService, BasePriceTierService>();
 builder.Services.AddScoped<IPlayerSetService, PlayerSetService>();
 builder.Services.AddScoped<IPlayerService, PlayerService>();

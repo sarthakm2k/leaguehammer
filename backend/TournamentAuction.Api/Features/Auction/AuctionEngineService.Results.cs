@@ -30,7 +30,7 @@ public partial class AuctionEngineService
             ? await _db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead) : null;
         var session = await _db.AuctionSessions.Include(s => s.CurrentSet).FirstOrDefaultAsync(s => s.TournamentId == tournament.Id);
         var state = session == null ? await BuildInitialAuctionStateAsync(tournament) : await BuildAuctionStateAsync(tournament, session);
-        var players = await _db.Players.Include(p => p.PlayerSet).Where(p => p.TournamentId == tournament.Id)
+        var players = await _db.Players.Include(p => p.PlayerSet).Include(p => p.AssignedTeam).Where(p => p.TournamentId == tournament.Id)
             .OrderBy(p => p.Name).ThenBy(p => p.Id).ToListAsync();
         var lots = await _db.AuctionLots.Include(l => l.Player).Include(l => l.PlayerSet).Include(l => l.WinningTeam)
             .Where(l => l.TournamentId == tournament.Id).ToListAsync();
@@ -43,19 +43,20 @@ public partial class AuctionEngineService
                 player.PreferredFoot, player.JerseyNumber, player.PlayerSetId, player.PlayerSet.Name, player.BasePrice,
                 player.Status, attempts.Count(l => l.RevealedAtUtc != null), sold?.WinningTeamId, sold?.WinningTeam?.Name,
                 sold?.FinalPrice, sold?.FinalPrice - player.BasePrice,
-                sold?.FinalPrice != null && player.BasePrice > 0 ? (decimal)sold.FinalPrice.Value / player.BasePrice : null, player.CardPosition, CardRatings.FromPlayer(player));
+                sold?.FinalPrice != null && player.BasePrice > 0 ? (decimal)sold.FinalPrice.Value / player.BasePrice : null, player.CardPosition, CardRatings.FromPlayer(player), player.AssignedTeamId, player.AssignedTeam?.Name, player.AssignedRole);
         }).ToList();
         var soldPlayers = results.Where(p => p.Status == "SOLD" && p.FinalPrice != null)
             .OrderByDescending(p => p.FinalPrice).ThenBy(p => p.PlayerName).ThenBy(p => p.PlayerId).ToList();
         var unsoldCount = results.Count(p => p.Status is "UNSOLD" or "FINAL_UNSOLD");
         var teamStats = state.TeamStandings.Select(standing =>
         {
-            var roster = soldPlayers.Where(p => p.WinningTeamId == standing.TeamId).ToList();
-            return new TeamStatisticsDto(standing, Average(roster), roster.FirstOrDefault(), PositionStats(roster));
+            var purchases = soldPlayers.Where(p => p.WinningTeamId == standing.TeamId).ToList();
+            var roster = results.Where(p => p.AssignedTeamId == standing.TeamId || p.WinningTeamId == standing.TeamId).ToList();
+            return new TeamStatisticsDto(standing, Average(purchases), purchases.FirstOrDefault(), PositionStats(roster));
         }).ToList();
         var setStats = sets.Select(set =>
         {
-            var all = results.Where(p => p.PlayerSetId == set.Id).ToList();
+            var all = results.Where(p => p.PlayerSetId == set.Id && p.AssignedTeamId == null).ToList();
             var sold = soldPlayers.Where(p => p.PlayerSetId == set.Id).ToList();
             return new SetStatisticsDto(set.Id, set.Name, set.SortOrder, all.Count, sold.Count,
                 all.Count(p => p.Status is "UNSOLD" or "FINAL_UNSOLD"), sold.Sum(p => p.FinalPrice!.Value),
@@ -65,7 +66,7 @@ public partial class AuctionEngineService
         var median = prices.Count == 0 ? 0 : prices.Count % 2 == 1 ? prices[prices.Count / 2]
             : ((decimal)prices[prices.Count / 2 - 1] + prices[prices.Count / 2]) / 2;
         var statistics = new TournamentStatisticsDto(results.Count, soldPlayers.Count, unsoldCount,
-            results.Count(p => p.Status is "AVAILABLE" or "ON_AUCTION"), Percentage(soldPlayers.Count, results.Count),
+            results.Count(p => p.Status is "AVAILABLE" or "ON_AUCTION"), Percentage(soldPlayers.Count, results.Count(p => p.AssignedTeamId == null)),
             soldPlayers.Sum(p => p.FinalPrice!.Value), Average(soldPlayers), median, soldPlayers.FirstOrDefault()?.FinalPrice ?? 0,
             soldPlayers.Take(10).ToList(), soldPlayers.OrderByDescending(p => p.PricePremium).FirstOrDefault(),
             soldPlayers.Where(p => p.PriceMultiplier != null).OrderByDescending(p => p.PriceMultiplier).FirstOrDefault(),
@@ -76,10 +77,10 @@ public partial class AuctionEngineService
             teamStats.OrderByDescending(t => t.Standing.RemainingPurse).FirstOrDefault()?.Standing.TeamId,
             teamStats.OrderByDescending(t => t.Standing.CurrentSquadSize).FirstOrDefault()?.Standing.TeamId,
             setStats.Where(s => s.PlayerCount > 0).OrderByDescending(s => s.SellThroughPercentage)
-                .ThenByDescending(s => s.TotalSpent).ThenBy(s => s.SortOrder).FirstOrDefault()?.SetId);
+                .ThenByDescending(s => s.TotalSpent).ThenBy(s => s.SortOrder).FirstOrDefault()?.SetId, results.Count(p => p.AssignedTeamId != null));
         var publicState = new PublicAuctionStateDto(state.TournamentId, state.TournamentName, tournament.Slug,
             state.CurrencyCode, state.CurrencySymbol, state.SessionStatus, state.Version, state.IsUnsoldRound,
-            state.CurrentSetName, ToPublic(state.CurrentLot), ToPublic(state.LastResult), results.Count,
+            state.CurrentSetName, ToPublic(state.CurrentLot), ToPublic(state.LastResult), state.TotalPlayersCount,
             soldPlayers.Count, unsoldCount, state.TeamStandings,
             lots.Where(l => l.Status == AuctionLotStatus.SOLD).OrderByDescending(l => l.CompletedAtUtc).ThenBy(l => l.Id)
                 .Select(l => ToPublic(MapLot(l))!).ToList(), state.CurrentSetSummary, state.SellAllPlayers, state.CurrentAttemptNumber);
@@ -92,6 +93,6 @@ public partial class AuctionEngineService
     private static string PositionName(string? position) => string.IsNullOrWhiteSpace(position) ? "Unspecified" : position.Trim();
     private static List<PositionStatisticsDto> PositionStats(List<ResultPlayerDto> sold) => sold
         .GroupBy(p => PositionName(p.Position), StringComparer.OrdinalIgnoreCase)
-        .Select(g => new PositionStatisticsDto(g.Key, g.Count(), g.Sum(p => p.FinalPrice!.Value)))
+        .Select(g => new PositionStatisticsDto(g.Key, g.Count(), g.Sum(p => p.FinalPrice ?? 0)))
         .OrderByDescending(p => p.TotalSpent).ThenBy(p => p.Position).ToList();
 }

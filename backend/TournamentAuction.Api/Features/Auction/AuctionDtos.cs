@@ -20,7 +20,8 @@ public record TeamAuctionStandingDto(
     int MaxSlotsAvailable,
     long RequiredReserveForMinSquad,
     long MaximumAllowedBid,
-    bool CanBid
+    bool CanBid,
+    List<TournamentAuction.Api.Features.Teams.TeamAssignedPlayerDto>? AssignedPlayers = null
 );
 
 public record AuctionLotDto(

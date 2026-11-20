@@ -11,6 +11,7 @@ import { ConnectionIndicator } from './ConnectionIndicator';
 import { usePlayerReveal } from './usePlayerReveal';
 import { PlayerCardReveal, PlayerRevealMessage } from './PlayerCardReveal';
 import { formatCurrency } from '../../utils/formatters';
+import { roleLabel } from '../teams/teamPlayers';
 import './projector.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -75,6 +76,7 @@ export function ProjectorPage() {
   const leadingTeam = state.teamStandings.find(t => t.teamId === (sold ? lot?.winningTeamId : lot?.leadingTeamId));
   const rosterTeam = state.teamStandings.find(t => t.teamId === selectedTeamId) || state.teamStandings[0];
   const roster = state.soldPlayers.filter(p => p.winningTeamId === rosterTeam?.teamId);
+  const assigned = rosterTeam?.assignedPlayers || [];
   const progress = state.totalPlayersCount ? Math.round((state.totalSoldPlayersCount + state.totalUnsoldPlayersCount) / state.totalPlayersCount * 100) : 0;
 
   const teamColumns = state.teamStandings.length <= 4 ? 1 : state.teamStandings.length <= 12 ? 2 : state.teamStandings.length <= 24 ? 3 : 4;
@@ -119,7 +121,7 @@ export function ProjectorPage() {
           <div className="stage-team-finance"><div><span>Purse remaining</span><b data-testid={`purse-${team.shortName}`}>{money(team.remainingPurse)}</b></div><div><span>Squad</span><b>{team.currentSquadSize}<small> / {team.maximumSquadSize}</small></b></div></div>
           <div className="stage-squad-progress"><span style={{ width: `${Math.min(100, team.currentSquadSize / Math.max(1, team.minimumSquadSize) * 100)}%` }} /></div>
         </button>)}</div>
-        <details className="stage-roster" open={state.teamStandings.length <= 2} aria-label="Selected team roster"><summary className="stage-roster-heading"><h3>{rosterTeam?.shortName || 'Team'} / Current squad</h3><span>{roster.length} signed · View</span></summary><div className="stage-roster-list">{roster.length ? roster.map(player => <div key={player.lotId}><span><b>{player.playerName}</b><small>{player.position || 'Player'}</small></span><strong>{money(player.finalPrice ?? 0)}</strong></div>) : <p>The first signing is still to come.</p>}</div></details>
+        <details className="stage-roster" open={state.teamStandings.length <= 2} aria-label="Selected team roster"><summary className="stage-roster-heading"><h3>{rosterTeam?.shortName || 'Team'} / Current squad</h3><span>{roster.length+assigned.length} in squad · View</span></summary><div className="stage-roster-list">{assigned.map(player=><div key={player.playerId}><span><b>{player.playerName}</b><small>{roleLabel(player.role)} · {player.position || 'Player'}</small></span><strong>Preassigned</strong></div>)}{roster.map(player => <div key={player.lotId}><span><b>{player.playerName}</b><small>{player.position || 'Player'}</small></span><strong>{money(player.finalPrice ?? 0)}</strong></div>)}{!roster.length && !assigned.length && <p>The first signing is still to come.</p>}</div></details>
       </aside>
     </main>
 

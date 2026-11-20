@@ -294,11 +294,13 @@ public class TournamentService : ITournamentService
             copy.CreatedAtUtc = now;
             _db.BasePriceTiers.Add(copy);
         }
+        var teamIds = new Dictionary<Guid, Guid>();
         foreach (var team in source.Teams)
         {
             var copy = (Team)_db.Entry(team).CurrentValues.ToObject();
             copy.Id = Guid.NewGuid(); copy.TournamentId = clone.Id;
             copy.CreatedAtUtc = now; copy.UpdatedAtUtc = null;
+            teamIds.Add(team.Id,copy.Id);
             _db.Teams.Add(copy);
         }
         var setIds = new Dictionary<Guid, Guid>();
@@ -313,7 +315,8 @@ public class TournamentService : ITournamentService
         {
             var copy = (Player)_db.Entry(player).CurrentValues.ToObject();
             copy.Id = Guid.NewGuid(); copy.TournamentId = clone.Id; copy.PlayerSetId = setIds[player.PlayerSetId];
-            copy.Status = "AVAILABLE"; copy.CreatedAtUtc = now; copy.UpdatedAtUtc = null;
+            copy.AssignedTeamId = player.AssignedTeamId is Guid assignedTeamId ? teamIds[assignedTeamId] : null;
+            copy.Status = copy.AssignedTeamId != null ? "ASSIGNED" : "AVAILABLE"; copy.CreatedAtUtc = now; copy.UpdatedAtUtc = null;
             _db.Players.Add(copy);
         }
         // Registration starts disabled with no dates, submissions or contact details.

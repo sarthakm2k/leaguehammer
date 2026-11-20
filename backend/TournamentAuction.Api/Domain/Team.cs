@@ -23,4 +23,5 @@ public class Team
 
     // Navigation
     public Tournament Tournament { get; set; } = null!;
+    public ICollection<Player> AssignedPlayers { get; set; } = new List<Player>();
 }

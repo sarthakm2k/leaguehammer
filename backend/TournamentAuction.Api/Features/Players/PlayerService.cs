@@ -229,6 +229,7 @@ public class PlayerService : IPlayerService
             .FirstOrDefaultAsync(p => p.TournamentId == tournamentId && p.Id == playerId);
         if (player == null)
             throw new KeyNotFoundException("Player not found");
+        if (player.AssignedTeamId != null) throw new InvalidOperationException("Remove this player's captain or icon assignment before deleting them.");
 
         _db.Players.Remove(player);
         await _db.SaveChangesAsync();

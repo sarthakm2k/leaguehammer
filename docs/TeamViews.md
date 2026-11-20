@@ -13,6 +13,18 @@ Existing shared URLs `/live/:slug/teams/:teamId` now open a franchise dashboard.
 
 The maximum bid displayed comes from the auction engine. It does not promise that every remaining player can be purchased: the engine still validates each purchase against all purse and squad feasibility rules.
 
+## Team captains and icon players
+
+In **Participating Teams → Assign captain & icon**, the owner can select one captain and one icon player while the tournament is in DRAFT. Select from available players in Player Registry, including approved registrations. The two roles must use different players, and a player cannot belong to two teams. Either role may be left empty. Choosing **Not assigned** releases the player back to the auction pool. Assignments lock once the tournament leaves DRAFT; a READY tournament must first be returned to DRAFT.
+
+Assigned players cost nothing and count toward both minimum and maximum squad size. Auction reserve calculations account for those occupied slots. They have status `ASSIGNED`, never create auction lots or sales, never enter random draws or unsold rounds, and do not inflate auction sales, spending, average prices or sell-through percentages. Sets containing only assigned players are skipped. Release a player's role before deleting their team/player record or undoing/rejecting their registration approval.
+
+Team cards, shared franchise pages, projector rosters, results, recap, Wrapped and downloaded squad/player images show the assigned players with Captain or Icon player labels. They display **Preassigned** rather than a sale price. Mock tournament clones preserve these assignments using the cloned player/team IDs.
+
+The authenticated GET/PUT endpoint is `/api/tournaments/:tournamentId/teams/:teamId/assignments`. Reading requires tournament membership; changes require OWNER membership. The database migration `20261120055600_AddTeamCaptainAndIconAssignments` adds nullable assignment fields, a role uniqueness index, a status constraint and a team foreign key. Existing players remain unchanged. Apply this migration before running the updated API (or use the configured startup migration).
+
+Verification includes backend coverage for permissions, distinct roles, reassignment/release, squad limits, reserves, auction exclusion, completion, registration safeguards and cloning. Browser coverage is in `tests/team-assignments.spec.ts`, including mobile assignment, public views, Wrapped exports and projector rosters.
+
 ## Logo uploads
 
 Owners upload logos from the Participating Teams cards. This works for existing teams in any tournament status and preserves all other team fields. Editing team configuration retains the uploaded logo.

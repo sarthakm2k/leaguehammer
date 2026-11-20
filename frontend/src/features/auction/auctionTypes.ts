@@ -1,3 +1,4 @@
+import type { AssignedTeamPlayer } from '../teams/teamPlayers';
 export interface TeamAuctionStandingDto {
   teamId: string;
   teamName: string;
@@ -16,6 +17,7 @@ export interface TeamAuctionStandingDto {
   requiredReserveForMinSquad: number;
   maximumAllowedBid: number;
   canBid: boolean;
+  assignedPlayers?: AssignedTeamPlayer[] | null;
 }
 
 export interface AuctionLotDto {
@@ -129,6 +131,7 @@ export interface AuctionEventDto {
 }
 
 export interface PlayerSetSummary {
+  auctionPlayerCount?: number | null;
   id: string;
   name: string;
   description?: string | null;

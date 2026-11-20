@@ -1,6 +1,7 @@
 import type { PublicAuctionStateDto, TeamAuctionStandingDto } from './auctionTypes';
 
 export interface ResultPlayer {
+  assignedTeamId?:string|null; assignedTeamName?:string|null; assignedRole?:string|null;
   playerId: string; playerName: string; photoUrl: string | null; position: string | null;
   age: number | null; preferredFoot: string | null; jerseyNumber: number | null;
   playerSetId: string; playerSetName: string; basePrice: number; status: string; attemptCount: number;
@@ -17,6 +18,7 @@ export interface SetStatistics {
   totalSpent: number; averageSalePrice: number; highestSalePrice: number; sellThroughPercentage: number;
 }
 export interface TournamentStatistics {
+  assignedPlayers?:number;
   totalPlayers: number; soldPlayers: number; unsoldPlayers: number; availablePlayers: number;
   salePercentage: number; totalSpent: number; averageSalePrice: number; medianSalePrice: number; highestSalePrice: number;
   topPlayers: ResultPlayer[]; biggestPricePremium: ResultPlayer | null; highestPriceMultiplier: ResultPlayer | null;

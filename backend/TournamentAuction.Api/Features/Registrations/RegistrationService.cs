@@ -208,6 +208,7 @@ public class RegistrationService(TournamentAuctionDbContext db, IPlayerService p
         {
             player = await db.Players.SingleOrDefaultAsync(p => p.Id == playerId && p.TournamentId == id)
                 ?? throw new InvalidOperationException("The linked player could not be found. Refresh the registration list.");
+            if (player.AssignedTeamId != null) throw new InvalidOperationException("Remove this player's captain or icon assignment before changing their registration approval.");
             if (player.Status != "AVAILABLE" || await db.AuctionLots.AnyAsync(l => l.PlayerId == playerId))
                 throw new InvalidOperationException("This player has already entered an auction. Their approval cannot be changed.");
         }
