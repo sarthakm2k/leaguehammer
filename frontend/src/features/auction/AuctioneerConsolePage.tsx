@@ -1,4 +1,5 @@
 import { PlayerPortrait } from '../players/PlayerPortrait';
+import { STANDARD_AUCTION_ATTEMPTS } from './unsoldRounds';
 import { LeagueHammerBrand } from '../../components/LeagueHammerBrand';
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -104,6 +105,7 @@ export function AuctioneerConsolePage() {
   const currencySymbol = state?.currencySymbol ?? '₹';
   const normalSetFinished = !!state?.currentSetId && !state.isUnsoldRound && state.currentSetSummary?.remainingCount === 0;
   const unsoldRoundFinished = !!state?.isUnsoldRound && state.unsoldRoundRemainingCount === 0;
+  const needsUnsoldRound = !!state && !state.sellAllPlayers && state.totalUnsoldPlayersCount > 0 && (state.currentAttemptNumber ?? 1) < STANDARD_AUCTION_ATTEMPTS;
   const nextNormalSet = allSets.find(set => set.id !== state?.currentSetId && !state?.completedSetIds?.includes(set.id));
   const visibleSetSummary = showSetSummary && (!state?.currentSetId || state.currentSetId === showSetSummary.setId) ? showSetSummary : null;
 
@@ -322,7 +324,9 @@ export function AuctioneerConsolePage() {
     const confirmed = window.confirm(
       state?.sellAllPlayers
         ? 'Start unsold rounds? Remaining unsold players will continue into new rounds until everyone is sold.'
-        : 'Start the mandatory Final Unsold Round?\n\nAll players who went unsold in round 1 will be re-auctioned once.'
+        : state?.isUnsoldRound
+          ? 'Start the Final Unsold Round? Players still unsold will receive their third and final attempt.'
+          : 'Start Unsold Round 1? Players still unsold afterward will receive a third attempt in the Final Unsold Round.'
     );
     if (!confirmed) return;
 
@@ -334,7 +338,7 @@ export function AuctioneerConsolePage() {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.detail || 'Failed to start final unsold round');
+        throw new Error(err.detail || 'Failed to start unsold round');
       }
       await fetchState();
     } catch (err: unknown) {
@@ -863,9 +867,9 @@ export function AuctioneerConsolePage() {
                 <p className="text-xs text-slate-400 leading-relaxed">
                   {normalSetFinished
                     ? `${state.currentSetName}: ${state.currentSetSummary?.soldCount} sold, ${state.currentSetSummary?.unsoldCount} unsold. ${nextNormalSet ? 'Go to the next set when you are ready, or review this set summary.' : 'Complete this set to continue to unsold rounds or auction completion.'}`
-                    : unsoldRoundFinished ? 'Every player in this round has been resolved. You can now complete the auction.'
+                    : unsoldRoundFinished ? (needsUnsoldRound ? 'Players are still unsold. Launch the Final Unsold Round to give them their third and final attempt.' : 'Every player in this round has been resolved. You can now complete the auction.')
                     : state.currentSetId || state.isUnsoldRound
-                    ? `Active Set: ${state.currentSetName || 'Final Unsold Round'}. Reveal the next randomized player to start bidding.`
+                    ? `Active Set: ${state.currentSetName || 'Unsold round'}. Reveal the next randomized player to start bidding.`
                     : 'Select a player set to activate the randomized auction draw.'}
                 </p>
               </div>
@@ -900,8 +904,10 @@ export function AuctioneerConsolePage() {
                     </button>
                   )}
                   {state.isUnsoldRound && state.unsoldRoundRemainingCount === 0 && (
-                    <button onClick={handleCompleteAuction} disabled={mutationBlocked} className="w-full p-4 rounded-xl bg-purple-500/20 text-purple-300 font-bold">
-                      Conclude & Complete Tournament Auction
+                    needsUnsoldRound ? <button onClick={handleStartUnsoldRound} disabled={mutationBlocked} className="w-full p-4 rounded-xl bg-amber-500/20 text-amber-300 font-bold">
+                      Launch Final Unsold Round (Attempt 3) ({state.totalUnsoldPlayersCount} Players)
+                    </button> : <button onClick={handleCompleteAuction} disabled={mutationBlocked} className="w-full p-4 rounded-xl bg-purple-500/20 text-purple-300 font-bold">
+                      Conclude &amp; Complete Tournament Auction
                     </button>
                   )}
                 </div>
@@ -928,21 +934,21 @@ export function AuctioneerConsolePage() {
                     </div>
                   </div>
 
-                  {/* Or Final Unsold Round */}
+                  {/* Start unsold rounds after all normal sets finish. */}
                   {state.totalUnsoldPlayersCount > 0 && !state.isUnsoldRound && state.completedSetsCount === state.totalSetsCount && (
                     <button
                       onClick={handleStartUnsoldRound}
                       disabled={mutationBlocked}
                       className="w-full py-3 px-4 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition"
                     >
-                      {state.sellAllPlayers ? 'Launch Unsold Rounds' : 'Launch Mandatory Final Unsold Round'} ({state.totalUnsoldPlayersCount} Players)
+                      {state.sellAllPlayers ? 'Launch Unsold Rounds' : 'Launch Unsold Round 1 (Attempt 2)'} ({state.totalUnsoldPlayersCount} Players)
                     </button>
                   )}
 
                   {/* Or Complete Auction */}
                   <button
                     onClick={handleCompleteAuction}
-                    disabled={mutationBlocked}
+                    disabled={mutationBlocked || needsUnsoldRound}
                     className="w-full py-3 px-4 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 text-xs font-bold transition"
                   >
                     Conclude & Complete Tournament Auction

@@ -58,6 +58,9 @@ public class AuctionRealtimeTests
         await engine.StartUnsoldRoundAsync(tournament.Id, owner);
         var retry = await engine.RevealNextPlayerAsync(tournament.Id, owner);
         await engine.MarkCurrentPlayerUnsoldAsync(tournament.Id, new(retry.CurrentLot!.LotId), owner);
+        await engine.StartUnsoldRoundAsync(tournament.Id, owner);
+        var finalRetry = await engine.RevealNextPlayerAsync(tournament.Id, owner);
+        await engine.MarkCurrentPlayerUnsoldAsync(tournament.Id, new(finalRetry.CurrentLot!.LotId), owner);
         await engine.CompleteAuctionAsync(tournament.Id, new("Squad shortfall test"), owner);
 
         foreach (var eventName in new[] { "PlayerRevealed", "BidUpdated", "PlayerSold", "PlayerUnsold", "SetCompleted", "ResultCorrected", "AuctionStateChanged" })

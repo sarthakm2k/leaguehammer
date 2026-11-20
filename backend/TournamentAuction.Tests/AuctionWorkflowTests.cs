@@ -243,7 +243,7 @@ public partial class AuctionWorkflowTests
     }
 
     [Fact]
-    public async Task FinalUnsoldIsCountedOnceAndCannotHaveAThirdAttempt()
+    public async Task FinalUnsoldIsCountedOnceAfterThreeAttemptsAndCannotHaveAFourth()
     {
         var (db, engine, tournament, _, _, set) = await Setup(1);
         using (db)
@@ -258,9 +258,89 @@ public partial class AuctionWorkflowTests
             var state = await engine.MarkCurrentPlayerUnsoldAsync(tournament.Id, new(second.LotId), owner);
             Assert.Equal(1, state.TotalUnsoldPlayersCount);
             Assert.Equal(0, state.UnsoldRoundRemainingCount);
+            Assert.Equal("UNSOLD", (await db.Players.SingleAsync()).Status);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => engine.CompleteAuctionAsync(tournament.Id, new("Cannot skip third attempt"), owner));
+            state = await engine.StartUnsoldRoundAsync(tournament.Id, owner);
+            Assert.Equal(3, state.CurrentAttemptNumber);
+            Assert.Equal("Final Unsold Round", state.CurrentSetName);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => engine.StartUnsoldRoundAsync(tournament.Id, owner));
+            var third = (await engine.RevealNextPlayerAsync(tournament.Id, owner)).CurrentLot!;
+            Assert.Equal(first.PlayerId, third.PlayerId);
+            Assert.Equal(first.BasePrice, third.BasePrice);
+            state = await engine.MarkCurrentPlayerUnsoldAsync(tournament.Id, new(third.LotId), owner);
+            Assert.Equal(1, state.TotalUnsoldPlayersCount);
             Assert.Equal("FINAL_UNSOLD", (await db.Players.SingleAsync()).Status);
             await Assert.ThrowsAsync<InvalidOperationException>(() => engine.StartUnsoldRoundAsync(tournament.Id, owner));
-            Assert.Equal(2, await db.AuctionLots.CountAsync());
+            Assert.Equal(3, await db.AuctionLots.CountAsync());
+            var history = await engine.GetAuctionHistoryAsync(tournament.Id, owner);
+            Assert.Equal(new[] { 1, 2, 3 }, history.Attempts.OrderBy(l => l.AttemptNumber).Select(l => l.AttemptNumber));
+            var events = await engine.GetAuctionEventsAsync(tournament.Id, owner);
+            var unsoldEvents = events.Where(e => e.EventType == AuctionEventTypes.PlayerUnsold).Select(e => JsonDocument.Parse(e.EventData).RootElement.Clone()).ToList();
+            Assert.False(unsoldEvents.Single(e => e.GetProperty("attemptNumber").GetInt32() == 2).GetProperty("isFinal").GetBoolean());
+            Assert.True(unsoldEvents.Single(e => e.GetProperty("attemptNumber").GetInt32() == 3).GetProperty("isFinal").GetBoolean());
+            Assert.Equal("COMPLETED", (await engine.CompleteAuctionAsync(tournament.Id, new("Accept squad shortfalls after all attempts"), owner)).SessionStatus);
+        }
+    }
+
+    [Fact]
+    public async Task ThirdAttemptCanSellAndPreservesTheDrawAcrossReloads()
+    {
+        var (db, engine, tournament, first, second, set) = await Setup();
+        using (db)
+        {
+            var owner = tournament.OwnerUserId;
+            await engine.StartSetAsync(tournament.Id, new(set.Id), owner);
+            var original = (await engine.RevealNextPlayerAsync(tournament.Id, owner)).CurrentLot!;
+            await engine.MarkCurrentPlayerUnsoldAsync(tournament.Id, new(original.LotId), owner);
+            var sold = (await engine.RevealNextPlayerAsync(tournament.Id, owner)).CurrentLot!;
+            await engine.SellCurrentPlayerAsync(tournament.Id, new(sold.LotId, first.Id, 500), owner);
+            await engine.CompleteSetAsync(tournament.Id, set.Id, owner);
+            Assert.Equal("Unsold Round 1", (await engine.StartUnsoldRoundAsync(tournament.Id, owner)).CurrentSetName);
+            var retry = (await engine.RevealNextPlayerAsync(tournament.Id, owner)).CurrentLot!;
+            await engine.MarkCurrentPlayerUnsoldAsync(tournament.Id, new(retry.LotId), owner);
+            db.ChangeTracker.Clear();
+            var waiting = await engine.GetAuctionStateAsync(tournament.Id, owner);
+            Assert.Equal(2, waiting.CurrentAttemptNumber);
+            Assert.Equal(0, waiting.UnsoldRoundRemainingCount);
+            await engine.StartUnsoldRoundAsync(tournament.Id, owner);
+            db.ChangeTracker.Clear();
+            Assert.Equal(1, (await engine.GetAuctionStateAsync(tournament.Id, owner)).UnsoldRoundRemainingCount);
+            var third = (await engine.RevealNextPlayerAsync(tournament.Id, owner)).CurrentLot!;
+            Assert.Equal(original.PlayerId, third.PlayerId);
+            Assert.Equal(3, third.AttemptNumber);
+            Assert.Equal(original.BasePrice, third.BasePrice);
+            await engine.SellCurrentPlayerAsync(tournament.Id, new(third.LotId, second.Id, 750), owner);
+            Assert.Equal("COMPLETED", (await engine.CompleteAuctionAsync(tournament.Id, null, owner)).SessionStatus);
+            var results = await engine.GetAuctionResultsAsync(tournament.Id, owner);
+            Assert.Equal(2, results.Statistics.SoldPlayers);
+            Assert.Equal(0, results.Statistics.UnsoldPlayers);
+            Assert.Equal(1250, results.Statistics.TotalSpent);
+            Assert.Equal(3, results.Players.Single(p => p.PlayerId == original.PlayerId).AttemptCount);
+            Assert.Equal(1, results.Players.Single(p => p.PlayerId == sold.PlayerId).AttemptCount);
+        }
+    }
+
+    [Fact]
+    public async Task InProgressLegacySecondAttemptFinalUnsoldCanReceiveThirdAttempt()
+    {
+        var (db, engine, tournament, _, _, set) = await Setup(1);
+        using (db)
+        {
+            var owner = tournament.OwnerUserId;
+            await engine.StartSetAsync(tournament.Id, new(set.Id), owner);
+            var lot = (await engine.RevealNextPlayerAsync(tournament.Id, owner)).CurrentLot!;
+            await engine.MarkCurrentPlayerUnsoldAsync(tournament.Id, new(lot.LotId), owner);
+            await engine.CompleteSetAsync(tournament.Id, set.Id, owner);
+            await engine.StartUnsoldRoundAsync(tournament.Id, owner);
+            lot = (await engine.RevealNextPlayerAsync(tournament.Id, owner)).CurrentLot!;
+            await engine.MarkCurrentPlayerUnsoldAsync(tournament.Id, new(lot.LotId), owner);
+            (await db.Players.SingleAsync()).Status = "FINAL_UNSOLD";
+            await db.SaveChangesAsync();
+            await Assert.ThrowsAsync<InvalidOperationException>(() => engine.CompleteAuctionAsync(tournament.Id, new("Old final result"), owner));
+            var state = await engine.StartUnsoldRoundAsync(tournament.Id, owner);
+            Assert.Equal(3, state.CurrentAttemptNumber);
+            Assert.Equal("UNSOLD", (await db.Players.SingleAsync()).Status);
+            Assert.Equal(1, state.UnsoldRoundRemainingCount);
         }
     }
 }

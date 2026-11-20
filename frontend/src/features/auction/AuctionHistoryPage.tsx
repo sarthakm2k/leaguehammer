@@ -1,4 +1,5 @@
 import { LeagueHammerBrand } from '../../components/LeagueHammerBrand';
+import { STANDARD_AUCTION_ATTEMPTS } from './unsoldRounds';
 import { useCallback, useState } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
@@ -93,7 +94,7 @@ export function AuctionHistoryPage() {
           <div className="flex flex-wrap gap-3">
             <input aria-label="Search auction history" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search player, set or team" className="p-3 bg-slate-950 border border-slate-700 rounded-xl flex-1 min-w-0" />
             <select aria-label="Filter attempts" value={filter} onChange={event => setFilter(event.target.value)} className="p-3 bg-slate-950 border border-slate-700 rounded-xl">
-              <option value="ALL">All results</option><option value="SOLD">Sold</option><option value="UNSOLD">Unsold</option><option value="ROUND_2">{auction?.sellAllPlayers ? 'Unsold rounds' : 'Final unsold round'}</option>
+              <option value="ALL">All results</option><option value="SOLD">Sold</option><option value="UNSOLD">Unsold</option><option value="ROUND_2">Unsold rounds</option>
             </select>
           </div>
           <p className="text-xs text-slate-400">Corrections are available for the latest completed result before its next attempt. Resolve the active player first.</p>
@@ -101,7 +102,7 @@ export function AuctionHistoryPage() {
             <thead className="text-slate-400"><tr>{['Player / Set', 'Attempt', 'Result', 'Team / Price', 'Recorded', ''].map((title, index) => <th key={index} className="p-3">{title}</th>)}</tr></thead>
             <tbody>{attempts.map(lot => <tr key={lot.lotId} data-testid={`attempt-${lot.lotId}`} className="border-t border-slate-800">
               <td data-label="Player / Set" className="p-3"><strong>{lot.playerName}</strong><p className="text-xs text-slate-400">{lot.playerSetName}</p></td>
-              <td data-label="Attempt" className="p-3">Attempt {lot.attemptNumber}</td><td data-label="Result" className={`p-3 font-bold ${lot.status === 'SOLD' ? 'text-emerald-300' : 'text-amber-300'}`}>{lot.status}{lot.status === 'UNSOLD' && lot.attemptNumber === 2 && !auction?.sellAllPlayers ? ' · Final' : ''}</td>
+              <td data-label="Attempt" className="p-3">Attempt {lot.attemptNumber}</td><td data-label="Result" className={`p-3 font-bold ${lot.status === 'SOLD' ? 'text-emerald-300' : 'text-amber-300'}`}>{lot.status}{lot.status === 'UNSOLD' && lot.attemptNumber >= STANDARD_AUCTION_ATTEMPTS && !auction?.sellAllPlayers ? ' · Final' : ''}</td>
               <td data-label="Team / Price" className="p-3">{lot.winningTeamName ?? '—'}<p>{lot.finalPrice == null ? '—' : `${symbol}${lot.finalPrice.toLocaleString()}`}</p></td>
               <td data-label="Recorded" className="p-3 text-xs text-slate-400">{lot.completedAtUtc ? new Date(lot.completedAtUtc).toLocaleString() : '—'}</td>
               <td data-label="Action" className="p-3">{canCorrect && auction?.lastResult?.lotId === lot.lotId &&

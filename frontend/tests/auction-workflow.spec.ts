@@ -95,7 +95,7 @@ test('final-round attempts, history corrections and a shareable projector link',
     await expect(consolePage.getByRole('button', { name: /REVEAL NEXT PLAYER|Go to Next Set/ })).toHaveCount(0);
     await consolePage.getByRole('button', { name: 'Complete Active Set', exact: true }).click();
     await consolePage.getByRole('button', { name: 'Close set summary' }).click();
-    await consolePage.getByRole('button', { name: /Launch Mandatory Final Unsold Round/ }).click();
+    await consolePage.getByRole('button', { name: /Launch Unsold Round 1/ }).click();
     await consolePage.getByRole('button', { name: /REVEAL NEXT PLAYER/ }).click();
     await expect(consolePage.getByRole('spinbutton', { name: 'Winning bid price' })).toBeVisible();
     const retry = (await api('get', `${root}/auction`)).currentLot;

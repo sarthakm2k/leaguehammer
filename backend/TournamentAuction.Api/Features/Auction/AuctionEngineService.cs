@@ -9,6 +9,7 @@ namespace TournamentAuction.Api.Features.Auction;
 
 public partial class AuctionEngineService : IAuctionEngineService
 {
+    private const int StandardAuctionAttemptLimit = 3;
     private readonly TournamentAuctionDbContext _db;
     private readonly IHubContext<AuctionHub> _hub;
     private readonly ILogger<AuctionEngineService> _logger;
@@ -182,7 +183,7 @@ public partial class AuctionEngineService : IAuctionEngineService
             throw new KeyNotFoundException($"Player set with ID '{request.SetId}' was not found in this tournament.");
 
         if (session.IsUnsoldRound)
-            throw new InvalidOperationException("Normal sets cannot restart after the Final Unsold Round begins.");
+            throw new InvalidOperationException("Normal sets cannot restart after unsold rounds begin.");
         if (session.CurrentSetId != null && session.CurrentSetId != set.Id)
             throw new InvalidOperationException("Complete the active set before starting another set.");
         var completedSets = await GetCompletedSetIdsAsync(session.Id);
@@ -287,7 +288,7 @@ public partial class AuctionEngineService : IAuctionEngineService
         {
             throw new InvalidOperationException(
                 session.IsUnsoldRound
-                    ? "All players in the final unsold round have been auctioned."
+                    ? "All players in this unsold round have been auctioned."
                     : "All players in this set have been revealed. Please complete the set to proceed.");
         }
 
@@ -466,7 +467,7 @@ public partial class AuctionEngineService : IAuctionEngineService
         lot.CompletedAtUtc = DateTime.UtcNow;
         lot.UpdatedAtUtc = DateTime.UtcNow;
 
-        lot.Player.Status = lot.AttemptNumber >= 2 && tournament.Settings?.SellAllPlayers != true ? "FINAL_UNSOLD" : "UNSOLD";
+        lot.Player.Status = lot.AttemptNumber >= StandardAuctionAttemptLimit && tournament.Settings?.SellAllPlayers != true ? "FINAL_UNSOLD" : "UNSOLD";
         lot.Player.UpdatedAtUtc = DateTime.UtcNow;
 
         session.CurrentLotId = null;
@@ -485,7 +486,7 @@ public partial class AuctionEngineService : IAuctionEngineService
                 playerId = lot.PlayerId,
                 playerName = lot.Player.Name,
                 attemptNumber = lot.AttemptNumber,
-                isFinal = lot.AttemptNumber >= 2 && tournament.Settings?.SellAllPlayers != true
+                isFinal = lot.AttemptNumber >= StandardAuctionAttemptLimit && tournament.Settings?.SellAllPlayers != true
             }
         );
 
@@ -549,10 +550,10 @@ public partial class AuctionEngineService : IAuctionEngineService
         var session = await GetActiveSessionAsync(tournamentId);
         ValidateSessionIsLive(session);
         await ValidateNormalSetsCompletedAsync(tournamentId, session);
-        if (session.IsUnsoldRound && tournament.Settings?.SellAllPlayers != true)
-            throw new InvalidOperationException("The Final Unsold Round has already started. Continue its persisted draw.");
         if (!await QueueUnsoldRoundAsync(tournament, session, userId))
-            throw new InvalidOperationException("No eligible unsold players remain for re-auction.");
+            throw new InvalidOperationException(tournament.Settings?.SellAllPlayers == true
+                ? "Finish any pending attempts first. No eligible unsold players remain for a new round."
+                : "Finish any pending attempts first. No eligible unsold players remain if everyone is sold or has used all three attempts.");
         session.Version++;
         session.UpdatedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync();
@@ -569,15 +570,23 @@ public partial class AuctionEngineService : IAuctionEngineService
             .Where(l => l.Status == AuctionLotStatus.UNSOLD).Select(l => l.PlayerId).ToList();
         if (eligible.Count == 0) return false;
         var attempt = lots.Max(l => l.AttemptNumber) + 1;
-        if (attempt > 2 && tournament.Settings?.SellAllPlayers != true) return false;
+        if (attempt > StandardAuctionAttemptLimit && tournament.Settings?.SellAllPlayers != true) return false;
         var players = await _db.Players.Where(p => eligible.Contains(p.Id)).ToListAsync();
         Random.Shared.Shuffle(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(players));
         for (var i = 0; i < players.Count; i++)
+        {
+            // An in-progress auction deployed under the old two-attempt rule can use the new final round.
+            if (players[i].Status == "FINAL_UNSOLD")
+            {
+                players[i].Status = "UNSOLD";
+                players[i].UpdatedAtUtc = DateTime.UtcNow;
+            }
             _db.AuctionLots.Add(new AuctionLot {
                 AuctionSessionId = session.Id, TournamentId = tournament.Id, PlayerId = players[i].Id,
                 PlayerSetId = players[i].PlayerSetId, AttemptNumber = attempt, DrawPosition = i + 1,
                 Status = AuctionLotStatus.PENDING
             });
+        }
         session.IsUnsoldRound = true;
         session.CurrentSetId = null;
         session.CurrentLotId = null;
@@ -737,16 +746,16 @@ public partial class AuctionEngineService : IAuctionEngineService
         if (tournament.Settings?.SellAllPlayers == true && await _db.Players.AnyAsync(p => p.TournamentId == tournamentId && p.AssignedTeamId == null && p.Status != "SOLD"))
             throw new InvalidOperationException("Sell all players is enabled. Every player must be SOLD before completing the auction; an override cannot bypass this rule.");
 
-        // 2. Check if unsold round was required and not conducted
+        // 2. Every latest unsold result below the standard limit must receive another attempt.
         var unresolvedUnsoldCount = await _db.AuctionLots
-            .Where(l => l.AuctionSessionId == session.Id && l.AttemptNumber == 1 && l.Status == AuctionLotStatus.UNSOLD)
-            .Where(l => !_db.AuctionLots.Any(a2 => a2.AuctionSessionId == session.Id && a2.PlayerId == l.PlayerId && a2.AttemptNumber == 2))
+            .Where(l => l.AuctionSessionId == session.Id && l.AttemptNumber < StandardAuctionAttemptLimit && l.Status == AuctionLotStatus.UNSOLD)
+            .Where(l => !_db.AuctionLots.Any(next => next.AuctionSessionId == session.Id && next.PlayerId == l.PlayerId && next.AttemptNumber > l.AttemptNumber))
             .CountAsync();
 
         if (unresolvedUnsoldCount > 0)
         {
             throw new InvalidOperationException(
-                $"Cannot complete auction: {unresolvedUnsoldCount} unsold player(s) have not received their mandatory Final Unsold Round attempt.");
+                $"Cannot complete auction: {unresolvedUnsoldCount} unsold player(s) still require another unsold round. Players must receive up to three attempts unless sold earlier.");
         }
 
         // 3. Verify squad sizes meet MinimumSquadSize
@@ -858,7 +867,7 @@ public partial class AuctionEngineService : IAuctionEngineService
     {
         var completed = await GetCompletedSetIdsAsync(session.Id);
         if (session.CurrentSetId != null || await _db.PlayerSets.AnyAsync(s => s.TournamentId == tournamentId && !completed.Contains(s.Id) && _db.Players.Any(p => p.PlayerSetId == s.Id && p.AssignedTeamId == null)))
-            throw new InvalidOperationException("Complete all normal player sets before the Final Unsold Round or auction completion.");
+            throw new InvalidOperationException("Complete all normal player sets before unsold rounds or auction completion.");
     }
 
     private async Task<Tournament> GetTournamentWithAuthAsync(Guid tournamentId, Guid userId, bool requireOrganizer)
@@ -1057,7 +1066,7 @@ public partial class AuctionEngineService : IAuctionEngineService
             session.Version,
             session.IsUnsoldRound,
             session.CurrentSetId,
-            currentSetSummary?.SetName ?? (session.IsUnsoldRound ? (settings.SellAllPlayers ? $"Unsold Round {currentAttempt - 1}" : "Final Unsold Round") : null),
+            currentSetSummary?.SetName ?? (session.IsUnsoldRound ? (!settings.SellAllPlayers && currentAttempt >= StandardAuctionAttemptLimit ? "Final Unsold Round" : $"Unsold Round {currentAttempt - 1}") : null),
             currentLotDto,
             totalSets,
             completedSetIds.Count,

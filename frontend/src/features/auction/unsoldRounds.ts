@@ -1,0 +1,1 @@
+export const STANDARD_AUCTION_ATTEMPTS = 3;

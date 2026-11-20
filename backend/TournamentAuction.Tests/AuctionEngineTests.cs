@@ -272,7 +272,7 @@ public class AuctionEngineTests
         Assert.Equal(1, summary.SoldCount);
         Assert.Equal(2, summary.UnsoldCount);
 
-        // Start Mandatory Final Unsold Round
+        // Start the first unsold round.
         var unsoldRoundState = await auctionService.StartUnsoldRoundAsync(tournament.Id, user.Id);
         Assert.True(unsoldRoundState.IsUnsoldRound);
 
@@ -280,11 +280,11 @@ public class AuctionEngineTests
         var roundLot = await auctionService.RevealNextPlayerAsync(tournament.Id, user.Id);
         Assert.Equal(2, roundLot.CurrentLot!.AttemptNumber);
 
-        // Mark unsold in Attempt 2 -> status becomes FINAL_UNSOLD
+        // Attempt 2 stays UNSOLD so the player remains eligible for the final round.
         await auctionService.MarkCurrentPlayerUnsoldAsync(tournament.Id, new MarkUnsoldRequest(roundLot.CurrentLot.LotId), user.Id);
 
         var playerInDb = await db.Players.FindAsync(roundLot.CurrentLot.PlayerId);
-        Assert.Equal("FINAL_UNSOLD", playerInDb!.Status);
+        Assert.Equal("UNSOLD", playerInDb!.Status);
     }
 
     [Fact]

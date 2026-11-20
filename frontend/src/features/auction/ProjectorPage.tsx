@@ -1,4 +1,5 @@
 import { PlayerPortrait } from '../players/PlayerPortrait';
+import { STANDARD_AUCTION_ATTEMPTS } from './unsoldRounds';
 import { LeagueHammerBrand } from '../../components/LeagueHammerBrand';
 import { useCallback, useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
@@ -105,7 +106,7 @@ export function ProjectorPage() {
               {leadingTeam && !unsold ? <div className="stage-leading">{leadingTeam.logoUrl ? <img src={leadingTeam.logoUrl} alt="" /> : <Shield size={24} />}<span>{leadingTeam.teamName}</span><b>{leadingTeam.shortName}</b></div> : <div className="stage-leading stage-no-leader">{unsold ? 'Returns to the unsold pool' : 'Waiting for the opening bid'}</div>}
             </div>
             {sold && <div className="stage-result stage-result-sold" data-testid="stage-result"><Gavel /><span>SOLD</span><span>Welcome to {lot.winningTeamName}</span></div>}
-            {unsold && <div className="stage-result stage-result-unsold" data-testid="stage-result">{lot.attemptNumber >= 2 ? 'FINAL UNSOLD' : 'UNSOLD'}</div>}
+            {unsold && <div className="stage-result stage-result-unsold" data-testid="stage-result">{lot.attemptNumber >= STANDARD_AUCTION_ATTEMPTS && !state.sellAllPlayers ? 'FINAL UNSOLD' : 'UNSOLD'}</div>}
             </>}
           </div>
         </article> : <div className="stage-waiting"><div className="stage-pitch" /><Trophy size={90} /><p className="stage-eyebrow">The next chapter begins here</p><h2>{state.sessionStatus === 'COMPLETED' ? 'Squads assembled.' : 'The stage is set.'}</h2><p>{state.sessionStatus === 'READY' ? 'The auction will begin shortly.' : 'Waiting for the auctioneer to reveal the next player.'}</p></div>}

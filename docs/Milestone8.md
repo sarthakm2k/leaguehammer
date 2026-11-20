@@ -4,6 +4,8 @@ Milestones 0–8 are implemented. Milestone 9 remains pending, including the exp
 
 ## Final unsold round
 
+This milestone records the original two-attempt behavior. The current [unsold-round rules](ContinuousUnsoldRounds.md) give players up to three attempts when Sell all players is off, or continuous rounds when it is on.
+
 Normal sets must run in their configured order and be explicitly completed. The console offers the next unfinished set. An unresolved active set, unstarted set, or pending lot prevents starting the final round or completing the auction.
 
 Each first-attempt unsold player receives a separate second lot with its original base price. The original lot, result, and audit events remain stored. The final draw is shuffled server-side and persisted; it is never regenerated after starting. An unsold second attempt makes the player's current status `FINAL_UNSOLD`. No third attempt is allowed.
