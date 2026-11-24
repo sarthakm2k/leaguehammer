@@ -10,7 +10,7 @@ export interface FanPoll {
   selectedOptionId: string | null; totalVotes: number | null; options: FanOption[];
 }
 export interface FanPage { tournamentId: string; tournamentName: string; slug: string; logoUrl: string | null; currencyCode: string; polls: FanPoll[] }
-export interface FanAdminPoll { category: string; title: string; enabled: boolean; isOpen: boolean; optionCount: number; voteCount: number }
+export interface FanAdminPoll { category: string; title: string; enabled: boolean; isOpen: boolean; optionCount: number; voteCount: number; resultsPublished?: boolean }
 export interface FanAdmin { auctionCompleted: boolean; publicLiveViewEnabled: boolean; polls: FanAdminPoll[] }
 export const fanRoot = (slug: string) => `/api/public/tournaments/${encodeURIComponent(slug)}/fan-choice`;
 export const fanRequest = registrationRequest;

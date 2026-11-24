@@ -23,20 +23,22 @@ class FanServer {
   loseResponse = false;
   unavailable = false;
   enabled = new Set(categories.map(([category]) => category));
+  published = new Set(categories.map(([category]) => category));
   publicEnabled = true;
   configWrites: { category: string; enabled: boolean; isOpen: boolean }[] = [];
   notify() { for (const socket of this.sockets) socket.send(JSON.stringify({ type: 1, target: 'FanChoiceChanged', arguments: [{ tournamentId: this.data.tournamentId }] }) + '\u001e'); }
   page(token: string): FanPage {
-    return { ...this.data, polls: this.data.polls.filter(p => this.enabled.has(p.category)).map(poll => {
+    return { ...this.data, polls: this.data.polls.filter(p => this.enabled.has(p.category) || this.published.has(p.category)).map(poll => {
       const selected = this.votes.get(`${token}:${poll.id}`) ?? null;
       const total = [...this.votes.keys()].filter(key => key.endsWith(`:${poll.id}`)).length;
-      return { ...poll, selectedOptionId: selected, totalVotes: selected ? total : null, options: poll.options.map(option => {
+      const visible = !!selected || (!poll.isOpen && this.published.has(poll.category));
+      return { ...poll, selectedOptionId: selected, totalVotes: visible ? total : null, options: poll.options.map(option => {
         const count = [...this.votes.values()].filter(value => value === option.id).length;
-        return { ...option, votes: selected ? count : null, percentage: selected ? Math.round(1000 * count / total) / 10 : null };
+        return { ...option, votes: visible ? count : null, percentage: visible ? total === 0 ? 0 : Math.round(1000 * count / total) / 10 : null };
       }) };
     }) };
   }
-  admin(): FanAdmin { return { auctionCompleted: true, publicLiveViewEnabled: this.publicEnabled, polls: this.data.polls.map(poll => ({ category: poll.category, title: poll.title, enabled: this.enabled.has(poll.category), isOpen: poll.isOpen, optionCount: poll.options.length, voteCount: [...this.votes.keys()].filter(key => key.endsWith(`:${poll.id}`)).length })) }; }
+  admin(): FanAdmin { return { auctionCompleted: true, publicLiveViewEnabled: this.publicEnabled, polls: this.data.polls.map(poll => ({ category: poll.category, title: poll.title, enabled: this.enabled.has(poll.category), isOpen: poll.isOpen, optionCount: poll.options.length, voteCount: [...this.votes.keys()].filter(key => key.endsWith(`:${poll.id}`)).length, resultsPublished: this.published.has(poll.category) && !poll.isOpen })) }; }
   async setup(context: BrowserContext) {
     await context.route('**/api/**', async route => {
       const req = route.request(), path = new URL(req.url()).pathname;
@@ -61,6 +63,7 @@ class FanServer {
         if (req.method() === 'PUT') {
           const category = path.split('/').at(-1)!; const body = req.postDataJSON(); this.configWrites.push({ category, ...body });
           if (body.enabled) this.enabled.add(category); else this.enabled.delete(category);
+          if (body.isOpen) this.published.add(category);
           this.data.polls.find(p => p.category === category)!.isOpen = body.isOpen;
         }
         return route.fulfill({ json: this.admin() });
@@ -172,8 +175,9 @@ test('closing during confirmation prevents a vote and unavailable pages hide cac
   const server = new FanServer(); await server.setup(context); await page.goto('/live/fan-cup/fan-voting');
   await page.getByRole('button', { name: 'Select Arjun Menon', exact: true }).click(); await page.getByRole('button', { name: 'Review vote' }).click();
   server.data.polls[0].isOpen = false; await page.getByRole('button', { name: 'Confirm permanent vote' }).click();
-  await expect(page.getByRole('dialog').getByRole('alert').first()).toContainText('closed'); expect(server.votes.size).toBe(0);
-  await page.getByRole('button', { name: 'Go back' }).click(); await expect(page.getByText('Voting closed', { exact: true })).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0); expect(server.votes.size).toBe(0);
+  await expect(page.getByText('Voting closed', { exact: true })).toBeVisible();
+  await expect(page.getByText('No votes were received for this category.')).toBeVisible();
   server.unavailable = true; server.notify(); await expect(page.getByRole('heading', { name: 'Fan Choice unavailable' })).toBeVisible();
   await expect(page.locator('.fan-option')).toHaveCount(0);
 });
@@ -187,7 +191,7 @@ test('browser storage is required before committing a permanent anonymous vote',
 });
 
 test('organisers manually open close and share voting while keeping participation counts', async ({ context, page }) => {
-  const server = new FanServer(); server.enabled.clear(); server.data.polls.forEach(p => p.isOpen = false); await server.setup(context);
+  const server = new FanServer(); server.enabled.clear(); server.published.clear(); server.data.polls.forEach(p => p.isOpen = false); await server.setup(context);
   await context.addInitScript(() => localStorage.setItem('auth_token', 'test-token')); await page.goto('/tournaments/fan-cup');
   const panel = page.getByRole('region', { name: 'Fan Choice', exact: true });
   await expect(panel.getByRole('button', { name: 'Open Best Auction Buy', exact: true })).toBeDisabled();
@@ -198,4 +202,61 @@ test('organisers manually open close and share voting while keeping participatio
   await expect(panel).toContainText('1 vote'); await expect(panel.getByRole('button', { name: 'Open Best Auction Buy', exact: true })).toBeEnabled();
   await expect(panel.getByRole('link', { name: 'Preview voting page' })).toHaveAttribute('href', '/live/fan-cup/fan-voting');
   expect(server.configWrites.map(w => w.isOpen)).toEqual([false, true, false]); expect(server.votes.size).toBe(1);
+  await panel.getByRole('checkbox', { name: 'Enable Best Auction Buy', exact: true }).uncheck();
+  await expect(panel).toContainText('Public results');
+  await page.goto((await panel.getByRole('link', { name: 'Preview voting page' }).getAttribute('href'))!);
+  await expect(page.getByRole('heading', { name: /The fans/ })).toBeVisible();
+  await expect(page.getByTestId('fan-option-BEST_BUY-0')).toContainText('100.0%');
+  await expect(page.getByRole('button', { name: /Select |Review vote|Confirm permanent vote/ })).toHaveCount(0);
+  expect(server.votes.size).toBe(1);
+});
+
+test('switched off voting publishes mobile final results to visitors who never voted', async ({ context, page }) => {
+  const server = new FanServer(); server.enabled.clear(); server.data.polls.forEach(p => p.isOpen = false);
+  server.votes.set('first:BEST_BUY', 'BEST_BUY-0'); server.votes.set('second:BEST_BUY', 'BEST_BUY-0'); server.votes.set('third:BEST_BUY', 'BEST_BUY-1');
+  await server.setup(context); await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto('/live/fan-cup/fan-voting');
+  await expect(page.getByRole('heading', { name: /The fans/ })).toBeVisible();
+  await expect(page.locator('.fan-total')).toContainText('3');
+  await expect(page.getByTestId('fan-option-BEST_BUY-0')).toContainText('66.7%');
+  await expect(page.getByTestId('fan-option-BEST_BUY-1')).toContainText('33.3%');
+  await expect(page.getByText('Winner', { exact: true })).toHaveCount(1);
+  await expect(page.getByText('Your vote', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Select |Review vote|Confirm permanent vote/ })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  for (const percentage of await page.locator('.fan-result-detail').all())
+    expect(await percentage.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+  await page.screenshot({ path: '../.cache/fan-choice-final-results-320.png', fullPage: true });
+  await page.getByRole('button', { name: 'Switch Fan Choice to night mode' }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: '../.cache/fan-choice-final-results-night.png', fullPage: true });
+  await page.getByRole('navigation').getByRole('button', { name: 'Strongest Squad', exact: true }).click();
+  await expect(page.getByText('No votes were received for this category.')).toBeVisible();
+  await expect(page.getByRole('progressbar')).toHaveCount(3);
+  await expect(page.getByText('Winner', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('No votes', { exact: true })).toHaveCount(3);
+  expect(await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('fan-choice:')))).toEqual([]);
+  expect(server.posts).toBe(0); expect(server.votes.size).toBe(3);
+});
+
+test('live closing removes a pending ballot and reopening keeps open categories vote first', async ({ context, page }) => {
+  const server = new FanServer(); server.votes.set('spectator:BEST_BUY', 'BEST_BUY-1'); await server.setup(context);
+  await page.goto('/live/fan-cup/fan-voting');
+  await expect.poll(() => server.joins.includes('JoinFanChoice')).toBe(true);
+  await page.getByRole('button', { name: 'Select Arjun Menon', exact: true }).click();
+  await page.getByRole('button', { name: 'Review vote' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  server.data.polls[0].isOpen = false; server.notify();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByTestId('fan-option-BEST_BUY-1')).toContainText('100.0%');
+  await expect(page.getByRole('button', { name: /Select |Review vote/ })).toHaveCount(0);
+  await expect(page.getByText('Your vote', { exact: true })).toHaveCount(0);
+  await page.getByRole('navigation').getByRole('button', { name: 'Best Icon Pick', exact: true }).click();
+  await expect(page.getByRole('progressbar')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Select Arjun Menon', exact: true })).toBeVisible();
+  server.data.polls[0].isOpen = true; server.notify();
+  await page.getByRole('navigation').getByRole('button', { name: 'Best Auction Buy', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Select Rohan Nair', exact: true })).toBeEnabled();
+  await expect(page.getByRole('progressbar')).toHaveCount(0);
+  expect(server.posts).toBe(0); expect(server.votes.size).toBe(1);
 });

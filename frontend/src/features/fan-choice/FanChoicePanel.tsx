@@ -40,10 +40,10 @@ export function FanChoicePanel({ tournamentId, slug }: { tournamentId: string; s
     {query.data && <>
       {!query.data.publicLiveViewEnabled && <p className="fan-error">Enable Public Live View in Auction Rules &amp; Purse before opening public voting.</p>}
       <div className="fan-admin-polls">{query.data.polls.map(poll => <article key={poll.category}>
-        <label><input type="checkbox" aria-label={`Enable ${poll.title}`} checked={pending?.category === poll.category ? pending.enabled : poll.enabled} disabled={!!busy} onChange={e => void change(poll, e.target.checked, false)} /><span><strong>{poll.title}</strong><small>{poll.optionCount} choices · {poll.voteCount} {poll.voteCount === 1 ? 'vote' : 'votes'} · {poll.isOpen ? 'Open' : poll.enabled ? 'Closed' : 'Disabled'}</small></span></label>
+        <label><input type="checkbox" aria-label={`Enable ${poll.title}`} checked={pending?.category === poll.category ? pending.enabled : poll.enabled} disabled={!!busy} onChange={e => void change(poll, e.target.checked, false)} /><span><strong>{poll.title}</strong><small>{poll.optionCount} choices · {poll.voteCount} {poll.voteCount === 1 ? 'vote' : 'votes'} · {poll.resultsPublished ? 'Public results' : poll.isOpen ? 'Open' : poll.enabled ? 'Closed' : 'Disabled'}</small></span></label>
         <button type="button" disabled={!!busy || !poll.enabled || !query.data?.auctionCompleted || !query.data.publicLiveViewEnabled || (!poll.isOpen && poll.optionCount === 0)} onClick={() => void change(poll, true, !poll.isOpen)}>{busy === poll.category ? 'Saving…' : poll.isOpen ? `Close ${poll.title}` : `Open ${poll.title}`}</button>
       </article>)}</div>
-      <p className="fan-admin-note"><LockKeyhole size={14} />Closing, disabling or reopening a category keeps its votes. Choices are fixed when voting first opens.</p>
+      <p className="fan-admin-note"><LockKeyhole size={14} />Close or switch off a category to show its final results to everyone. All votes are kept. Reopening restores voting with the same choices and existing votes.</p>
       <div className="fan-admin-share"><label>Share the fan voting page<input readOnly value={`${location.origin}${path}`} onFocus={e => e.currentTarget.select()} /></label><div><button type="button" onClick={() => void copy()}><Copy size={15} />{copied ? 'Link copied' : 'Copy voting link'}</button><Link to={path} target="_blank" rel="noopener noreferrer">Preview voting page <ArrowUpRight size={15} /></Link></div></div>
     </>}
     {error && <p role="alert" className="fan-error">{error}</p>}

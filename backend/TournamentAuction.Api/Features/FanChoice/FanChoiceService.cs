@@ -40,7 +40,7 @@ public class FanChoiceService(TournamentAuctionDbContext db, IHubContext<Auction
 
     private async Task Notify(Guid tournamentId)
     {
-        // Only an invalidation is broadcast. Results remain protected by each browser's saved vote.
+        // Only an invalidation is broadcast. The API applies vote-first access while polls are open.
         try { await hub.Clients.Group(AuctionHub.FanChoiceGroup(tournamentId)).SendAsync("FanChoiceChanged", new { tournamentId }); }
         catch (Exception ex) { logger.LogWarning(ex, "Fan Choice committed but its notification could not be sent for {TournamentId}", tournamentId); }
     }
@@ -49,13 +49,17 @@ public class FanChoiceService(TournamentAuctionDbContext db, IHubContext<Auction
     {
         var tournament = await PublicTournament(slug);
         var hash = VoterHash(tournament.Id, browserToken);
-        var polls = await db.FanChoicePolls.AsNoTracking().Where(p => p.TournamentId == tournament.Id && p.Enabled).ToListAsync();
+        // A category that has opened once stays public as results when closed or switched off.
+        var polls = await db.FanChoicePolls.AsNoTracking().Where(p => p.TournamentId == tournament.Id &&
+            (p.Enabled || db.FanChoiceOptions.Any(o => o.PollId == p.Id))).ToListAsync();
         if (polls.Count == 0) throw new KeyNotFoundException("Fan Choice has not been enabled. Ask the organiser for the voting link.");
         var pollIds = polls.Select(p => p.Id).ToList();
         var options = await db.FanChoiceOptions.AsNoTracking().Where(o => pollIds.Contains(o.PollId)).OrderBy(o => o.Name).ThenBy(o => o.Id).ToListAsync();
         var ownVotes = hash == null ? new List<FanChoiceVote>() : await db.FanChoiceVotes.AsNoTracking().Where(v => pollIds.Contains(v.PollId) && v.VoterHash == hash).ToListAsync();
-        var votedPolls = ownVotes.Select(v => v.PollId).ToList();
-        var counts = await db.FanChoiceVotes.AsNoTracking().Where(v => votedPolls.Contains(v.PollId))
+        var optionsByPoll = options.ToLookup(o => o.PollId);
+        var visibleResults = polls.Where(p => !p.IsOpen && optionsByPoll[p.Id].Any()).Select(p => p.Id)
+            .Concat(ownVotes.Select(v => v.PollId)).ToHashSet();
+        var counts = await db.FanChoiceVotes.AsNoTracking().Where(v => visibleResults.Contains(v.PollId))
             .GroupBy(v => new { v.PollId, v.OptionId }).Select(g => new { g.Key.PollId, g.Key.OptionId, Count = g.Count() }).ToListAsync();
         var countsByOption = counts.ToDictionary(c => c.OptionId, c => c.Count);
         var totalsByPoll = counts.GroupBy(c => c.PollId).ToDictionary(g => g.Key, g => g.Sum(c => c.Count));
@@ -65,16 +69,17 @@ public class FanChoiceService(TournamentAuctionDbContext db, IHubContext<Auction
             var poll = polls.SingleOrDefault(p => p.Category == definition.Key);
             if (poll == null) continue;
             var ownVote = ownVotes.SingleOrDefault(v => v.PollId == poll.Id);
+            var resultsVisible = visibleResults.Contains(poll.Id);
             var total = totalsByPoll.GetValueOrDefault(poll.Id);
-            var choices = options.Where(o => o.PollId == poll.Id).Select(o =>
+            var choices = optionsByPoll[poll.Id].Select(o =>
             {
                 var count = countsByOption.GetValueOrDefault(o.Id);
                 return new FanChoiceOptionDto(o.Id, o.Name, o.PhotoUrl, o.Subtitle, o.Price,
                     o.RosterJson == null ? null : JsonSerializer.Deserialize<List<FanSquadMemberDto>>(o.RosterJson, Json),
-                    ownVote == null ? null : count, ownVote == null ? null : total == 0 ? 0 : Math.Round(100m * count / total, 1));
+                    resultsVisible ? count : null, resultsVisible ? total == 0 ? 0 : Math.Round(100m * count / total, 1) : null);
             }).ToList();
             result.Add(new(poll.Id, poll.Category, definition.Title, definition.Description, poll.IsOpen,
-                ownVote?.OptionId, ownVote == null ? null : total, choices));
+                ownVote?.OptionId, resultsVisible ? total : null, choices));
         }
         return new(tournament.Id, tournament.Name, tournament.Slug, tournament.LogoUrl, tournament.Settings!.CurrencyCode, result);
     }
@@ -93,7 +98,8 @@ public class FanChoiceService(TournamentAuctionDbContext db, IHubContext<Auction
                 var poll = polls.SingleOrDefault(p => p.Category == d.Key);
                 var options = optionCounts.SingleOrDefault(c => c.Id == poll?.Id)?.Count ?? 0;
                 return new FanChoiceAdminPollDto(d.Key, d.Title, poll?.Enabled ?? false, poll?.IsOpen ?? false,
-                    options > 0 ? options : candidates?[d.Key].Count ?? 0, voteCounts.SingleOrDefault(c => c.Id == poll?.Id)?.Count ?? 0);
+                    options > 0 ? options : candidates?[d.Key].Count ?? 0, voteCounts.SingleOrDefault(c => c.Id == poll?.Id)?.Count ?? 0,
+                    options > 0 && poll?.IsOpen == false);
             }).ToList());
     }
 

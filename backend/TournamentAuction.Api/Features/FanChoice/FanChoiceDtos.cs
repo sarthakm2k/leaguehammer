@@ -19,7 +19,7 @@ public record FanChoicePollDto(Guid Id, string Category, string Title, string De
     Guid? SelectedOptionId, int? TotalVotes, List<FanChoiceOptionDto> Options);
 public record FanChoicePageDto(Guid TournamentId, string TournamentName, string Slug, string? LogoUrl,
     string CurrencyCode, List<FanChoicePollDto> Polls);
-public record FanChoiceAdminPollDto(string Category, string Title, bool Enabled, bool IsOpen, int OptionCount, int VoteCount);
+public record FanChoiceAdminPollDto(string Category, string Title, bool Enabled, bool IsOpen, int OptionCount, int VoteCount, bool ResultsPublished = false);
 public record FanChoiceAdminDto(bool AuctionCompleted, bool PublicLiveViewEnabled, List<FanChoiceAdminPollDto> Polls);
 public record FanChoiceSettingsRequest(bool Enabled, bool IsOpen);
 public record FanChoiceVoteRequest(Guid OptionId);

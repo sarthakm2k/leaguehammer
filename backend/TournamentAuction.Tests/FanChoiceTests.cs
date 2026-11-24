@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using TournamentAuction.Api.Data;
 using TournamentAuction.Api.Domain;
 using TournamentAuction.Api.Features.FanChoice;
+using TournamentAuction.Api.Features.Auction;
 using TournamentAuction.Api.Features.Tournaments;
 using TournamentAuction.Api.Hubs;
 
@@ -129,7 +130,8 @@ public class FanChoiceTests
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.VoteAsync(t.Slug, poll.Id, BrowserB, poll.Options[0].Id));
             Assert.Equal(1, (await service.VoteAsync(t.Slug, poll.Id, BrowserA, poll.Options[0].Id)).Polls[0].TotalVotes);
             await service.ConfigureAsync(t.Id, t.OwnerUserId, poll.Category, new(false, false));
-            Assert.DoesNotContain((await service.GetPublicAsync(t.Slug, BrowserA)).Polls, value => value.Id == poll.Id);
+            var switchedOff = (await service.GetPublicAsync(t.Slug, null)).Polls.Single(value => value.Id == poll.Id);
+            Assert.False(switchedOff.IsOpen); Assert.Equal(1, switchedOff.TotalVotes); Assert.Null(switchedOff.SelectedOptionId);
             p[5].Name = "Renamed after opening"; await db.SaveChangesAsync();
             await service.ConfigureAsync(t.Id, t.OwnerUserId, poll.Category, new(true, true));
             var reopened = (await service.GetPublicAsync(t.Slug, BrowserA)).Polls[0];
@@ -234,6 +236,64 @@ public class FanChoiceTests
             Assert.Equal(1, receipt.Polls[0].TotalVotes);
             Assert.Single(db.FanChoiceVotes);
             Assert.Equal(1, (await service.VoteAsync(t.Slug, poll.Id, BrowserA, poll.Options[0].Id)).Polls[0].TotalVotes);
+        }
+    }
+
+    [Fact]
+    public async Task ClosingPublishesResultsToEveryoneButOpenCategoriesRemainVoteFirst()
+    {
+        var (db, service, t, _, _) = await Setup(); using (db)
+        {
+            await OpenAll(service, t); var poll = (await service.GetPublicAsync(t.Slug, null)).Polls[0];
+            await service.VoteAsync(t.Slug, poll.Id, BrowserA, poll.Options[0].Id);
+            await service.VoteAsync(t.Slug, poll.Id, BrowserB, poll.Options[1].Id);
+            await service.ConfigureAsync(t.Id, t.OwnerUserId, poll.Category, new(true, false));
+            var publicResults = await service.GetPublicAsync(t.Slug, null);
+            var final = publicResults.Polls[0];
+            Assert.False(final.IsOpen); Assert.Null(final.SelectedOptionId); Assert.Equal(2, final.TotalVotes);
+            Assert.All(final.Options, o => { Assert.Equal(1, o.Votes); Assert.Equal(50, o.Percentage); });
+            Assert.All(publicResults.Polls.Skip(1), p => { Assert.True(p.IsOpen); Assert.Null(p.TotalVotes); Assert.All(p.Options, o => Assert.Null(o.Votes)); });
+            await Assert.ThrowsAsync<InvalidOperationException>(() => service.VoteAsync(t.Slug, poll.Id, new string('c', 64), poll.Options[0].Id));
+            Assert.Equal(2, await db.FanChoiceVotes.CountAsync());
+            Assert.Equal(poll.Options[0].Id, (await service.GetPublicAsync(t.Slug, BrowserA)).Polls[0].SelectedOptionId);
+        }
+    }
+
+    [Fact]
+    public async Task SwitchingAllCategoriesOffKeepsThePublicResultsPageAndPortalLinkAvailable()
+    {
+        var (db, service, t, _, hub) = await Setup(); using (db)
+        {
+            await OpenAll(service, t); var poll = (await service.GetPublicAsync(t.Slug, null)).Polls[0];
+            await service.VoteAsync(t.Slug, poll.Id, BrowserA, poll.Options[0].Id);
+            foreach (var definition in FanChoiceCategories.All) await service.ConfigureAsync(t.Id, t.OwnerUserId, definition.Key, new(false, false));
+            var finals = await service.GetPublicAsync(t.Slug, null);
+            Assert.Equal(5, finals.Polls.Count); Assert.All(finals.Polls, p => { Assert.False(p.IsOpen); Assert.NotNull(p.TotalVotes); });
+            Assert.Equal(1, finals.Polls[0].TotalVotes);
+            Assert.All(finals.Polls.Skip(1), p => { Assert.Equal(0, p.TotalVotes); Assert.All(p.Options, o => { Assert.Equal(0, o.Votes); Assert.Equal(0, o.Percentage); }); });
+            Assert.All((await service.GetAdminAsync(t.Id, t.OwnerUserId)).Polls, p => { Assert.False(p.Enabled); Assert.True(p.ResultsPublished); });
+            var engine = new AuctionEngineService(db, hub, NullLogger<AuctionEngineService>.Instance);
+            Assert.True((await engine.GetPublicAuctionResultsAsync(t.Slug)).FanChoiceEnabled);
+            t.Settings!.PublicLiveViewEnabled = false; await db.SaveChangesAsync();
+            await Assert.ThrowsAsync<KeyNotFoundException>(() => service.GetPublicAsync(t.Slug, null));
+        }
+    }
+
+    [Fact]
+    public async Task ReopeningRestoresVoteFirstAccessWithoutClearingVotes()
+    {
+        var (db, service, t, _, _) = await Setup(); using (db)
+        {
+            await OpenAll(service, t); var poll = (await service.GetPublicAsync(t.Slug, null)).Polls[0];
+            await service.VoteAsync(t.Slug, poll.Id, BrowserA, poll.Options[0].Id);
+            await service.ConfigureAsync(t.Id, t.OwnerUserId, poll.Category, new(false, false));
+            Assert.Equal(1, (await service.GetPublicAsync(t.Slug, null)).Polls[0].TotalVotes);
+            await service.ConfigureAsync(t.Id, t.OwnerUserId, poll.Category, new(true, true));
+            Assert.Null((await service.GetPublicAsync(t.Slug, null)).Polls[0].TotalVotes);
+            Assert.Null((await service.GetPublicAsync(t.Slug, BrowserB)).Polls[0].TotalVotes);
+            Assert.Equal(1, (await service.GetPublicAsync(t.Slug, BrowserA)).Polls[0].TotalVotes);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => service.VoteAsync(t.Slug, poll.Id, BrowserA, poll.Options[1].Id));
+            Assert.Single(db.FanChoiceVotes);
         }
     }
 }

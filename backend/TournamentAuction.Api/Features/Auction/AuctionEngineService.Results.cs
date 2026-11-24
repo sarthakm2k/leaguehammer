@@ -84,7 +84,8 @@ public partial class AuctionEngineService
             soldPlayers.Count, unsoldCount, state.TeamStandings,
             lots.Where(l => l.Status == AuctionLotStatus.SOLD).OrderByDescending(l => l.CompletedAtUtc).ThenBy(l => l.Id)
                 .Select(l => ToPublic(MapLot(l))!).ToList(), state.CurrentSetSummary, state.SellAllPlayers, state.CurrentAttemptNumber);
-        var fanChoiceEnabled = tournament.Status == TournamentStatus.COMPLETED && await _db.FanChoicePolls.AnyAsync(p => p.TournamentId == tournament.Id && p.Enabled);
+        var fanChoiceEnabled = tournament.Status == TournamentStatus.COMPLETED && await _db.FanChoicePolls.AnyAsync(p => p.TournamentId == tournament.Id &&
+            (p.Enabled || _db.FanChoiceOptions.Any(o => o.PollId == p.Id)));
         if (transaction != null) await transaction.CommitAsync();
         return new(publicState, tournament.LogoUrl, tournament.Settings?.PublicLiveViewEnabled == true, results, statistics, fanChoiceEnabled);
     }
