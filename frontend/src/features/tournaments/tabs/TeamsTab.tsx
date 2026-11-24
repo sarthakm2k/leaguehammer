@@ -304,7 +304,7 @@ export function TeamsTab({ tournamentId, tournamentSlug, isOwner, status, defaul
 
               <TeamShareLink slug={tournamentSlug} team={t} />
               <TeamAssignedPlayers players={t.assignedPlayers}/>
-              {isOwner && !isLocked && <button type="button" onClick={()=>setAssignmentTeam(t)} className="rounded-lg border border-emerald-500/40 px-3 py-2 text-xs font-semibold text-emerald-300">Assign captain &amp; icon</button>}
+              {isOwner && !isLocked && <button type="button" onClick={()=>setAssignmentTeam(t)} className="rounded-lg border border-emerald-500/40 px-3 py-2 text-xs font-semibold text-emerald-300">Assign captain &amp; icons</button>}
               {isOwner && <label className="block text-xs text-slate-300">
                 {uploadingLogo === t.id ? 'Uploading logo…' : t.logoUrl ? 'Replace team logo' : 'Upload team logo'}
                 <input type="file" aria-label={`Upload ${t.name} logo`} accept="image/jpeg,image/png,image/webp"

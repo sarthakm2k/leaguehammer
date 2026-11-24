@@ -9,6 +9,15 @@ public class AuctionHub(TournamentAuctionDbContext db) : Hub
 {
     public static string AdminGroup(Guid id) => $"admin:tournament:{id:D}";
     public static string PublicGroup(Guid id) => $"public:tournament:{id:D}";
+    public static string FanChoiceGroup(Guid id) => $"fan-choice:tournament:{id:D}";
+
+    public async Task JoinFanChoice(string tournamentId)
+    {
+        if (!Guid.TryParse(tournamentId, out var id) || !await db.Tournaments.AnyAsync(t => t.Id == id &&
+            t.Status == Domain.TournamentStatus.COMPLETED && t.Settings != null && t.Settings.PublicLiveViewEnabled))
+            throw new HubException("Fan Choice is unavailable.");
+        await Groups.AddToGroupAsync(Context.ConnectionId, FanChoiceGroup(id));
+    }
 
     public async Task JoinAuction(string tournamentId)
     {

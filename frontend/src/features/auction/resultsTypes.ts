@@ -28,6 +28,7 @@ export interface TournamentStatistics {
   largestRemainingPurseTeamId: string | null; mostPlayersTeamId: string | null; bestSellingSetId: string | null;
 }
 export interface AuctionResults {
+  fanChoiceEnabled?: boolean;
   state: PublicAuctionStateDto; tournamentLogoUrl: string | null; publicLiveViewEnabled: boolean;
   players: ResultPlayer[]; statistics: TournamentStatistics;
 }

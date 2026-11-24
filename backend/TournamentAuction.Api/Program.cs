@@ -15,6 +15,7 @@ using TournamentAuction.Api.Features.Teams;
 using TournamentAuction.Api.Features.Tournaments;
 using TournamentAuction.Api.Hubs;
 using TournamentAuction.Api.Features.Registrations;
+using TournamentAuction.Api.Features.FanChoice;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -33,6 +34,7 @@ builder.Services.AddScoped<ITournamentService, TournamentService>();
 builder.Services.AddScoped<ITournamentSettingsService, TournamentSettingsService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<TeamAssignmentService>();
+builder.Services.AddScoped<FanChoiceService>();
 builder.Services.AddScoped<IBasePriceTierService, BasePriceTierService>();
 builder.Services.AddScoped<IPlayerSetService, PlayerSetService>();
 builder.Services.AddScoped<IPlayerService, PlayerService>();
@@ -47,6 +49,12 @@ builder.Services.AddScoped<PlayerPhotoService>();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("fan-choice-write", limiter =>
+    {
+        limiter.PermitLimit = 600;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueLimit = 0;
+    });
     // A shared cap avoids trusting spoofable forwarded IP headers and limits public upload cost.
     options.AddFixedWindowLimiter("registrations", limiter =>
     {

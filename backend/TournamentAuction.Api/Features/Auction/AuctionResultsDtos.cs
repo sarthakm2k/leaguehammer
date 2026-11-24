@@ -21,6 +21,6 @@ public record TournamentStatisticsDto(int TotalPlayers, int SoldPlayers, int Uns
     Guid? BiggestSpenderTeamId, Guid? SmallestSpenderTeamId, Guid? LargestRemainingPurseTeamId,
     Guid? MostPlayersTeamId, Guid? BestSellingSetId, int AssignedPlayers = 0);
 public record AuctionResultsDto(PublicAuctionStateDto State, string? TournamentLogoUrl, bool PublicLiveViewEnabled,
-    List<ResultPlayerDto> Players, TournamentStatisticsDto Statistics);
+    List<ResultPlayerDto> Players, TournamentStatisticsDto Statistics, bool FanChoiceEnabled = false);
 public record TeamSquadDto(Guid TournamentId, string TournamentName, string Slug, string SessionStatus,
     string CurrencyCode, string CurrencySymbol, TeamStatisticsDto Team, List<ResultPlayerDto> Players);

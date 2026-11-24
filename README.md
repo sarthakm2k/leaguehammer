@@ -75,7 +75,7 @@ The console's **Auction history** link opens `/tournaments/{id}/auction/history`
 
 Milestone 9 adds `/tournaments/{id}/results` for live statistics and the completed **Auction Wrapped** experience. `/live/{slug}` now provides the public Overview, Teams, Players, and Results views; fullscreen remains at `/tournaments/{id}/projector` or `/live/{slug}/projector`. **Copy Franchise Link** shares `/live/{slug}/teams/{teamId}` without login. See [Milestone 9 implementation and verification](docs/Milestone9.md); run `npm run test:results` or all browser suites with `npx playwright test`.
 
-**Sell all players** can be enabled under Auction Rules & Purse before a tournament is ready. It automatically continues unsold rounds until every player sells; leaving it off preserves the single final unsold round. See [continuous unsold rounds](docs/ContinuousUnsoldRounds.md); run `npm run test:continuous` for the browser workflow.
+**Sell all players** can be enabled under Auction Rules & Purse before a tournament is ready. It automatically continues unsold rounds until every player sells; leaving it off gives players up to three attempts across the normal auction and two unsold rounds. See [continuous unsold rounds](docs/ContinuousUnsoldRounds.md); run `npm run test:continuous` for the browser workflow.
 
 With **Sell all players** enabled, bids, sales, and corrections are rejected if they would prevent any complete purchase allocation of the remaining player pool at actual base prices within individual team purses and squad limits. Preflight checks the same allocation. Run `npm run test:purse` for the regression where an expensive final player needs the only team with an available squad slot.
 
@@ -86,6 +86,8 @@ Once a tournament is READY, its Overview displays the **Auctioneer panel link**,
 Completed auctions also have a dedicated **Auction Recap** at `/live/{slug}/recap` for public sharing and `/tournaments/{id}/recap` for members. It presents the headline signing, every player, team spending, price lifts, and comeback stories in a mobile-first single-page layout without charts. Open/copy links appear in the overview, console, and results page after completion. Native device sharing and clipboard fallback are supported; Public Live View controls guest access. See [the auction recap](docs/AuctionRecap.md) and run `npm run test:recap`.
 
 ## Specification Reference & Milestones
+
+Completed tournaments support **Fan Choice**: Best Auction Buy, Strongest Squad, Fan Favourite Player, Best Captain Pick and Best Icon Pick. Owners enable/open/close categories and copy the public voting link from Overview. Spectators get one permanent browser-based vote per category, then see live counts and percentages. See [Fan Choice rules, deployment and verification](docs/FanChoice.md).
 
 See `docs/ImplementationPLAN.txt` for the full master specification.
 

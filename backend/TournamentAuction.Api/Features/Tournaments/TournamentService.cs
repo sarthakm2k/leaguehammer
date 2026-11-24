@@ -235,6 +235,10 @@ public class TournamentService : ITournamentService
 
         // Load every dependent so EF orders restricted foreign keys correctly,
         // and the entire operation remains atomic on PostgreSQL.
+        var fanPollIds = await _db.FanChoicePolls.Where(p => p.TournamentId == tournamentId).Select(p => p.Id).ToListAsync();
+        _db.FanChoiceVotes.RemoveRange(await _db.FanChoiceVotes.Where(v => fanPollIds.Contains(v.PollId)).ToListAsync());
+        _db.FanChoiceOptions.RemoveRange(await _db.FanChoiceOptions.Where(o => fanPollIds.Contains(o.PollId)).ToListAsync());
+        _db.FanChoicePolls.RemoveRange(await _db.FanChoicePolls.Where(p => p.TournamentId == tournamentId).ToListAsync());
         _db.AuctionEvents.RemoveRange(await _db.AuctionEvents.Where(e => e.TournamentId == tournamentId).ToListAsync());
         _db.AuctionLots.RemoveRange(await _db.AuctionLots.Where(l => l.TournamentId == tournamentId).ToListAsync());
         _db.PlayerRegistrations.RemoveRange(await _db.PlayerRegistrations.Where(r => r.TournamentId == tournamentId).ToListAsync());

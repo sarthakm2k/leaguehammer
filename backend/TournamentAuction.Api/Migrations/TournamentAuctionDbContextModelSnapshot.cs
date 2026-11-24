@@ -224,6 +224,107 @@ namespace TournamentAuction.Api.Migrations
                     b.ToTable("BasePriceTiers");
                 });
 
+            modelBuilder.Entity("TournamentAuction.Api.Domain.FanChoiceOption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CandidateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("PhotoUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("PollId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long?>("Price")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("RosterJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Subtitle")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PollId", "CandidateId")
+                        .IsUnique();
+
+                    b.ToTable("FanChoiceOptions");
+                });
+
+            modelBuilder.Entity("TournamentAuction.Api.Domain.FanChoicePoll", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsOpen")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("TournamentId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TournamentId", "Category")
+                        .IsUnique();
+
+                    b.ToTable("FanChoicePolls", t =>
+                        {
+                            t.HasCheckConstraint("CK_FanChoicePolls_OpenEnabled", "NOT \"IsOpen\" OR \"Enabled\"");
+                        });
+                });
+
+            modelBuilder.Entity("TournamentAuction.Api.Domain.FanChoiceVote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OptionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PollId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VoterHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PollId", "OptionId");
+
+                    b.HasIndex("PollId", "VoterHash")
+                        .IsUnique();
+
+                    b.ToTable("FanChoiceVotes");
+                });
+
             modelBuilder.Entity("TournamentAuction.Api.Domain.Player", b =>
                 {
                     b.Property<Guid>("Id")
@@ -330,11 +431,14 @@ namespace TournamentAuction.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AssignedTeamId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Players_AssignedTeamId_Captain")
+                        .HasFilter("\"AssignedTeamId\" IS NOT NULL AND \"AssignedRole\" = 'CAPTAIN'");
+
                     b.HasIndex("PlayerSetId");
 
-                    b.HasIndex("AssignedTeamId", "AssignedRole")
-                        .IsUnique()
-                        .HasFilter("\"AssignedTeamId\" IS NOT NULL");
+                    b.HasIndex("AssignedTeamId", "AssignedRole");
 
                     b.HasIndex("TournamentId", "Name");
 
@@ -849,6 +953,34 @@ namespace TournamentAuction.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Tournament");
+                });
+
+            modelBuilder.Entity("TournamentAuction.Api.Domain.FanChoiceOption", b =>
+                {
+                    b.HasOne("TournamentAuction.Api.Domain.FanChoicePoll", null)
+                        .WithMany()
+                        .HasForeignKey("PollId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TournamentAuction.Api.Domain.FanChoicePoll", b =>
+                {
+                    b.HasOne("TournamentAuction.Api.Domain.Tournament", null)
+                        .WithMany()
+                        .HasForeignKey("TournamentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TournamentAuction.Api.Domain.FanChoiceVote", b =>
+                {
+                    b.HasOne("TournamentAuction.Api.Domain.FanChoiceOption", null)
+                        .WithMany()
+                        .HasForeignKey("PollId", "OptionId")
+                        .HasPrincipalKey("PollId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TournamentAuction.Api.Domain.Player", b =>

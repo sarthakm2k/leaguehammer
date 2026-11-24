@@ -43,6 +43,7 @@ public record TeamAssignedPlayerDto(Guid PlayerId, string PlayerName, string? Ph
     public static TeamAssignedPlayerDto From(TournamentAuction.Api.Domain.Player p) =>
         new(p.Id, p.Name, p.PhotoUrl, p.Position, p.Age, p.PreferredFoot, p.JerseyNumber, p.AssignedRole!);
 }
-public record TeamAssignmentsRequest(Guid? CaptainPlayerId, Guid? IconPlayerId);
+// Keep the singular field for older clients during deployment. New clients send IconPlayerIds.
+public record TeamAssignmentsRequest(Guid? CaptainPlayerId, Guid? IconPlayerId = null, List<Guid>? IconPlayerIds = null);
 public record TeamAssignmentCandidateDto(Guid PlayerId, string PlayerName, string? PhotoUrl, string? Position);
-public record TeamAssignmentsDto(List<TeamAssignedPlayerDto> AssignedPlayers, List<TeamAssignmentCandidateDto> AvailablePlayers);
+public record TeamAssignmentsDto(List<TeamAssignedPlayerDto> AssignedPlayers, List<TeamAssignmentCandidateDto> AvailablePlayers, int MaximumSquadSize = 16);

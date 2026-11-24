@@ -27,6 +27,7 @@ import { RegistrationsTab } from '../registrations/RegistrationsTab';
 import { TournamentLinks } from './TournamentLinks';
 import { DeleteTournament } from './DeleteTournament';
 import { CloneTournament } from './CloneTournament';
+import { FanChoicePanel } from '../fan-choice/FanChoicePanel';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -360,6 +361,7 @@ export function TournamentOverviewPage() {
         </div>
 
         {activeTab === 'overview' && <TournamentLinks tournamentId={tournament.id} slug={tournament.slug} status={statusStr} canShareRegistrations={isOwner || tournament.userRole === 'AUCTIONEER'} />}
+        {activeTab === 'overview' && isOwner && statusStr === 'COMPLETED' && <FanChoicePanel tournamentId={tournament.id} slug={tournament.slug} />}
 
         {/* Edit Form (if toggled) */}
         {editing && (

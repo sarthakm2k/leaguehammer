@@ -143,4 +143,117 @@ public class TeamAssignmentTests
         Assert.Equal(0,state.TotalPlayersCount);Assert.Equal(0,state.TotalSetsCount);
         state=await engine.CompleteAuctionAsync(t.Id,null,t.OwnerUserId);Assert.Equal("COMPLETED",state.SessionStatus);Assert.Equal(0,state.TotalSoldPlayersCount);Assert.Empty(db.AuctionLots);
     }
+
+    [Fact]
+    public async Task MultipleIconsCountTowardSquadsAndStayOutOfTheAuctionWithoutPurseDeductions()
+    {
+        var (db, engine, assign, t, first, second, p, _, set) = await Setup(4);
+        using (db)
+        {
+            var assignments = await assign.UpdateAsync(t.Id, first.Id, t.OwnerUserId,
+                new(p[0].Id, IconPlayerIds: [p[1].Id, p[2].Id, p[3].Id]));
+            Assert.Equal(3, assignments.AssignedPlayers.Count(player => player.Role == "ICON"));
+            Assert.Equal(1, assignments.AssignedPlayers.Count(player => player.Role == "CAPTAIN"));
+            Assert.Equal(4, assignments.MaximumSquadSize);
+            await assign.UpdateAsync(t.Id, second.Id, t.OwnerUserId, new(p[4].Id, IconPlayerIds: [p[5].Id, p[6].Id]));
+            t.Settings!.SellAllPlayers = true;
+            await db.SaveChangesAsync();
+            Assert.True((await new TournamentPreflightService(db).RunPreflightAsync(t.Id, t.OwnerUserId)).IsReadyForAuction);
+            t.Status = TournamentStatus.READY;
+            await db.SaveChangesAsync();
+            var state = await engine.StartAuctionAsync(t.Id, t.OwnerUserId);
+            var standing = state.TeamStandings.Single(team => team.TeamId == first.Id);
+            Assert.Equal(4, standing.CurrentSquadSize);
+            Assert.Equal(3000, standing.RemainingPurse);
+            Assert.Equal(0, standing.TotalSpent);
+            Assert.Equal(0, standing.MaxSlotsAvailable);
+            Assert.Equal(1, state.TotalPlayersCount);
+            await engine.StartSetAsync(t.Id, new(set.Id), t.OwnerUserId);
+            var lot = (await engine.RevealNextPlayerAsync(t.Id, t.OwnerUserId)).CurrentLot!;
+            Assert.Equal(p[7].Id, lot.PlayerId);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => engine.SellCurrentPlayerAsync(t.Id, new(lot.LotId, first.Id, 500), t.OwnerUserId));
+            await engine.SellCurrentPlayerAsync(t.Id, new(lot.LotId, second.Id, 500), t.OwnerUserId);
+            await engine.CompleteSetAsync(t.Id, set.Id, t.OwnerUserId);
+            await engine.CompleteAuctionAsync(t.Id, null, t.OwnerUserId);
+            var results = await engine.GetPublicAuctionResultsAsync(t.Slug);
+            Assert.Equal(7, results.Statistics.AssignedPlayers);
+            Assert.Equal(1, results.Statistics.SoldPlayers);
+            Assert.Equal(500, results.Statistics.TotalSpent);
+            Assert.Equal(100, results.Statistics.SalePercentage);
+            Assert.All(results.Players.Where(player => player.AssignedTeamId != null), player => Assert.Null(player.FinalPrice));
+            Assert.Equal(4, results.Statistics.Teams.Single(team => team.Standing.TeamId == first.Id).Positions.Sum(position => position.PlayerCount));
+            Assert.Equal(4, (await new TeamService(db).GetTeamByIdAsync(t.Id, first.Id, t.OwnerUserId))!.AssignedPlayers!.Count);
+            Assert.Single(db.AuctionLots);
+            var clone = await new TournamentService(db).CloneTournamentAsync(t.Id, new("Multi-icon mock"), t.OwnerUserId);
+            var clonedTeam = await db.Teams.SingleAsync(team => team.TournamentId == clone.Id && team.Name == first.Name);
+            Assert.Equal(3, await db.Players.CountAsync(player => player.AssignedTeamId == clonedTeam.Id && player.AssignedRole == "ICON"));
+        }
+    }
+
+    [Fact]
+    public async Task MultipleIconRequestsRejectDuplicateCaptainAndOtherTeamPlayersWithoutChangingAssignments()
+    {
+        var (db, _, assign, t, first, second, p, _, _) = await Setup();
+        using (db)
+        {
+            await assign.UpdateAsync(t.Id, first.Id, t.OwnerUserId, new(p[0].Id, IconPlayerIds: [p[1].Id, p[2].Id]));
+            await Assert.ThrowsAsync<ArgumentException>(() => assign.UpdateAsync(t.Id, first.Id, t.OwnerUserId, new(p[0].Id, IconPlayerIds: [p[1].Id, p[1].Id])));
+            await Assert.ThrowsAsync<ArgumentException>(() => assign.UpdateAsync(t.Id, first.Id, t.OwnerUserId, new(p[0].Id, IconPlayerIds: [p[0].Id, p[2].Id])));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => assign.UpdateAsync(t.Id, second.Id, t.OwnerUserId, new(null, IconPlayerIds: [p[4].Id, p[1].Id])));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => assign.UpdateAsync(t.Id, first.Id, t.OwnerUserId, new(p[0].Id, IconPlayerIds: [p[1].Id, Guid.NewGuid()])));
+            Assert.Equal("CAPTAIN", p[0].AssignedRole);
+            Assert.All(p.Skip(1).Take(2), player => { Assert.Equal(first.Id, player.AssignedTeamId); Assert.Equal("ICON", player.AssignedRole); });
+            Assert.Null(p[4].AssignedTeamId);
+        }
+    }
+
+    [Fact]
+    public async Task MultipleIconsCanBeRemovedAndSwappedWithCaptainOrAssignedWithoutACaptain()
+    {
+        var (db, _, assign, t, first, _, p, _, _) = await Setup();
+        using (db)
+        {
+            await assign.UpdateAsync(t.Id, first.Id, t.OwnerUserId, new(p[0].Id, IconPlayerIds: [p[1].Id, p[2].Id, p[3].Id]));
+            await assign.UpdateAsync(t.Id, first.Id, t.OwnerUserId, new(p[1].Id, IconPlayerIds: [p[0].Id, p[2].Id]));
+            Assert.Equal("CAPTAIN", p[1].AssignedRole);
+            Assert.Equal("ICON", p[0].AssignedRole);
+            Assert.Equal("ICON", p[2].AssignedRole);
+            Assert.Equal("AVAILABLE", p[3].Status);
+            Assert.Null(p[3].AssignedTeamId);
+            await assign.UpdateAsync(t.Id, first.Id, t.OwnerUserId, new(null, IconPlayerIds: [p[0].Id, p[2].Id]));
+            Assert.Equal("AVAILABLE", p[1].Status);
+            await assign.UpdateAsync(t.Id, first.Id, t.OwnerUserId, new(null, IconPlayerIds: []));
+            Assert.All(p.Take(4), player => { Assert.Equal("AVAILABLE", player.Status); Assert.Null(player.AssignedRole); Assert.Null(player.AssignedTeamId); });
+        }
+    }
+
+    [Fact]
+    public async Task MultipleIconsAreLimitedBySquadSizeRatherThanAnIconLimit()
+    {
+        var (db, _, assign, t, first, _, p, _, _) = await Setup();
+        using (db)
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(() => assign.UpdateAsync(t.Id, first.Id, t.OwnerUserId, new(p[0].Id, IconPlayerIds: [p[1].Id, p[2].Id, p[3].Id, p[4].Id])));
+            Assert.All(p, player => Assert.Null(player.AssignedTeamId));
+            await assign.UpdateAsync(t.Id, first.Id, t.OwnerUserId, new(null, IconPlayerIds: [p[0].Id, p[1].Id, p[2].Id, p[3].Id]));
+            Assert.Equal(4, (await assign.GetAsync(t.Id, first.Id, t.OwnerUserId)).AssignedPlayers.Count);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => assign.UpdateAsync(t.Id, first.Id, t.OwnerUserId, new(p[4].Id, IconPlayerIds: [p[0].Id, p[1].Id, p[2].Id, p[3].Id])));
+            Assert.Null(p[4].AssignedTeamId);
+        }
+    }
+
+    [Fact]
+    public async Task LegacyClientsCannotAccidentallyEraseMultipleIcons()
+    {
+        var (db, _, assign, t, first, second, p, _, _) = await Setup();
+        using (db)
+        {
+            await assign.UpdateAsync(t.Id, first.Id, t.OwnerUserId, new(p[0].Id, IconPlayerIds: [p[1].Id, p[2].Id]));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => assign.UpdateAsync(t.Id, first.Id, t.OwnerUserId, new(p[0].Id, p[1].Id)));
+            await Assert.ThrowsAsync<ArgumentException>(() => assign.UpdateAsync(t.Id, first.Id, t.OwnerUserId, new(p[0].Id, p[1].Id, [p[2].Id])));
+            Assert.Equal(3, (await assign.GetAsync(t.Id, first.Id, t.OwnerUserId)).AssignedPlayers.Count);
+            await assign.UpdateAsync(t.Id, second.Id, t.OwnerUserId, new(p[3].Id, p[4].Id));
+            Assert.Equal("ICON", p[4].AssignedRole);
+        }
+    }
 }

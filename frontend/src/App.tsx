@@ -16,6 +16,7 @@ const AuctionRecapPage = lazy(() => import('./features/auction/AuctionRecapPage'
 const AuctionWrappedPage = lazy(() => import('./features/auction/AuctionWrappedPage').then(module => ({ default: module.AuctionWrappedPage })));
 const PlayerRegistrationPage = lazy(() => import('./features/registrations/PlayerRegistrationPage').then(module => ({ default: module.PlayerRegistrationPage })));
 const RegistrationViewerPage = lazy(() => import('./features/registrations/RegistrationViewerPage').then(module => ({ default: module.RegistrationViewerPage })));
+const FanChoicePage = lazy(() => import('./features/fan-choice/FanChoicePage').then(module => ({ default: module.FanChoicePage })));
 
 function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -41,6 +42,7 @@ export function App() {
           <Route path="/live/:slug/projector" element={<ProjectorPage />} />
           <Route path="/live/:slug/recap" element={<AuctionRecapPage publicView />} />
           <Route path="/live/:slug/wrapped" element={<AuctionWrappedPage publicView />} />
+          <Route path="/live/:slug/fan-voting" element={<FanChoicePage />} />
           <Route path="/live/:slug/teams/:teamId" element={<AuctionResultsPage publicView />} />
           <Route path="/tournaments/:id/results" element={<ProtectedRoute><AuctionResultsPage /></ProtectedRoute>} />
           <Route path="/tournaments/:id/recap" element={<ProtectedRoute><AuctionRecapPage /></ProtectedRoute>} />

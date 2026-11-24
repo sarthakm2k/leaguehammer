@@ -11,6 +11,7 @@ export function useAuctionSocket(
   syncState: () => Promise<unknown>,
   onEvent?: (event: string, args: unknown[]) => void,
   onSynchronized?: (recovered: boolean) => void,
+  mode: 'auction' | 'fan-choice' = 'auction',
 ) {
   const [status, setStatus] = useState<AuctionConnectionStatus>('connecting');
   const callbacks = useRef({ syncState, onEvent, onSynchronized });
@@ -68,7 +69,7 @@ export function useAuctionSocket(
       const joinGeneration = ++generation;
       recovering = true;
       setStatus('syncing');
-      await connection.invoke('JoinAuction', tournamentId);
+      await connection.invoke(mode === 'fan-choice' ? 'JoinFanChoice' : 'JoinAuction', tournamentId);
       if (disposed || joinGeneration !== generation || !navigator.onLine || connection.state !== HubConnectionState.Connected) return;
       joined = true;
       await sync();
@@ -94,6 +95,7 @@ export function useAuctionSocket(
     }));
     connection.on('AuctionStateChanged', () => { void sync(); });
     connection.on('TeamUpdated', () => { void sync(); });
+    connection.on('FanChoiceChanged', () => { void sync(); });
     connection.onreconnecting(() => { generation++; recovering = true; joined = false; if (!disposed) setStatus('reconnecting'); });
     connection.onreconnected(() => {
       void joinAndSync().catch(() => { joined = false; void connection.stop(); });
@@ -134,7 +136,7 @@ export function useAuctionSocket(
       // Stopping also removes all group memberships. StrictMode cleanup may happen during start().
       void connection.stop();
     };
-  }, [tournamentId, token]);
+  }, [tournamentId, token, mode]);
 
   return status;
 }
